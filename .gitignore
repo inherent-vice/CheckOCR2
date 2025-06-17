@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyd
+*.so
+.Python/
+.venv/
+env/
+venv/
+pip-log.txt
+pip-delete-this-arg.txt
+.tox/
+.coverage
+.coverage.*
+.ipynb_checkpoints/
+.pytest_cache/
+
+# Logs
+*.log
+
+# Cache and temporary files
+*.tmp
+*.temp
+*.swp
+
+# IDE specific files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# PyInstaller / cx_Freeze
+*.spec
+dist/
+build/
