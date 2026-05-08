@@ -39,8 +39,8 @@ stale comments:
 
 - `customtkinter==5.2.2` is listed but the active app imports only Tkinter.
 - `psutil==5.9.6` is listed but not imported by the active app.
-- Comments say OpenCV was removed, but `opencv-python>=4.7.0` is still present.
-  The active app does not import `cv2`.
+- The direct GUI `opencv-python` dependency has been removed; EasyOCR still
+  requires `opencv-python-headless`, which remains pinned for the `cv2` module.
 - `torch` and `torchvision` are listed as optional but are effectively pulled in
   by EasyOCR packaging. The build spec also collects the full Torch subtree,
   which likely contributes heavily to the large OneDIR package.
@@ -59,7 +59,7 @@ PyPI snapshot checked on 2026-05-08:
 | pandas | `>=1.5.0` | 3.0.2 | Pin after Excel regression tests. |
 | openpyxl | `>=3.0.0` | 3.1.5 | Pin after workbook fixture tests. |
 | Pillow | `>=9.0.0` | 12.2.0 | Pin after image pipeline tests. |
-| opencv-python | `>=4.7.0` | 4.13.0.92 | Remove unless preprocessing is restored. |
+| opencv-python-headless | EasyOCR transitive, pinned | 4.13.0.92 | Keep while EasyOCR remains the default engine. |
 | torch | `>=1.13.0` | 2.11.0 | Manage as OCR runtime dependency. |
 | torchvision | `>=0.14.0` | 0.26.0 | Include only if actually needed. |
 
@@ -121,8 +121,9 @@ Tasks:
   to `.gitignore`, and add migration/load fallback behavior.
 - Create `pyproject.toml` for formatter, test runner, and project metadata.
 - Add `requirements.in` and a generated pinned lock/constraints file.
-- Remove clearly unused dependencies first: `customtkinter`, `psutil`, and
-  `opencv-python` unless a live import or planned feature requires them.
+- Remove clearly unused dependencies first: `customtkinter`, `psutil`, and the
+  direct `opencv-python` package. Keep EasyOCR's `opencv-python-headless`
+  requirement while EasyOCR remains the active OCR engine.
 - Add `tests/` with unit tests for date cleaning, rate cleaning, path cleanup,
   row finalization, and Excel export filename generation.
 - Add a non-GUI smoke command that imports the app module without launching the
@@ -182,7 +183,8 @@ Tasks:
   from a clean package smoke test.
 - Add build metadata: app version, build date, Python version, dependency hash.
 - Add a package smoke script that launches the built EXE, waits for the window
-  title, verifies no startup exception, then exits cleanly.
+  title, verifies OCR Ready smoke mode, audits packaged dependency metadata,
+  then exits cleanly.
 - Track package size over time and fail the build if size jumps unexpectedly.
 
 ## Phase 4: UI And Operator Workflow
@@ -275,6 +277,6 @@ Package latest-version checks used PyPI JSON metadata on 2026-05-08:
 - https://pypi.org/pypi/pandas/json
 - https://pypi.org/pypi/openpyxl/json
 - https://pypi.org/pypi/Pillow/json
-- https://pypi.org/pypi/opencv-python/json
+- https://pypi.org/pypi/opencv-python-headless/json
 - https://pypi.org/pypi/torch/json
 - https://pypi.org/pypi/torchvision/json

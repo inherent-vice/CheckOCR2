@@ -14,10 +14,11 @@ from typing import Any
 from . import __version__
 
 BUILD_METADATA_FILENAME = "build_metadata.json"
+FORBIDDEN_RELEASE_DEPENDENCIES = ("opencv-python", "opencv-contrib-python")
 DIRECT_DEPENDENCIES = (
     "easyocr",
     "numpy",
-    "opencv-python",
+    "opencv-python-headless",
     "openpyxl",
     "pandas",
     "Pillow",
@@ -37,6 +38,29 @@ def _distribution_version(package_name: str) -> str:
 
 def dependency_versions(package_names: tuple[str, ...] = DIRECT_DEPENDENCIES) -> dict[str, str]:
     return {package_name: _distribution_version(package_name) for package_name in package_names}
+
+
+def forbidden_release_dependency_versions(
+    package_names: tuple[str, ...] = FORBIDDEN_RELEASE_DEPENDENCIES,
+) -> dict[str, str]:
+    return {
+        package_name: version
+        for package_name in package_names
+        if (version := _distribution_version(package_name)) != "not-installed"
+    }
+
+
+def validate_release_dependency_environment() -> None:
+    forbidden_dependencies = forbidden_release_dependency_versions()
+    if forbidden_dependencies:
+        formatted = ", ".join(
+            f"{package_name}=={version}" for package_name, version in forbidden_dependencies.items()
+        )
+        raise RuntimeError(
+            "Release package builds require a clean environment without GUI/contrib OpenCV "
+            f"distributions. Found: {formatted}. Build from a fresh venv with "
+            "requirements-build.txt."
+        )
 
 
 def dependency_hash(dependencies: dict[str, str]) -> str:

@@ -28,6 +28,8 @@ DEFAULT_TERMINATE_TIMEOUT_SECONDS = 5.0
 DEFAULT_OCR_READY_TIMEOUT_SECONDS = 20.0
 PACKAGE_SMOKE_FAST_OCR_ENV = "CHECKOCR2_PACKAGE_SMOKE_FAST_OCR"
 PACKAGE_SMOKE_STATUS_FILE_ENV = "CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE"
+REQUIRED_METADATA_DISTRIBUTIONS = ("opencv-python-headless",)
+FORBIDDEN_PACKAGED_DISTRIBUTIONS = ("opencv-python", "opencv-contrib-python")
 SmokeReport = dict[str, Any]
 
 
@@ -344,6 +346,7 @@ def run_package_smoke(
 
         if wait_status == "ok" and window is not None:
             package_metadata = read_packaged_metadata(exe_path)
+            packaged_dependency_audit = audit_packaged_distributions(exe_path)
             report.update(
                 {
                     "status": "ok",
@@ -351,6 +354,7 @@ def run_package_smoke(
                     "window_pid": window.pid,
                     "window_hwnd": window.hwnd,
                     "package_metadata": package_metadata,
+                    "packaged_dependency_audit": packaged_dependency_audit,
                 }
             )
             exit_code = 0
@@ -362,6 +366,19 @@ def run_package_smoke(
                     }
                 )
                 exit_code = 1
+            elif require_package_metadata:
+                dependency_errors = validate_packaged_dependencies(
+                    package_metadata,
+                    packaged_dependency_audit,
+                )
+                if dependency_errors:
+                    report.update(
+                        {
+                            "status": "metadata_dependency_mismatch",
+                            "error": "; ".join(dependency_errors),
+                        }
+                    )
+                    exit_code = 1
             if require_ocr_ready and status_path is not None and exit_code == 0:
                 ready_status, smoke_status, ready_return_code = wait_for_ocr_ready(
                     process,
@@ -444,6 +461,99 @@ def read_packaged_metadata(exe_path: Path) -> dict[str, object] | None:
         if candidate.is_file():
             return json.loads(candidate.read_text(encoding="utf-8"))
     return None
+
+
+def audit_packaged_distributions(exe_path: Path) -> dict[str, object]:
+    package_root = packaged_internal_root(exe_path)
+    distributions = package_distributions(package_root)
+    distribution_names = set(distributions)
+    forbidden_present = sorted(
+        name for name in FORBIDDEN_PACKAGED_DISTRIBUTIONS if name in distribution_names
+    )
+    return {
+        "root": str(package_root),
+        "distributions": distributions,
+        "forbidden_present": forbidden_present,
+    }
+
+
+def packaged_internal_root(exe_path: Path) -> Path:
+    internal_root = exe_path.parent / "_internal"
+    if internal_root.is_dir():
+        return internal_root
+    return exe_path.parent
+
+
+def package_distributions(package_root: Path) -> dict[str, str]:
+    distributions: dict[str, str] = {}
+    for dist_info_dir in sorted(package_root.glob("*.dist-info")):
+        if not dist_info_dir.is_dir():
+            continue
+        distribution_name, distribution_version = read_distribution_metadata(dist_info_dir)
+        distributions[normalize_distribution_name(distribution_name)] = distribution_version
+    return distributions
+
+
+def read_distribution_metadata(dist_info_dir: Path) -> tuple[str, str]:
+    metadata_path = dist_info_dir / "METADATA"
+    distribution_name: str | None = None
+    distribution_version: str | None = None
+    try:
+        for line in metadata_path.read_text(encoding="utf-8", errors="replace").splitlines():
+            key, separator, value = line.partition(":")
+            if not separator:
+                continue
+            normalized_key = key.casefold()
+            if normalized_key == "name":
+                distribution_name = value.strip()
+            elif normalized_key == "version":
+                distribution_version = value.strip()
+            if distribution_name and distribution_version:
+                break
+    except OSError:
+        distribution_name = None
+        distribution_version = None
+
+    fallback_name, fallback_version = parse_dist_info_dir_name(dist_info_dir.name)
+    return distribution_name or fallback_name, distribution_version or fallback_version
+
+
+def parse_dist_info_dir_name(directory_name: str) -> tuple[str, str]:
+    stem = directory_name.removesuffix(".dist-info")
+    name, separator, version = stem.rpartition("-")
+    if not separator:
+        return stem, "unknown"
+    return name, version
+
+
+def normalize_distribution_name(distribution_name: str) -> str:
+    return distribution_name.replace("_", "-").casefold()
+
+
+def validate_packaged_dependencies(
+    package_metadata: dict[str, object],
+    packaged_dependency_audit: dict[str, object],
+) -> list[str]:
+    errors: list[str] = []
+    dependencies = package_metadata.get("dependencies", {})
+    if not isinstance(dependencies, dict):
+        errors.append("build metadata dependencies must be an object")
+        dependencies = {}
+
+    for required_name in REQUIRED_METADATA_DISTRIBUTIONS:
+        version = dependencies.get(required_name)
+        if not isinstance(version, str) or not version or version == "not-installed":
+            errors.append(f"metadata missing required dependency: {required_name}")
+
+    for forbidden_name in FORBIDDEN_PACKAGED_DISTRIBUTIONS:
+        version = dependencies.get(forbidden_name)
+        if isinstance(version, str) and version and version != "not-installed":
+            errors.append(f"metadata contains forbidden dependency: {forbidden_name}")
+
+    for forbidden_name in packaged_dependency_audit.get("forbidden_present", []):
+        errors.append(f"package contains forbidden distribution: {forbidden_name}")
+
+    return errors
 
 
 def directory_size_bytes(path: Path) -> int:

@@ -59,10 +59,13 @@ def touch_exe(tmp_path: Path) -> Path:
     return exe_path
 
 
-def write_metadata_for_exe(exe_path: Path) -> dict[str, str]:
+def write_metadata_for_exe(exe_path: Path) -> dict[str, object]:
     metadata = {
         "app_version": "6.1.0",
         "build_date": "2026-05-08T00:00:00+00:00",
+        "dependencies": {
+            "opencv-python-headless": "4.10.0.84",
+        },
         "python_version": "3.12.6",
         "dependency_hash": "abc123",
     }
@@ -70,6 +73,17 @@ def write_metadata_for_exe(exe_path: Path) -> dict[str, str]:
     metadata_path.parent.mkdir(parents=True)
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
     return metadata
+
+
+def write_dist_info_for_exe(exe_path: Path, package_name: str, version: str = "4.10.0.84") -> Path:
+    dist_dir_name = f"{package_name.replace('-', '_')}-{version}.dist-info"
+    dist_info_path = exe_path.parent / "_internal" / dist_dir_name
+    dist_info_path.mkdir(parents=True, exist_ok=True)
+    dist_info_path.joinpath("METADATA").write_text(
+        f"Name: {package_name}\nVersion: {version}\n",
+        encoding="utf-8",
+    )
+    return dist_info_path
 
 
 def test_find_matching_window_filters_to_launched_process():
@@ -134,6 +148,117 @@ def test_run_package_smoke_can_require_packaged_metadata(tmp_path):
     assert exit_code == 1
     assert report["status"] == "metadata_missing"
     assert report["package_metadata"] is None
+
+
+def test_run_package_smoke_requires_headless_opencv_metadata(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    write_metadata_for_exe(exe_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["packaged_dependency_audit"]["forbidden_present"] == []
+
+
+def test_run_package_smoke_rejects_gui_opencv_distribution(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    write_metadata_for_exe(exe_path)
+    write_dist_info_for_exe(exe_path, "opencv-python-headless")
+    write_dist_info_for_exe(exe_path, "opencv-python")
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_dependency_mismatch"
+    assert "package contains forbidden distribution: opencv-python" in report["error"]
+    assert report["packaged_dependency_audit"]["forbidden_present"] == ["opencv-python"]
+
+
+def test_run_package_smoke_rejects_contrib_opencv_distribution(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    write_metadata_for_exe(exe_path)
+    write_dist_info_for_exe(exe_path, "opencv-contrib-python")
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_dependency_mismatch"
+    assert "package contains forbidden distribution: opencv-contrib-python" in report["error"]
+    assert report["packaged_dependency_audit"]["forbidden_present"] == ["opencv-contrib-python"]
+
+
+def test_run_package_smoke_rejects_missing_headless_opencv_metadata(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    metadata = write_metadata_for_exe(exe_path)
+    metadata["dependencies"] = {"opencv-python-headless": "not-installed"}
+    metadata_path = exe_path.parent / "_internal" / "checkocr2" / "build_metadata.json"
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_dependency_mismatch"
+    assert "metadata missing required dependency: opencv-python-headless" in report["error"]
+
+
+def test_run_package_smoke_rejects_gui_opencv_metadata(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    metadata = write_metadata_for_exe(exe_path)
+    metadata["dependencies"]["opencv-python"] = "4.10.0.84"
+    metadata_path = exe_path.parent / "_internal" / "checkocr2" / "build_metadata.json"
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_dependency_mismatch"
+    assert "metadata contains forbidden dependency: opencv-python" in report["error"]
 
 
 def test_run_package_smoke_can_require_ocr_ready_status(tmp_path):

@@ -9,12 +9,13 @@ import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
-from checkocr2.build_metadata import write_build_metadata
+from checkocr2.build_metadata import validate_release_dependency_environment, write_build_metadata
 
 # 현재 디렉토리
 block_cipher = None
 app_name = "CheckCaptureOCR_V6.1"
 main_script = "check_capture_ocr.py"
+validate_release_dependency_environment()
 build_metadata_path = os.path.join("build", "generated", "build_metadata.json")
 write_build_metadata(build_metadata_path)
 

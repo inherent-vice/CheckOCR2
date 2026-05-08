@@ -31,7 +31,7 @@ For narrower installs:
 - `requirements-build.txt`: runtime plus PyInstaller.
 - `requirements-dev.txt`: build dependencies plus pytest and ruff.
 - `constraints.txt`: pinned direct dependency versions from the verified Windows
-  environment.
+  environment, including EasyOCR's required `opencv-python-headless` package.
 
 Runtime settings are stored outside the repo at
 `%APPDATA%\CheckOCR2\settings.json`. Keep `settings.example.json` as the
@@ -45,7 +45,9 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
-python -m PyInstaller build_app.spec --noconfirm
+python -m venv .analysis_tmp\package_venv
+$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
+$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready
 ```
 

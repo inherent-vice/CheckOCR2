@@ -34,6 +34,14 @@ Date: 2026-05-08
   optional date/rate confidence thresholds and run-report confidence fields.
 - Split dependency entry files into runtime, build, and dev layers with direct
   dependency pins in `constraints.txt`.
+- Removed the direct GUI `opencv-python` runtime dependency; EasyOCR's required
+  `opencv-python-headless` remains pinned in `constraints.txt`.
+- Extended package smoke metadata checks to reject packaged `opencv-python` or
+  `opencv-contrib-python` dist-info when a headless-only OpenCV package is
+  expected.
+- Added a release-build preflight that stops PyInstaller builds from
+  contaminated environments where GUI/contrib OpenCV distributions are
+  installed.
 - Added packaged build metadata with app version, build date, Python version,
   direct dependency versions, and dependency hash.
 - Added explicit package-smoke OCR readiness mode so the packaged EXE can prove
@@ -65,7 +73,9 @@ python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
-python -m PyInstaller build_app.spec --noconfirm
+python -m venv .analysis_tmp\package_venv
+$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
+$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready
 ```
 
@@ -76,7 +86,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 62 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 78 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -84,12 +94,13 @@ Latest verification on 2026-05-08:
 - `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
-- `python -m PyInstaller build_app.spec --noconfirm`: build completed.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready`: passed with package size `1868.403 MB`, metadata, and `Ready` state in the report.
+- Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed.
+- Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready`: passed with package size `596.345 MB`, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
 
-Known build warnings: PyInstaller still reports optional `tensorboard` collection
-failure for `torch.utils.tensorboard` and missing `tbb12.dll` for a numba TBB
-pool dependency. These warnings did not block the packaged GUI smoke.
+Known build warnings: PyInstaller still reports optional `tensorboard`
+collection failure for `torch.utils.tensorboard`; the clean release venv keeps
+that warning non-blocking while package smoke remains green.
 
 ## Remaining Evidence Gates
 

@@ -61,8 +61,11 @@ test or a manual verification note.
   legacy tuple dispatch remains at the Tk controller edge.
 - Still open: broad exception handlers remain around GUI, file, OCR, and export
   boundaries.
-- Partially mitigated: dependency files and build metadata are split, but
-  PyInstaller hidden imports and OCR-related dependency size still need
+- Partially mitigated: dependency files and build metadata are split, and the
+  direct GUI OpenCV dependency was replaced by EasyOCR's required headless
+  OpenCV pin. Release-build preflight rejects contaminated GUI/contrib OpenCV
+  environments, and package smoke now rejects packaged GUI/contrib OpenCV
+  dist-info. PyInstaller hidden imports and OCR-related package size still need
   package-smoke-backed cleanup.
 
 ## Target Architecture
@@ -286,7 +289,7 @@ Tasks:
 
 Validation:
 
-- `python -m PyInstaller build_app.spec`
+- `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`
 - `dist/CheckCaptureOCR_V6.1/CheckCaptureOCR_V6.1.exe` launches.
 - Window title, icon, settings load, and clean exit verified.
 - Package size and startup time recorded.
