@@ -49,13 +49,17 @@ Date: 2026-05-08
 - Extracted low-risk UI panels into `checkocr2/ui/panels/file_panel.py` and
   `checkocr2/ui/panels/log_panel.py` while keeping the main GUI controller
   behavior intact.
+- Extracted legacy Tk queue dispatch into `checkocr2/ui/queue_dispatcher.py`
+  with unit coverage for log, dialog, OCR-ready, grid, stopped, and final-export
+  events.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
 - Added pytest coverage for settings migration, path helpers, Excel I/O, table
   behavior, OCR text parsing, async OCR init, runtime state, OCR engine adapter,
-  screen automation, worker helper, workflow behavior, run reports, benchmark
-  safety, benchmark matrix behavior, and package smoke logic.
+  screen automation, worker helper, workflow behavior, queue dispatch, run
+  reports, benchmark safety, benchmark matrix behavior, and package smoke
+  logic.
 - Added direct coverage that OCR start is rejected while OCR is still loading
   and that a mixed success/KBP-skip/capture-failure 3-row workflow preserves
   event order and finalization counts.
@@ -86,7 +90,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 78 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 82 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -94,6 +98,8 @@ Latest verification on 2026-05-08:
 - `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
+- Source GUI fast-OCR smoke passed after queue-dispatch extraction; the Tk app
+  wrote package-smoke status with `runtime_state="Ready"` and `ocr_ready=true`.
 - Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready`: passed with package size `596.345 MB`, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.

@@ -1,6 +1,5 @@
 import copy
 import json
-import logging
 import os
 import platform  # OS 정보 확인용
 import queue
@@ -48,6 +47,7 @@ from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
 from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
+from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
     CapturedImages,
@@ -1180,18 +1180,18 @@ class CheckCaptureOCRApp(tk.Tk):
                 ico_path = "eye_ocr_02_scanline.ico"
             elif os.path.exists("app_icon.ico"):
                 ico_path = "app_icon.ico"
-            
+
             if ico_path:
                 self.iconbitmap(ico_path)
                 print(f"ICO 아이콘 설정 완료: {ico_path}")
-            
+
             # PNG 파일 설정 (작업표시줄 및 추가 지원용)
             png_path = None
             if os.path.exists("eye_ocr_02_scanline.png"):
                 png_path = "eye_ocr_02_scanline.png"
             elif os.path.exists("app_icon.png"):
                 png_path = "app_icon.png"
-            
+
             if png_path:
                 try:
                     from PIL import Image, ImageTk
@@ -1200,28 +1200,28 @@ class CheckCaptureOCRApp(tk.Tk):
                     # 다양한 크기로 아이콘 설정 (16x16, 32x32, 48x48)
                     icon_sizes = [16, 32, 48]
                     photo_images = []
-                    
+
                     for size in icon_sizes:
                         resized_image = pil_image.resize((size, size), Image.Resampling.LANCZOS)
                         photo_image = ImageTk.PhotoImage(resized_image)
                         photo_images.append(photo_image)
-                    
+
                     # PhotoImage 객체들을 인스턴스 변수로 저장 (가비지 컬렉션 방지)
                     self._icon_photos = photo_images
-                    
+
                     # 가장 큰 크기 아이콘을 기본으로 설정
                     if photo_images:
                         self.iconphoto(True, *photo_images)  # True는 모든 창에 적용
                         print(f"PNG 아이콘 설정 완료: {png_path} ({len(photo_images)}개 크기)")
-                
+
                 except ImportError:
                     print("PIL 라이브러리를 찾을 수 없어 PNG 아이콘 설정을 건너뜁니다.")
                 except Exception as e:
                     print(f"PNG 아이콘 설정 중 오류: {e}")
-            
+
             if not ico_path and not png_path:
                 print("아이콘 파일을 찾을 수 없습니다.")
-                
+
         except Exception as e:
             print(f"아이콘 설정 중 전체 오류: {e}")
 
@@ -1249,59 +1249,8 @@ class CheckCaptureOCRApp(tk.Tk):
             self.run_ocr_process()
 
     def check_queue(self):
-        try:
-            while True:
-                msg_type, *data = self.message_queue.get_nowait()
-                if msg_type == "log":
-                    if len(data) >= 2:
-                        message, level_str = data[0], data[1]
-                        level = getattr(logging, level_str.upper(), logging.INFO)
-                        self.logger.log(level, message)
-                    else:
-                        message = data[0] if data else "알 수 없는 로그 메시지"
-                        self.logger.info(message)
-                elif msg_type == "log_display":
-                    level_name, formatted_message = data[0], data[1]
-                    self._update_log_text_widget(formatted_message, level_name)
-                elif msg_type == "error_messagebox":
-                    title, message = data[0], data[1]
-                    messagebox.showerror(title, message)
-                elif msg_type == "ocr_ready":
-                    ready = bool(data[0]) if data else False
-                    self.ocr_initializing = False
-                    if ready:
-                        self._set_runtime_state(RuntimeState.READY)
-                        self.message_queue.put(("log", "OCR 엔진 준비 완료", "INFO"))
-                    else:
-                        self._set_runtime_state(RuntimeState.ERROR)
-                elif msg_type == "complete":
-                   # 이 메시지는 주로 UI 상태를 완료 상태로 변경하는 데 사용
-                   # summary_message는 finalize_export 메시지에서 사용됨
-                    # data가 비어있을 경우를 대비하여 안전하게 처리
-                    summary_message = data[0] if data else ""
-                    self._on_work_complete_ui_only(summary_message);
-                elif msg_type == "stopped":
-                    # stopped 메시지를 받으면 중단 UI 처리
-                    self._on_work_stopped();
-                elif msg_type == "grid_update":
-                    # 그리드 업데이트 메시지를 받으면 데이터 업데이트 및 UI 새로고침
-                    self._handle_grid_update(data[0]);
-                # 새로운 메시지 타입 처리 핸들러 추가
-                # 최종 완료 처리를 메인 스레드에서 수행
-                elif msg_type == "finalize_export_and_complete":
-                    # finalize_export_and_complete 메시지를 메인 스레드에서 받으면 최종 처리 함수 호출
-                    # data가 올바른 형식인지 확인 (output_dir_str, input_excel_path, processed_count, total_items)
-                    if len(data) == 4:
-                        output_dir, input_path, processed_count, total_items = data[0], data[1], data[2], data[3]
-                        # 메인 스레드에서 요약 메시지 생성 후 최종 처리 함수 호출
-                        summary = self._generate_ocr_summary_internal(processed_count, total_items) # <-- 메인 스레드에서 요약 생성
-                        self._finalize_export_and_complete(output_dir, input_path, summary) # <-- 수정된 최종 처리 함수 호출
-                    else:
-                        self.logger.error(f"잘못된 finalize_export_and_complete 메시지 형식: {data}");
-
-        except queue.Empty: pass
-        # 워크플로우 스레드가 실행 중일 때는 큐 체크 간격을 줄여 빠르게 메시지 처리
-        check_interval = 50 if self.work_controller.is_running else 100
+        process_legacy_message_queue(self, show_error=messagebox.showerror)
+        check_interval = queue_check_interval(self.work_controller.is_running)
         self.after(check_interval, self.check_queue)
 
     def _update_log_text_widget(self, message, level_name="INFO"):

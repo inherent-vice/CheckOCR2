@@ -42,9 +42,9 @@ test or a manual verification note.
 
 ## Main Risks And Current Status
 
-- Still open: `check_capture_ocr.py` owns most GUI construction, queue
-  handling, worker lifecycle, dialogs, and release-compatible controller
-  behavior. Low-risk panels are being extracted incrementally.
+- Still open: `check_capture_ocr.py` owns most GUI construction, worker
+  lifecycle, dialogs, and release-compatible controller behavior. Low-risk
+  panels and legacy queue dispatch are being extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
 - Still open: OCR workflow is sequential and uses fixed wait times. Current
