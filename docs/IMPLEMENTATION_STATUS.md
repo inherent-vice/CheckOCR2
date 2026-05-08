@@ -53,6 +53,7 @@ Date: 2026-05-08
   `checkocr2/ui/panels/coordinates_panel.py`,
   `checkocr2/ui/panels/timing_panel.py`,
   `checkocr2/ui/panels/options_panel.py`, and
+  `checkocr2/ui/panels/preset_panel.py`, plus
   `checkocr2/ui/panels/log_panel.py` while keeping the main GUI controller
   behavior intact.
 - Extracted legacy Tk queue dispatch into `checkocr2/ui/queue_dispatcher.py`
@@ -96,7 +97,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 90 passed after package-smoke real mode and options-panel extraction.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 91 passed after package-smoke real mode and preset-panel extraction.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -106,7 +107,7 @@ Latest verification on 2026-05-08:
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - Source GUI fast-OCR smoke passed after queue-dispatch extraction; the Tk app
   wrote package-smoke status with `runtime_state="Ready"` and `ocr_ready=true`.
-- Source GUI fast-OCR smoke passed after options-panel extraction; the Tk
+- Source GUI fast-OCR smoke passed after preset-panel extraction; the Tk
   app opened `📊 Check Capture OCR V6.1` and wrote
   `runtime_state="Ready"` with `ocr_ready=true`.
 - Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after PyInstaller hidden-import cleanup.

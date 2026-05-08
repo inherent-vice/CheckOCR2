@@ -49,6 +49,7 @@ from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
 from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
 from checkocr2.ui.panels.options_panel import create_options_panel
+from checkocr2.ui.panels.preset_panel import create_preset_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.worker import start_daemon_worker
@@ -1410,55 +1411,7 @@ class CheckCaptureOCRApp(tk.Tk):
         create_options_panel(self, parent)
 
     def _create_preset_section(self, parent):
-        section = self._create_section_frame_styled(parent, "💾 프리셋 관리", fill_parent=True)
-        common_font = ('Segoe UI', 9)
-        btn_font = ('Segoe UI', 9)
-        btn_width = 6
-        btn_height = 1
-
-        preset_load_frame = tk.Frame(section)
-        self.theme_manager.register_widget(preset_load_frame, {'bg': 'white'})
-        preset_load_frame.pack(fill='x', pady=(0, 8))
-        preset_lbl = tk.Label(preset_load_frame, text="저장된 프리셋:", font=(common_font[0], common_font[1], 'bold'))
-        self.theme_manager.register_widget(preset_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        preset_lbl.pack(anchor='w', pady=(0,2))
-
-        preset_control_frame = tk.Frame(preset_load_frame)
-        self.theme_manager.register_widget(preset_control_frame, {'bg': 'white'})
-        preset_control_frame.pack(fill='x')
-
-        self.preset_combo = ttk.Combobox(preset_control_frame, state="readonly", font=common_font, style="TCombobox")
-        self.preset_combo.pack(side='left', fill='x', expand=True, padx=(0, 5))
-
-        apply_preset_btn = tk.Button(preset_control_frame, text="적용", command=self.apply_selected_preset, font=btn_font, relief='flat', cursor='hand2', width=btn_width, height=btn_height, pady=0)
-        self.theme_manager.register_widget(apply_preset_btn, {'bg': 'success', 'fg': 'white', 'activebackground':'dark'})
-        apply_preset_btn.pack(side='right', padx=(0, 5))
-
-        delete_preset_btn = tk.Button(preset_control_frame, text="삭제", command=self.delete_selected_preset, font=btn_font, relief='flat', cursor='hand2', width=btn_width, height=btn_height, pady=0)
-        self.theme_manager.register_widget(delete_preset_btn, {'bg': 'danger', 'fg': 'white', 'activebackground':'dark'})
-        delete_preset_btn.pack(side='right')
-
-        preset_save_frame = tk.Frame(section)
-        self.theme_manager.register_widget(preset_save_frame, {'bg': 'white'})
-        preset_save_frame.pack(fill='x', pady=(15, 0))
-        save_preset_lbl = tk.Label(preset_save_frame, text="새 프리셋 저장:", font=(common_font[0], common_font[1], 'bold'))
-        self.theme_manager.register_widget(save_preset_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        save_preset_lbl.pack(anchor='w', pady=(0,2))
-
-        save_control_frame = tk.Frame(preset_save_frame)
-        self.theme_manager.register_widget(save_control_frame, {'bg': 'white'})
-        save_control_frame.pack(fill='x')
-
-        self.preset_name_entry = tk.Entry(save_control_frame, font=common_font, relief='solid', bd=1)
-        self.theme_manager.register_widget(self.preset_name_entry, {'bg': 'white', 'fg': 'on_surface'})
-        self.preset_name_entry.pack(side='left', fill='x', expand=True, padx=(0, 5))
-        self.preset_name_entry.insert(0, "새 프리셋 이름")
-
-        save_preset_btn = tk.Button(save_control_frame, text="저장", command=self.save_current_as_preset, font=btn_font, relief='flat', cursor='hand2', width=btn_width, height=btn_height, pady=0)
-        self.theme_manager.register_widget(save_preset_btn, {'bg': 'accent', 'fg': 'white', 'activebackground':'dark'})
-        save_preset_btn.pack(side='right')
-
-        self.update_preset_combo()
+        create_preset_panel(self, parent)
 
     def _create_center_excel_grid(self, parent):
         grid_section = self._create_section_frame_styled(parent, "📊 Excel 데이터 그리드", fill_parent=True)

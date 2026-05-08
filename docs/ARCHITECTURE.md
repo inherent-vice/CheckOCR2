@@ -42,6 +42,8 @@ working.
 - `checkocr2/ui/panels/timing_panel.py`: paste/load delay panel builder.
 - `checkocr2/ui/panels/options_panel.py`: detailed image, KBP skip, and OCR
   upscaling option panel builder.
+- `checkocr2/ui/panels/preset_panel.py`: preset load/apply/delete/save panel
+  builder.
 - `checkocr2/ui/panels/log_panel.py`: right-side log panel builder.
 
 ## Runtime Flow
