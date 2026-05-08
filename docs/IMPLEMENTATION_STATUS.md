@@ -49,9 +49,10 @@ Date: 2026-05-08
   kept to targeted hidden imports plus PyInstaller's own Torch hooks.
 - Added explicit package-smoke OCR readiness modes: `fast` for startup smoke
   without model loading and `real` for packaged EasyOCR reader initialization.
-- Extracted low-risk UI panels into `checkocr2/ui/panels/file_panel.py` and
-  `checkocr2/ui/panels/log_panel.py` plus timing controls in
-  `checkocr2/ui/panels/timing_panel.py` while keeping the main GUI controller
+- Extracted low-risk UI panels into `checkocr2/ui/panels/file_panel.py`,
+  `checkocr2/ui/panels/coordinates_panel.py`,
+  `checkocr2/ui/panels/timing_panel.py`, and
+  `checkocr2/ui/panels/log_panel.py` while keeping the main GUI controller
   behavior intact.
 - Extracted legacy Tk queue dispatch into `checkocr2/ui/queue_dispatcher.py`
   with unit coverage for log, dialog, OCR-ready, grid, stopped, and final-export
@@ -94,7 +95,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 87 passed before package-smoke real mode was added; rerun after that change passed with 88 tests.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 89 passed after package-smoke real mode and coordinates-panel extraction.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -104,6 +105,9 @@ Latest verification on 2026-05-08:
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - Source GUI fast-OCR smoke passed after queue-dispatch extraction; the Tk app
   wrote package-smoke status with `runtime_state="Ready"` and `ocr_ready=true`.
+- Source GUI fast-OCR smoke passed after coordinates-panel extraction; the Tk
+  app opened `📊 Check Capture OCR V6.1` and wrote
+  `runtime_state="Ready"` with `ocr_ready=true`.
 - Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after PyInstaller hidden-import cleanup.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.

@@ -45,6 +45,7 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
 from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
@@ -1399,41 +1400,7 @@ class CheckCaptureOCRApp(tk.Tk):
         create_file_panel(self, parent)
 
     def _create_coordinates_section(self, parent):
-        section = self._create_section_frame_styled(parent, "🎯 좌표 및 영역 설정")
-        common_font = ('Segoe UI', 9)
-        btn_font = ('Segoe UI', 9)
-        btn_height = 1 # 좌표 버튼 높이
-
-        # 2x2 그리드를 위한 컨테이너 프레임 생성
-        grid_container = tk.Frame(section)
-        self.theme_manager.register_widget(grid_container, {'bg': 'white'})
-        grid_container.pack(fill='x', pady=(0, 5))
-
-        # 그리드 설정
-        grid_container.grid_columnconfigure(0, weight=1)
-        grid_container.grid_columnconfigure(1, weight=1)
-
-        # 버튼 생성 및 2x2 그리드에 배치
-        click_btn = tk.Button(grid_container, text="🎯 클릭 포인트", command=self.relocate_clickpoint, font=btn_font, relief='flat', cursor='hand2', height=btn_height, pady=0)
-        self.theme_manager.register_widget(click_btn, {'bg': 'accent', 'fg': 'white', 'activebackground':'dark'})
-        click_btn.grid(row=0, column=0, sticky='nsew', padx=(0, 2), pady=(0, 2))
-
-        all_area_btn = tk.Button(grid_container, text="🔍 전체 영역", command=self.relocate_allarea, font=btn_font, relief='flat', cursor='hand2', height=btn_height, pady=0)
-        self.theme_manager.register_widget(all_area_btn, {'bg': 'primary', 'fg': 'white', 'activebackground':'dark'})
-        all_area_btn.grid(row=0, column=1, sticky='nsew', padx=(2, 0), pady=(0, 2))
-
-        date_area_btn = tk.Button(grid_container, text="🔍 날짜 영역", command=self.relocate_datearea, font=btn_font, relief='flat', cursor='hand2', height=btn_height, pady=0)
-        self.theme_manager.register_widget(date_area_btn, {'bg': 'success', 'fg': 'white', 'activebackground':'dark'})
-        date_area_btn.grid(row=1, column=0, sticky='nsew', padx=(0, 2), pady=(2, 0))
-
-        rate_area_btn = tk.Button(grid_container, text="🔍 금리 영역", command=self.relocate_ratearea, font=btn_font, relief='flat', cursor='hand2', height=btn_height, pady=0)
-        self.theme_manager.register_widget(rate_area_btn, {'bg': 'warning', 'fg': 'white', 'activebackground':'dark'})
-        rate_area_btn.grid(row=1, column=1, sticky='nsew', padx=(2, 0), pady=(2, 0))
-
-        # 미리보기 버튼은 그리드 아래에 배치
-        preview_all_btn = tk.Button(section, text="🔍 전체 영역 미리보기", command=self.show_area_preview, font=(common_font[0], common_font[1], 'bold'), relief='flat', cursor='hand2', pady=4)
-        self.theme_manager.register_widget(preview_all_btn, {'bg': 'warning', 'fg': 'white', 'activebackground':'dark'})
-        preview_all_btn.pack(fill='x', pady=(8, 0))
+        create_coordinates_panel(self, parent)
 
     def _create_timing_section(self, parent):
         create_timing_panel(self, parent)

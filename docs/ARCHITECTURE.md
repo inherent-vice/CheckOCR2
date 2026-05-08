@@ -37,6 +37,8 @@ working.
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
 - `checkocr2/ui/panels/file_panel.py`: left-side Excel input and output-folder
   panel builder.
+- `checkocr2/ui/panels/coordinates_panel.py`: capture coordinate and area
+  selection panel builder.
 - `checkocr2/ui/panels/timing_panel.py`: paste/load delay panel builder.
 - `checkocr2/ui/panels/log_panel.py`: right-side log panel builder.
 
