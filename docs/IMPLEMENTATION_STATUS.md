@@ -61,6 +61,8 @@ Date: 2026-05-08
   events.
 - Extracted the top toolbar into `checkocr2/ui/toolbar.py` with coverage for
   OCR start/stop buttons and theme selection.
+- Extracted the menu bar into `checkocr2/ui/menu.py` with coverage for command
+  labels, accelerators, and callback wiring.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -99,7 +101,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 93 passed after package-smoke real mode and toolbar extraction.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 94 passed after package-smoke real mode and menu extraction.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -109,7 +111,7 @@ Latest verification on 2026-05-08:
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - Source GUI fast-OCR smoke passed after queue-dispatch extraction; the Tk app
   wrote package-smoke status with `runtime_state="Ready"` and `ocr_ready=true`.
-- Source GUI fast-OCR smoke passed after toolbar extraction; the Tk
+- Source GUI fast-OCR smoke passed after menu extraction; the Tk
   app opened `📊 Check Capture OCR V6.1` and wrote
   `runtime_state="Ready"` with `ocr_ready=true`.
 - Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after PyInstaller hidden-import cleanup.

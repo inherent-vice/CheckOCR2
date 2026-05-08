@@ -45,6 +45,7 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.ui.menu import create_menu
 from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
 from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.grid_panel import create_grid_panel
@@ -1309,42 +1310,7 @@ class CheckCaptureOCRApp(tk.Tk):
             self.logger.addHandler(tkinter_handler)
 
     def _create_menu(self):
-        menubar = tk.Menu(self)
-        self.config(menu=menubar)
-        # ... (메뉴 생성 코드는 기존과 유사하게 유지, 필요시 테마 적용)
-        # 파일 메뉴
-        file_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="파일", menu=file_menu)
-        file_menu.add_command(label="Excel 파일 로드 (Ctrl+O)", command=self.load_excel_to_grid, accelerator="Ctrl+O")
-        file_menu.add_command(label="Excel 파일 선택", command=self.browse_input_excel)
-        file_menu.add_command(label="출력 폴더 선택", command=self.browse_output_folder)
-        file_menu.add_command(label="출력 폴더 열기", command=self.open_output_folder) # 출력 폴더 열기 메뉴 항목 추가
-        file_menu.add_separator()
-        file_menu.add_command(label="종료 (Alt+F4)", command=self.quit_app, accelerator="Alt+F4")
-
-        # 설정 메뉴
-        settings_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="설정", menu=settings_menu)
-        settings_menu.add_command(label="현재 설정 저장 (Ctrl+S)", command=self.quick_save_settings, accelerator="Ctrl+S")
-        settings_menu.add_command(label="마지막 설정 불러오기 (Ctrl+L)", command=self.load_last_settings, accelerator="Ctrl+L")
-        settings_menu.add_separator()
-
-        # 미리보기 메뉴
-        preview_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="미리보기", menu=preview_menu)
-        preview_menu.add_command(label="전체 영역 미리보기", command=self.show_area_preview)
-
-        # 실행 메뉴
-        run_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="실행", menu=run_menu)
-        run_menu.add_command(label="OCR 시작/중단 (F5)", command=self.handle_f5_key, accelerator="F5")
-        run_menu.add_command(label="처리 중단 (Esc)", command=self.stop_processing_ui_initiated, accelerator="Esc")
-
-        # 도움말 메뉴
-        help_menu = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="도움말", menu=help_menu)
-        help_menu.add_command(label="키보드 단축키 (F1)", command=self.show_shortcuts, accelerator="F1")
-        help_menu.add_command(label="프로그램 정보", command=self.show_about)
+        create_menu(self)
 
 
     def _create_simple_toolbar(self):
