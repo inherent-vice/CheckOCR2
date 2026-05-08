@@ -45,7 +45,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python -m PyInstaller build_app.spec --noconfirm
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready
 ```
 
 Run GUI smoke checks through all three Python entry points after touching
@@ -75,7 +75,8 @@ errors. Use it before changing OCR settings or fixed wait times.
 Packaged builds include `checkocr2/build_metadata.json` with the app version,
 build date, Python version, direct dependency versions, and dependency hash.
 The package smoke script reports startup elapsed time, package size, and this
-metadata when present.
+metadata when present. With `--require-ocr-ready`, it runs an explicit smoke
+mode that bypasses real model loading and verifies the GUI reaches `Ready`.
 
 ## Current Evidence Gates
 

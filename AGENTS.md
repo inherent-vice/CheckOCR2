@@ -16,7 +16,7 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 - `python -m compileall check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: quick syntax check before committing.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: validate the OCR benchmark harness while fixtures are being built.
 - `python -m PyInstaller build_app.spec`: build the OneDIR Windows package under `dist/CheckCaptureOCR_V6.1/`.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata`: smoke-test the packaged EXE and verify packaged build metadata.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready`: smoke-test the packaged EXE, metadata, and GUI Ready state.
 
 ## Coding Style & Naming Conventions
 

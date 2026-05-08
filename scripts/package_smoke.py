@@ -10,9 +10,12 @@ from __future__ import annotations
 import argparse
 import ctypes
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import time
+import uuid
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +25,9 @@ DEFAULT_TITLE_FRAGMENT = "Check Capture OCR"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_POLL_INTERVAL_SECONDS = 0.5
 DEFAULT_TERMINATE_TIMEOUT_SECONDS = 5.0
+DEFAULT_OCR_READY_TIMEOUT_SECONDS = 20.0
+PACKAGE_SMOKE_FAST_OCR_ENV = "CHECKOCR2_PACKAGE_SMOKE_FAST_OCR"
+PACKAGE_SMOKE_STATUS_FILE_ENV = "CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE"
 SmokeReport = dict[str, Any]
 
 
@@ -89,6 +95,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--require-package-metadata",
         action="store_true",
         help="Fail unless packaged build_metadata.json is present and readable",
+    )
+    parser.add_argument(
+        "--require-ocr-ready",
+        action="store_true",
+        help="Run in explicit package-smoke OCR mode and wait for GUI Ready state",
+    )
+    parser.add_argument(
+        "--ocr-ready-timeout",
+        type=positive_float,
+        default=DEFAULT_OCR_READY_TIMEOUT_SECONDS,
+        help="Seconds to wait for package-smoke OCR Ready status",
     )
     return parser.parse_args(argv)
 
@@ -177,6 +194,36 @@ def wait_for_window(
         sleep(min(poll_interval_seconds, deadline - now))
 
 
+def wait_for_ocr_ready(
+    process: SmokeProcess,
+    status_path: Path,
+    timeout_seconds: float,
+    poll_interval_seconds: float,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> tuple[str, dict[str, Any] | None, int | None]:
+    deadline = clock() + timeout_seconds
+    last_status: dict[str, Any] | None = None
+    while True:
+        if status_path.is_file():
+            try:
+                last_status = json.loads(status_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                last_status = None
+            if last_status and last_status.get("runtime_state") == "Ready" and last_status.get("ocr_ready") is True:
+                return "ok", last_status, None
+
+        return_code = process.poll()
+        if return_code is not None:
+            return "process_exited", last_status, return_code
+
+        now = clock()
+        if now >= deadline:
+            return "timeout", last_status, None
+
+        sleep(min(poll_interval_seconds, deadline - now))
+
+
 def launch_exe(exe_path: Path) -> SmokeProcess:
     return subprocess.Popen(
         [str(exe_path)],
@@ -240,6 +287,8 @@ def run_package_smoke(
     poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
     terminate_timeout_seconds: float = DEFAULT_TERMINATE_TIMEOUT_SECONDS,
     require_package_metadata: bool = False,
+    require_ocr_ready: bool = False,
+    ocr_ready_timeout_seconds: float = DEFAULT_OCR_READY_TIMEOUT_SECONDS,
     process_launcher: ProcessLauncher = launch_exe,
     list_windows: WindowLister = iter_window_titles,
     sleep: Callable[[float], None] = time.sleep,
@@ -274,10 +323,13 @@ def run_package_smoke(
         "title_fragment": title_fragment,
         "timeout_seconds": timeout_seconds,
         "package_size_mb": round(directory_size_bytes(exe_path.parent) / (1024 * 1024), 3),
+        "ocr_ready_required": require_ocr_ready,
     }
+    status_path: Path | None = None
 
     try:
-        process = process_launcher(exe_path)
+        with TemporarySmokeEnvironment(require_ocr_ready=require_ocr_ready) as status_path:
+            process = process_launcher(exe_path)
         report["pid"] = process.pid
         wait_status, window, process_return_code = wait_for_window(
             process,
@@ -310,6 +362,35 @@ def run_package_smoke(
                     }
                 )
                 exit_code = 1
+            if require_ocr_ready and status_path is not None and exit_code == 0:
+                ready_status, smoke_status, ready_return_code = wait_for_ocr_ready(
+                    process,
+                    status_path,
+                    ocr_ready_timeout_seconds,
+                    poll_interval_seconds,
+                    sleep=sleep,
+                    clock=clock,
+                )
+                report["ocr_ready_status"] = smoke_status
+                if ready_status == "ok" and smoke_status is not None:
+                    report["ocr_ready"] = True
+                elif ready_status == "process_exited":
+                    report.update(
+                        {
+                            "status": "ocr_ready_process_exited",
+                            "process_exit_code": ready_return_code,
+                            "error": "Process exited before OCR Ready status was reported",
+                        }
+                    )
+                    exit_code = 1
+                else:
+                    report.update(
+                        {
+                            "status": "ocr_ready_timeout",
+                            "error": "Timed out waiting for OCR Ready status",
+                        }
+                    )
+                    exit_code = 1
         elif wait_status == "process_exited":
             report.update(
                 {
@@ -375,6 +456,36 @@ def directory_size_bytes(path: Path) -> int:
     return total
 
 
+def smoke_status_path() -> Path:
+    return Path(tempfile.gettempdir()) / f"checkocr2-package-smoke-{uuid.uuid4().hex}.json"
+
+
+class TemporarySmokeEnvironment:
+    def __init__(self, *, require_ocr_ready: bool):
+        self.require_ocr_ready = require_ocr_ready
+        self.status_path = smoke_status_path() if require_ocr_ready else None
+        self.previous: dict[str, str | None] = {}
+
+    def __enter__(self) -> Path | None:
+        if not self.require_ocr_ready or self.status_path is None:
+            return None
+        updates = {
+            PACKAGE_SMOKE_FAST_OCR_ENV: "1",
+            PACKAGE_SMOKE_STATUS_FILE_ENV: str(self.status_path),
+        }
+        for key, value in updates.items():
+            self.previous[key] = os.environ.get(key)
+            os.environ[key] = value
+        return self.status_path
+
+    def __exit__(self, *_exc_info: object) -> None:
+        for key, previous_value in self.previous.items():
+            if previous_value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = previous_value
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     exit_code, report = run_package_smoke(
@@ -384,6 +495,8 @@ def main(argv: list[str] | None = None) -> int:
         poll_interval_seconds=args.poll_interval,
         terminate_timeout_seconds=args.terminate_timeout,
         require_package_metadata=args.require_package_metadata,
+        require_ocr_ready=args.require_ocr_ready,
+        ocr_ready_timeout_seconds=args.ocr_ready_timeout,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

@@ -48,6 +48,11 @@ The GUI initializes first, then EasyOCR loads asynchronously. OCR start remains
 disabled until the reader is ready. This keeps startup responsive even when
 model loading is slow.
 
+Package smoke tests can set `CHECKOCR2_PACKAGE_SMOKE_FAST_OCR=1` and
+`CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE=<path>` to verify the packaged GUI reaches
+`Ready` without loading real OCR models. These environment variables are for
+smoke automation only and are not part of the normal operator workflow.
+
 ## UI Runtime States
 
 The GUI uses `RuntimeState` to keep the start/stop buttons predictable:

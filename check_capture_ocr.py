@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import os
 import platform  # OS 정보 확인용
@@ -7,6 +8,7 @@ import subprocess
 import threading
 import tkinter as tk
 from datetime import datetime
+from pathlib import Path
 from time import perf_counter
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
@@ -49,6 +51,9 @@ from checkocr2.workflow import (
 from checkocr2.workflow import (
     finalize_processing_states as finalize_workflow_processing_states,
 )
+
+PACKAGE_SMOKE_FAST_OCR_ENV = "CHECKOCR2_PACKAGE_SMOKE_FAST_OCR"
+PACKAGE_SMOKE_STATUS_FILE_ENV = "CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE"
 
 
 ############################################
@@ -1063,6 +1068,11 @@ class CheckCaptureOCRApp(tk.Tk):
         self.ocr_initializing = True
         self._set_runtime_state(RuntimeState.OCR_LOADING)
 
+        if os.environ.get(PACKAGE_SMOKE_FAST_OCR_ENV) == "1":
+            self.ocr_workflow_manager.ocr_reader = object()
+            self.message_queue.put(("ocr_ready", True))
+            return
+
         def initialize():
             self.ocr_workflow_manager.initialize_ocr()
             self.message_queue.put(("ocr_ready", self.ocr_workflow_manager.ocr_reader is not None))
@@ -1074,16 +1084,37 @@ class CheckCaptureOCRApp(tk.Tk):
         self.runtime_state = state
         ui_state = runtime_state_ui(state)
         if not hasattr(self, "run_btn") or not self.run_btn:
+            self._write_package_smoke_status()
             return
         self.run_btn.config(state=ui_state.run_button_state, text=ui_state.run_button_text)
         if hasattr(self, "stop_btn") and self.stop_btn:
             self.stop_btn.config(state=ui_state.stop_button_state)
+        self._write_package_smoke_status()
 
     def _set_ocr_ready_ui(self, ready):
         self._set_runtime_state(RuntimeState.READY if ready else RuntimeState.OCR_LOADING)
 
     def _ready_or_error_state(self):
         return RuntimeState.READY if self.ocr_workflow_manager.ocr_reader else RuntimeState.ERROR
+
+    def _write_package_smoke_status(self):
+        status_file = os.environ.get(PACKAGE_SMOKE_STATUS_FILE_ENV)
+        if not status_file:
+            return
+
+        try:
+            payload = {
+                "runtime_state": self.runtime_state.value,
+                "ocr_ready": bool(self.ocr_workflow_manager.ocr_reader),
+                "settings_file": getattr(self.settings_manager, "settings_file", None),
+                "written_at": datetime.now().isoformat(),
+            }
+            path = Path(status_file)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+        except OSError as exc:
+            if hasattr(self, "logger"):
+                self.logger.debug("Package smoke status write failed: %s", exc)
 
     def _setup_application_icon(self):
         """애플리케이션 아이콘을 창과 작업표시줄에 모두 설정"""

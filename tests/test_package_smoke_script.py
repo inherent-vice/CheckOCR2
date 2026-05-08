@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -133,6 +134,61 @@ def test_run_package_smoke_can_require_packaged_metadata(tmp_path):
     assert exit_code == 1
     assert report["status"] == "metadata_missing"
     assert report["package_metadata"] is None
+
+
+def test_run_package_smoke_can_require_ocr_ready_status(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    def launch(_path: Path) -> FakeProcess:
+        assert os.environ[package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV] == "1"
+        status_path = Path(os.environ[package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV])
+        status_path.write_text(
+            json.dumps({"runtime_state": "Ready", "ocr_ready": True}),
+            encoding="utf-8",
+        )
+        return process
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_ocr_ready=True,
+        process_launcher=launch,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["ocr_ready_required"] is True
+    assert report["ocr_ready"] is True
+    assert report["ocr_ready_status"]["runtime_state"] == "Ready"
+    assert package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV not in os.environ
+    assert package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV not in os.environ
+
+
+def test_run_package_smoke_reports_ocr_ready_timeout(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+    clock = FakeClock([0.0, 0.0, 0.0, 0.0, 2.0])
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_ocr_ready=True,
+        ocr_ready_timeout_seconds=1.0,
+        poll_interval_seconds=0.1,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+        clock=clock,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "ocr_ready_timeout"
+    assert report["error"] == "Timed out waiting for OCR Ready status"
 
 
 def test_run_package_smoke_times_out_and_terminates(tmp_path):
