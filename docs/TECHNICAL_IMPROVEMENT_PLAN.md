@@ -184,7 +184,7 @@ Tasks:
 - Add build metadata: app version, build date, Python version, dependency hash.
 - Add a package smoke script that launches the built EXE, waits for the window
   title, verifies OCR Ready smoke mode, audits packaged dependency metadata,
-  then exits cleanly.
+  enforces the package size budget, then exits cleanly.
 - Track package size over time and fail the build if size jumps unexpectedly.
 
 ## Phase 4: UI And Operator Workflow

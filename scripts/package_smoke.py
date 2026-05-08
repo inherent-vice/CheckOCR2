@@ -109,6 +109,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_OCR_READY_TIMEOUT_SECONDS,
         help="Seconds to wait for package-smoke OCR Ready status",
     )
+    parser.add_argument(
+        "--max-package-size-mb",
+        type=positive_float,
+        default=None,
+        help="Fail if the packaged directory is larger than this size in MB",
+    )
     return parser.parse_args(argv)
 
 
@@ -291,6 +297,7 @@ def run_package_smoke(
     require_package_metadata: bool = False,
     require_ocr_ready: bool = False,
     ocr_ready_timeout_seconds: float = DEFAULT_OCR_READY_TIMEOUT_SECONDS,
+    max_package_size_mb: float | None = None,
     process_launcher: ProcessLauncher = launch_exe,
     list_windows: WindowLister = iter_window_titles,
     sleep: Callable[[float], None] = time.sleep,
@@ -325,6 +332,7 @@ def run_package_smoke(
         "title_fragment": title_fragment,
         "timeout_seconds": timeout_seconds,
         "package_size_mb": round(directory_size_bytes(exe_path.parent) / (1024 * 1024), 3),
+        "max_package_size_mb": max_package_size_mb,
         "ocr_ready_required": require_ocr_ready,
     }
     status_path: Path | None = None
@@ -379,6 +387,21 @@ def run_package_smoke(
                         }
                     )
                     exit_code = 1
+            if (
+                max_package_size_mb is not None
+                and float(report["package_size_mb"]) > max_package_size_mb
+                and exit_code == 0
+            ):
+                report.update(
+                    {
+                        "status": "package_size_exceeded",
+                        "error": (
+                            f"Package size {report['package_size_mb']} MB exceeds "
+                            f"budget {max_package_size_mb} MB"
+                        ),
+                    }
+                )
+                exit_code = 1
             if require_ocr_ready and status_path is not None and exit_code == 0:
                 ready_status, smoke_status, ready_return_code = wait_for_ocr_ready(
                     process,
@@ -607,6 +630,7 @@ def main(argv: list[str] | None = None) -> int:
         require_package_metadata=args.require_package_metadata,
         require_ocr_ready=args.require_ocr_ready,
         ocr_ready_timeout_seconds=args.ocr_ready_timeout,
+        max_package_size_mb=args.max_package_size_mb,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

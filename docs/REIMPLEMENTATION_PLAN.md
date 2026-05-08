@@ -292,7 +292,8 @@ Validation:
 - `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`
 - `dist/CheckCaptureOCR_V6.1/CheckCaptureOCR_V6.1.exe` launches.
 - Window title, icon, settings load, and clean exit verified.
-- Package size and startup time recorded.
+- Package size and startup time recorded, and package smoke enforces the
+  approved package size budget.
 
 ## Test Strategy
 

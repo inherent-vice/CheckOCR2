@@ -131,6 +131,46 @@ def test_run_package_smoke_reports_ok_and_terminates(tmp_path):
     assert not process.killed
 
 
+def test_run_package_smoke_accepts_package_size_within_budget(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        max_package_size_mb=1.0,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["max_package_size_mb"] == 1.0
+
+
+def test_run_package_smoke_reports_package_size_exceeded(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    exe_path.parent.joinpath("large.bin").write_bytes(b"0" * (2 * 1024 * 1024))
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        max_package_size_mb=1.0,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "package_size_exceeded"
+    assert report["package_size_mb"] > 1.0
+    assert "exceeds budget 1.0 MB" in report["error"]
+
+
 def test_run_package_smoke_can_require_packaged_metadata(tmp_path):
     exe_path = touch_exe(tmp_path)
     process = FakeProcess(pid=100)
