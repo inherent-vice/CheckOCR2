@@ -33,7 +33,9 @@ CheckOCR2 is a comprehensive OCR (Optical Character Recognition) desktop applica
 ### Theme Management (`ThemeManager`)
 - Modern UI theming system with multiple color schemes
 - Dynamic theme switching without application restart
-- Widget registration system for consistent styling### Work Controller (`WorkController`)
+- Widget registration system for consistent styling
+
+### Work Controller (`WorkController`)
 - Controls the execution flow of OCR processing tasks
 - Thread-safe start/stop mechanisms with proper cleanup
 - Status tracking and progress reporting
@@ -73,15 +75,20 @@ CheckOCR2 is a comprehensive OCR (Optical Character Recognition) desktop applica
 - Comprehensive exception handling throughout the application
 - User-friendly error messages with technical details in logs
 - Graceful degradation when components fail
-- Recovery mechanisms for common error scenarios## File Structure
+- Recovery mechanisms for common error scenarios
+
+## File Structure
 ```
 CheckOCR2/
-├── Check_Capture_Excel_V6.1_배포.py    # Main application file
+├── check_capture_ocr.py                # Canonical application implementation
+├── Check_Capture_Excel_V6.1_배포.py    # Compatibility launcher for old shortcuts
+├── build_app.spec                      # Primary PyInstaller OneDIR recipe
+├── CheckCaptureOCR_V6.spec             # Simpler PyInstaller recipe
 ├── DEPLOYMENT_GUIDE.md                 # Deployment instructions
-├── docs/                               # Documentation directory
-│   ├── PROJECT_OVERVIEW.md            # This file
-│   └── IMPROVEMENT_SUGGESTIONS.md     # Improvement recommendations
-└── [Additional files and dependencies]
+├── docs/                               # Project documentation
+├── legacy/                             # Historical V4/V5/V6 snapshots
+├── tools/                              # Development utilities, such as icon builders
+└── app_icon*, eye_ocr_*                # Runtime icon assets
 ```
 
 ## Dependencies

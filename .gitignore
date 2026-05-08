@@ -30,6 +30,5 @@ pip-delete-this-arg.txt
 .DS_Store
 
 # PyInstaller / cx_Freeze
-*.spec
 dist/
 build/

@@ -52,6 +52,18 @@ CheckCaptureOCR_V6.1.exe
 
 ---
 
+## 🛠️ 소스 빌드 기준
+
+- 현재 기준 구현 파일: `check_capture_ocr.py`
+- 기존 최종 배포 파일명 호환 실행기: `Check_Capture_Excel_V6.1_배포.py`
+- 빌드 명령:
+```cmd
+python -m PyInstaller build_app.spec
+```
+- 출력 위치: `dist\CheckCaptureOCR_V6.1\`
+
+---
+
 ## ✅ 포함된 의존성들
 
 ### 📦 핵심 라이브러리
