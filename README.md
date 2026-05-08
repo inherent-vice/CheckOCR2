@@ -44,6 +44,7 @@ python -m ruff check .
 python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
+python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
 python -m PyInstaller build_app.spec --noconfirm
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready
 ```
@@ -59,7 +60,7 @@ startup, settings, threading, or Tkinter UI state.
   runtime UI state.
 - `tests/`: pytest characterization and unit tests with fakes for OCR, screen
   automation, and Tk-facing behavior.
-- `scripts/`: benchmark and packaged-EXE smoke tools.
+- `scripts/`: OCR benchmark, benchmark-matrix, and packaged-EXE smoke tools.
 - `docs/`: architecture, reimplementation, GUI parity, run report, and benchmark
   documentation.
 - `legacy/`: historical versions kept for reference only.
@@ -77,6 +78,11 @@ build date, Python version, direct dependency versions, and dependency hash.
 The package smoke script reports startup elapsed time, package size, and this
 metadata when present. With `--require-ocr-ready`, it runs an explicit smoke
 mode that bypasses real model loading and verifies the GUI reaches `Ready`.
+
+Use `scripts\benchmark_ocr_matrix.py` after fixture creation to sweep OCR
+upscale factors, interpolation methods, and EasyOCR detail modes against the
+same ground-truth set. The matrix report compares every candidate with the
+first combination as the baseline.
 
 ## Current Evidence Gates
 

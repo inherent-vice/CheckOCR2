@@ -25,6 +25,8 @@ Date: 2026-05-08
 - Stopped saving full-area screenshots unless detailed image saving is enabled.
 - Added benchmark and package-smoke scripts:
   `scripts/benchmark_ocr.py` and `scripts/package_smoke.py`.
+- Added `scripts/benchmark_ocr_matrix.py` to run preprocessing/detail
+  combinations and summarize candidate regressions against a fixed baseline.
 - Split dependency entry files into runtime, build, and dev layers with direct
   dependency pins in `constraints.txt`.
 - Added packaged build metadata with app version, build date, Python version,
@@ -39,7 +41,7 @@ Date: 2026-05-08
 - Added pytest coverage for settings migration, path helpers, Excel I/O, table
   behavior, OCR text parsing, async OCR init, runtime state, OCR engine adapter,
   screen automation, worker helper, workflow behavior, run reports, benchmark
-  safety, and package smoke logic.
+  safety, benchmark matrix behavior, and package smoke logic.
 - Added direct coverage that OCR start is rejected while OCR is still loading
   and that a mixed success/KBP-skip/capture-failure 3-row workflow preserves
   event order and finalization counts.
@@ -55,6 +57,7 @@ python -m ruff check .
 python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
+python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
 python -m PyInstaller build_app.spec --noconfirm
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready
 ```
@@ -66,9 +69,10 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 59 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 62 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
+- `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - `python -m PyInstaller build_app.spec --noconfirm`: build completed.

@@ -56,12 +56,13 @@ the package bootstrap and remains available for existing shortcuts.
 - `docs/REIMPLEMENTATION_PLAN.md`: phased modernization roadmap.
 - `docs/IMPLEMENTATION_STATUS.md`: completed work and remaining gates.
 - `docs/GUI_PARITY_CHECKLIST.md`: manual parity checklist before UI changes.
-- `docs/OCR_BENCHMARK_PLAN.md`: fixture and benchmark plan.
+- `docs/OCR_BENCHMARK_PLAN.md`: fixture, benchmark, and matrix-sweep plan.
 - `docs/RUN_REPORT.md`: JSON report schema and usage.
 
 ## Known Constraints
 
-- OCR tuning requires real crop fixtures and a same-input live comparison.
+- OCR tuning requires real crop fixtures, matrix benchmark evidence, and a
+  same-input live comparison.
 - Desktop automation depends on screen coordinates and the external target app.
 - Tests should fake OCR and screen automation unless running an explicit smoke.
 - Personal settings, screenshots, production workbooks, and benchmark crops must

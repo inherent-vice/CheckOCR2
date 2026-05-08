@@ -1,0 +1,166 @@
+"""Run OCR benchmark combinations and summarize baseline regressions."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from argparse import Namespace
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.benchmark_ocr import run_benchmark, validate_output_path  # noqa: E402
+
+DEFAULT_FACTORS = "1.0,1.5,2.0,2.5,3.0"
+DEFAULT_METHODS = "BILINEAR,BICUBIC,LANCZOS"
+DEFAULT_DETAILS = "0,1"
+
+
+def parse_csv_floats(value: str) -> list[float]:
+    parsed = [float(part.strip()) for part in value.split(",") if part.strip()]
+    if not parsed:
+        raise argparse.ArgumentTypeError("at least one float is required")
+    return parsed
+
+
+def parse_csv_ints(value: str) -> list[int]:
+    parsed = [int(part.strip()) for part in value.split(",") if part.strip()]
+    if not parsed:
+        raise argparse.ArgumentTypeError("at least one int is required")
+    invalid = [item for item in parsed if item not in {0, 1}]
+    if invalid:
+        raise argparse.ArgumentTypeError("details must be 0 or 1")
+    return parsed
+
+
+def parse_csv_strings(value: str) -> list[str]:
+    parsed = [part.strip().upper() for part in value.split(",") if part.strip()]
+    if not parsed:
+        raise argparse.ArgumentTypeError("at least one value is required")
+    return parsed
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--fixture-csv", type=Path, default=Path("tests/fixtures/ocr_crops/ground_truth.csv"))
+    parser.add_argument("--output-json", type=Path, default=Path(".analysis_tmp/ocr_benchmark_matrix.json"))
+    parser.add_argument("--allow-repo-output", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--allow-empty-fixture", action="store_true")
+    parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--upscale-factors", type=parse_csv_floats, default=parse_csv_floats(DEFAULT_FACTORS))
+    parser.add_argument("--upscale-methods", type=parse_csv_strings, default=parse_csv_strings(DEFAULT_METHODS))
+    parser.add_argument("--details", type=parse_csv_ints, default=parse_csv_ints(DEFAULT_DETAILS))
+    return parser.parse_args(argv)
+
+
+def candidate_key(report: dict[str, Any]) -> str:
+    settings = report.get("settings", {})
+    return (
+        f"detail={settings.get('detail')};"
+        f"factor={settings.get('upscale_factor')};"
+        f"method={settings.get('upscale_method')}"
+    )
+
+
+def summarize_report(report: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "key": candidate_key(report),
+        "status": report.get("status"),
+        "settings": report.get("settings", {}),
+        "total_cases": report.get("total_cases", 0),
+        "evaluated_cases": report.get("evaluated_cases", 0),
+        "exact_accuracy": report.get("exact_accuracy"),
+        "blank_count": report.get("blank_count"),
+        "false_positive_count": report.get("false_positive_count"),
+        "p95_latency_ms": report.get("p95_latency_ms"),
+    }
+
+
+def compare_to_baseline(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[str, bool | None]:
+    if candidate.get("status") != "ok" or baseline.get("status") != "ok":
+        return {
+            "accuracy_not_regressed": None,
+            "blank_not_increased": None,
+            "false_positive_not_increased": None,
+            "p95_latency_not_increased": None,
+        }
+    return {
+        "accuracy_not_regressed": candidate["exact_accuracy"] >= baseline["exact_accuracy"],
+        "blank_not_increased": candidate["blank_count"] <= baseline["blank_count"],
+        "false_positive_not_increased": candidate["false_positive_count"] <= baseline["false_positive_count"],
+        "p95_latency_not_increased": candidate["p95_latency_ms"] <= baseline["p95_latency_ms"],
+    }
+
+
+def benchmark_args(base_args: argparse.Namespace, *, factor: float, method: str, detail: int) -> Namespace:
+    return Namespace(
+        fixture_csv=base_args.fixture_csv,
+        limit=base_args.limit,
+        allow_empty_fixture=base_args.allow_empty_fixture,
+        dry_run=base_args.dry_run,
+        gpu=base_args.gpu,
+        detail=detail,
+        upscale_factor=factor,
+        upscale_method=method,
+    )
+
+
+def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
+    reports: list[dict[str, Any]] = []
+    summaries: list[dict[str, Any]] = []
+    baseline_summary: dict[str, Any] | None = None
+
+    for detail in args.details:
+        for factor in args.upscale_factors:
+            for method in args.upscale_methods:
+                report = run_benchmark(benchmark_args(args, factor=factor, method=method, detail=detail))
+                summary = summarize_report(report)
+                reports.append(report)
+                summaries.append(summary)
+                if baseline_summary is None:
+                    baseline_summary = summary
+
+    baseline_summary = baseline_summary or {}
+    comparisons = [
+        {
+            "key": summary["key"],
+            "against_baseline": compare_to_baseline(summary, baseline_summary),
+        }
+        for summary in summaries
+    ]
+    return {
+        "fixture_csv": str(args.fixture_csv),
+        "dry_run": args.dry_run,
+        "total_candidates": len(summaries),
+        "baseline": baseline_summary,
+        "candidates": summaries,
+        "comparisons": comparisons,
+        "reports": reports,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    try:
+        validate_output_path(args.output_json, args.allow_repo_output)
+        report = run_matrix(args)
+        args.output_json.parent.mkdir(parents=True, exist_ok=True)
+        args.output_json.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        print(json.dumps({"status": "ok", "output_json": str(args.output_json)}, ensure_ascii=False))
+        return 0
+    except (FileNotFoundError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
