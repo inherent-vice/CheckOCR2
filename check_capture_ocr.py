@@ -53,6 +53,7 @@ from checkocr2.ui.panels.options_panel import create_options_panel
 from checkocr2.ui.panels.preset_panel import create_preset_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
+from checkocr2.ui.toolbar import create_simple_toolbar
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
     CapturedImages,
@@ -1347,43 +1348,7 @@ class CheckCaptureOCRApp(tk.Tk):
 
 
     def _create_simple_toolbar(self):
-        toolbar = tk.Frame(self, height=35)
-        self.theme_manager.register_widget(toolbar, {'bg': 'primary'})
-        toolbar.grid(row=0, column=0, sticky='ew', padx=0, pady=0)
-        toolbar.pack_propagate(False)
-        
-        title_lbl = tk.Label(toolbar, text="📊 Check Capture OCR V6.1", font=('Segoe UI', 11, 'bold'))
-        self.theme_manager.register_widget(title_lbl, {'bg': 'primary', 'fg': 'white'})
-        title_lbl.pack(side='left', padx=8, pady=6)
-        
-        # 컨트롤 프레임을 중앙에 배치하기 위해 별도의 컨테이너 사용
-        center_controls_container = tk.Frame(toolbar)
-        self.theme_manager.register_widget(center_controls_container, {'bg': 'primary'})
-        center_controls_container.pack(side='left', expand=True, fill='none') # 중앙 정렬 및 확장 방지
-
-        controls_frame = tk.Frame(center_controls_container)
-        self.theme_manager.register_widget(controls_frame, {'bg': 'primary'})
-        controls_frame.pack(side='top', anchor='center') # 컨트롤을 컨테이너 내 중앙에 배치
-        
-        self.run_btn = tk.Button(controls_frame, text="🚀 OCR 시작 (F5)", command=self.run_ocr_process, font=('Segoe UI', 11, 'bold'), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(self.run_btn, {'bg': 'success', 'fg': 'white', 'activebackground':'dark', 'activeforeground':'white'})
-        self.run_btn.pack(side='left', padx=(0, 5))
-        
-        self.stop_btn = tk.Button(controls_frame, text="⏹️ 중단", command=self.stop_processing_ui_initiated, font=('Segoe UI', 11, 'bold'), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(self.stop_btn, {'bg': 'danger', 'fg': 'white', 'activebackground':'dark', 'activeforeground':'white'})
-        self.stop_btn.pack(side='left', padx=(0, 15))
-        
-        theme_lbl = tk.Label(toolbar, text="", font=('Segoe UI', 9))
-        self.theme_manager.register_widget(theme_lbl, {'bg': 'primary', 'fg': 'white'})
-        theme_lbl.pack(side='right', padx=(0, 3)) # 테마 레이블 우측 정렬
-        
-        self.theme_combo = ttk.Combobox(toolbar, textvariable=self.theme_var, width=12, state="readonly", font=('Segoe UI', 8), style="TCombobox")
-        self.theme_combo['values'] = [theme['name'] for theme in self.theme_manager.available_themes.values()]
-        self.theme_combo.set(self.theme_manager.available_themes[self.theme_manager.current_theme_key]['name'])
-        self.theme_combo.pack(side='right', padx=(0, 8)) # 테마 콤보박스 우측 정렬
-        self.theme_combo.bind('<<ComboboxSelected>>', lambda e: self.theme_manager.change_theme(
-            next(key for key, theme_val in self.theme_manager.available_themes.items() if theme_val['name'] == self.theme_var.get())
-        ))
+        create_simple_toolbar(self)
 
     def _create_left_panel_content(self, parent):
         scrollable_frame = tk.Frame(parent)

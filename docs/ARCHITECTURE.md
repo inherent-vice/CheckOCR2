@@ -33,6 +33,8 @@ working.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/runtime_state.py`: explicit GUI runtime state to button-state map.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
+- `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and
+  theme selection.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
 - `checkocr2/ui/panels/file_panel.py`: left-side Excel input and output-folder
