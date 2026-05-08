@@ -17,9 +17,15 @@ Date: 2026-05-08
   ready.
 - Added `scripts/benchmark_ocr.py` and `docs/OCR_BENCHMARK_PLAN.md` for
   repeatable OCR accuracy and latency benchmarking.
+- Added `scripts/package_smoke.py` for repeatable packaged-EXE window checks.
+- Added package bootstrap modules: `checkocr2/main.py`, `checkocr2/app.py`,
+  `checkocr2/logging_config.py`, and `checkocr2/worker.py`.
+- Added a Tk-free `checkocr2/workflow.py` seam and routed the existing GUI OCR
+  row loop through it while reusing the current capture/OCR methods.
 - Added pytest characterization/unit tests for settings migration, path helpers,
   Excel import/export, table behavior, OCR text parsing, async OCR init, OCR
-  engine adapter, screen automation adapter, and benchmark safety checks.
+  engine adapter, screen automation adapter, worker thread helper, workflow
+  behavior, package smoke, and benchmark safety checks.
 
 ## Verification
 
@@ -30,9 +36,10 @@ Date: 2026-05-08
 - Launched `python check_capture_ocr.py` and confirmed the `📊 Check Capture OCR V6.1`
   window was responsive.
 - Launched `python Check_Capture_Excel_V6.1_배포.py` and confirmed the same window.
+- Launched `python -m checkocr2.main` and confirmed the same window.
 - Built with `python -m PyInstaller build_app.spec --noconfirm`.
-- Launched `dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe` and confirmed the
-  packaged window was responsive.
+- Ran `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45`
+  and confirmed `status: ok` for the packaged window.
 
 ## Remaining Evidence Gates
 
@@ -40,5 +47,4 @@ Date: 2026-05-08
   changing OCR engine, confidence, or timing defaults.
 - Run a live 10-row OCR comparison on the same input before reducing fixed wait
   times.
-- Continue extracting `workflow.py` and UI panels only after the current tests
-  are kept green.
+- Continue extracting UI panels only after the current tests are kept green.

@@ -5,13 +5,7 @@ Keep this file so existing shortcuts and operator notes that launch the Korean
 release filename continue to work.
 """
 
-from check_capture_ocr import CheckCaptureOCRApp
-
-
-def main():
-    app = CheckCaptureOCRApp()
-    app.protocol("WM_DELETE_WINDOW", app.quit_app)
-    app.mainloop()
+from checkocr2.main import main
 
 
 if __name__ == "__main__":

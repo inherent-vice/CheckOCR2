@@ -15,6 +15,7 @@ from PIL import Image
 from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import SettingsError
 from checkocr2.image_processing import upscale_image
+from checkocr2.logging_config import TkinterLogHandler, setup_logging
 from checkocr2.ocr_engine import create_easyocr_reader, read_ocr_text
 from checkocr2.ocr_text import (
     clean_date_text,
@@ -27,47 +28,9 @@ from checkocr2.paths import sanitize_filename, updated_workbook_path
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.worker import start_daemon_worker
+from checkocr2.workflow import CapturedImages, OcrResult, WorkflowOptions, WorkflowRunner
 
-
-############################################
-# 로깅 설정
-############################################
-class TkinterLogHandler(logging.Handler):
-    """커스텀 로깅 핸들러: 로그 메시지를 Tkinter Text 위젯으로 전달"""
-    def __init__(self, text_widget, message_queue):
-        super().__init__()
-        self.text_widget = text_widget
-        self.message_queue = message_queue
-        self.formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
-
-    def emit(self, record):
-        if not self.text_widget or not self.text_widget.winfo_exists():
-            return # 위젯이 없거나 파괴된 경우 무시
-
-        msg = self.format(record)
-        # 메인 스레드에서 UI 업데이트를 안전하게 하기 위해 큐 사용
-        self.message_queue.put(("log_display", record.levelname, msg))
-
-def setup_logging(log_queue):
-    """로깅 기본 설정 및 Tkinter 핸들러 추가"""
-    logger = logging.getLogger("OCRApp") # 고유 로거 이름 사용
-    logger.handlers = [] # 기존 핸들러 초기화 (중복 로깅 방지)
-    logger.setLevel(logging.INFO) # 로거 레벨 설정
-
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-    # 파일 핸들러
-    file_handler = logging.FileHandler('ocr_app.log', encoding='utf-8')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-
-    # 콘솔 핸들러 (디버깅용)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
-
-    # Tkinter 핸들러는 App 클래스 내에서 text_widget이 생성된 후 추가
-    return logger
 
 ############################################
 # 통합 설정 관리 시스템
@@ -551,81 +514,49 @@ class OCRWorkflowManager:
 
             os.makedirs(save_folder, exist_ok=True)
 
-            total_items = len(self.data_manager.excel_data)
-            processed_count = 0
-
-            for grid_index, row_data in enumerate(self.data_manager.excel_data):
-                if self.work_controller.is_stopped:
-                    self.message_queue.put(("log", "사용자가 처리를 중단했습니다.", "INFO"))
-                    self.message_queue.put(("stopped", None)) # 중단 시 Stopped 메시지 보냄
-                    return # 루프 중단 및 함수 종료
-
-                stock_code = str(row_data.get('종목코드', '')).strip()
-                stock_name = str(row_data.get('종목명', '')).strip()
-                # current_item_text = f"{stock_code} ({stock_name})" if stock_code or stock_name else f"행 {grid_index+1}" # ProgressTracker 제거로 인해 주석 처리
-                
-                self.data_manager.current_processing_index = grid_index
-                self.message_queue.put(("grid_update", ("processing", grid_index)))
-                # self.message_queue.put(("progress", (grid_index + 1, total_items, f"처리 중: {current_item_text}", current_item_text))) # ProgressTracker 관련 메시지 제거
-
-                skip_kbp = self.settings_manager.get_advanced('skip_kbp_code', True)
-                if skip_kbp and stock_code.lower().startswith('kbp'):
-                    self.message_queue.put(("log", f"[{stock_code}] 'kbp'로 시작하는 종목코드, 설정에 따라 건너뛰고 완료 처리.", "INFO"))
-                    self.data_manager.excel_data[grid_index]['날짜'] = ''
-                    self.data_manager.excel_data[grid_index]['금리'] = ''
-                    self.message_queue.put(("grid_update", ("complete", grid_index, '', '', "완료")))
-                    processed_count += 1
-                    continue
-
-                if not stock_code:
-                    self.message_queue.put(("log", f"행 {grid_index+1}: 종목코드가 없어 건너뜁니다.", "WARNING"))
-                    self.message_queue.put(("grid_update", ("error", grid_index, "종목코드 없음")))
-                    continue
-
-                self.work_controller.skip_current = False
-                try:
+            class TkAutomationAdapter:
+                def capture(_adapter_self, row, context):
                     date_img_src, rate_img_src = self._capture_screenshots_internal(
-                        stock_code, save_folder, coords, paste_d, load_d, save_detail_images_bool
+                        row.code, save_folder, coords, paste_d, load_d, save_detail_images_bool
                     )
-                    if self.work_controller.skip_current:
-                        self.message_queue.put(("log", f"종목 {stock_code}를 사용자 요청으로 건너뜁니다.", "INFO"))
-                        self.message_queue.put(("grid_update", ("error", grid_index, "건너뜀")))
-                        continue
                     if date_img_src is None or rate_img_src is None:
-                        # 캡처 실패 시 중단 상태가 아니면 오류 처리 후 계속 진행
-                        if not self.work_controller.is_stopped:
-                            self.message_queue.put(("grid_update", ("error", grid_index, "캡처 실패")))
-                        continue # 다음 항목으로 넘어감
+                        return None
+                    return CapturedImages(date_img_src, rate_img_src)
 
-                    date_result, rate_result = self._process_single_ocr_internal(date_img_src, rate_img_src, save_detail_images_bool)
-                    
-                    status_msg = "완료"
-                    self.message_queue.put(("grid_update", ("complete", grid_index, date_result, rate_result, status_msg)))
-                    self.message_queue.put(("log", f"[{stock_code}] {status_msg} - 날짜: '{date_result}', 금리: '{rate_result}'", "SUCCESS" if status_msg == "완료" else "INFO"))
-                    if status_msg == "완료": processed_count += 1
+            class EasyOcrAdapter:
+                def read(_adapter_self, images, row, context):
+                    date_result, rate_result = self._process_single_ocr_internal(
+                        images.date_image,
+                        images.rate_image,
+                        save_detail_images_bool,
+                    )
+                    return OcrResult(date_result, rate_result)
 
-                except Exception as e_item:
-                    self.message_queue.put(("log", f"종목 {stock_code} 처리 중 오류: {e_item}", "ERROR"))
-                    self.logger.exception(f"종목 {stock_code} 처리 중 예외 발생")
-                    self.message_queue.put(("grid_update", ("error", grid_index, "처리 오류")))
-                    continue # 다음 항목으로 넘어감
+            def emit_to_tk_queue(event):
+                legacy_event = event.as_legacy_tuple()
+                if legacy_event[0] == "grid_update" and legacy_event[1][0] == "processing":
+                    self.data_manager.current_processing_index = legacy_event[1][1]
+                self.message_queue.put(legacy_event)
 
-            # 모든 항목 순회 완료 후 (루프가 끝까지 돌았고 사용자가 중단하지 않았을 경우)
-            # 이 블록은 워크플로우 스레드에서 실행됩니다.
-            if not self.work_controller.is_stopped:
-                self.logger.info("[OCRWorkflowManager] 모든 항목 처리 완료. 최종 처리 메시지 전송 중.")
-                # 최종 상태 정리 및 엑셀 내보내기 등의 최종 처리를
-                # 메인 스레드에서 수행하도록 메시지만 큐에 넣습니다.
-                # 요약 메시지 생성 및 관련 큐 메시지 전송 부분을 메인 스레드로 옮깁니다.
-                # summary = self._generate_ocr_summary_internal(processed_count, total_items)
-                # self.message_queue.put(("finalize_export", output_dir_str, self.app.input_excel_path.get(), summary))
-                # self.message_queue.put(("complete", summary))
-
-                # 대신, 메인 스레드에 최종 처리를 요청하는 간결한 메시지만 보냅니다.
-                self.message_queue.put(("finalize_export_and_complete", output_dir_str, self.app.input_excel_path.get(), processed_count, total_items))
-
+            runner = WorkflowRunner(
+                TkAutomationAdapter(),
+                EasyOcrAdapter(),
+                stop_token=self.work_controller,
+                event_sink=emit_to_tk_queue,
+            )
+            result = runner.process_rows(
+                self.data_manager.excel_data,
+                WorkflowOptions(
+                    skip_kbp_code=self.settings_manager.get_advanced('skip_kbp_code', True),
+                    save_detail_images=save_detail_images_bool,
+                    output_dir=output_dir_str,
+                    input_excel_path=input_excel_file,
+                ),
+            )
+            if result.stopped:
+                self.logger.info("[OCRWorkflowManager] 작업 루프 종료됨 (사용자 중단).")
             else:
-                 self.logger.info("[OCRWorkflowManager] 작업 루프 종료됨 (사용자 중단).")
+                self.logger.info("[OCRWorkflowManager] 모든 항목 처리 완료. 최종 처리 메시지 전송 중.")
 
         except Exception as e_workflow:
             self.message_queue.put(("log", f"OCR 전체 워크플로우 오류: {e_workflow}", "ERROR"))
@@ -662,9 +593,10 @@ class OCRWorkflowManager:
             self.message_queue.put(("log", f"[{safe_stock_code}] 전체 영역 좌표 오류: {coords['all']}", "ERROR"))
             return None, None
         screenshot_all = screenshot(region=(x1_all, y1_all, x2_all - x1_all, y2_all - y1_all))
-        allarea_path = os.path.join(save_folder, f"{safe_stock_code}.png")
-        screenshot_all.save(allarea_path)
-        self.message_queue.put(("log", f"전체 영역 이미지 저장: {allarea_path}", "INFO"))
+        if save_details:
+            allarea_path = os.path.join(save_folder, f"{safe_stock_code}.png")
+            screenshot_all.save(allarea_path)
+            self.message_queue.put(("log", f"전체 영역 이미지 저장: {allarea_path}", "INFO"))
 
         # 날짜 영역
         x1_date, y1_date, x2_date, y2_date = coords['date']
@@ -1978,12 +1910,13 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
         output_dir = self.output_folder_path.get().strip()
         save_details = self.save_detail_images.get()
 
-        self.worker_thread = threading.Thread(
-            target=self.ocr_workflow_manager.execute_ocr_workflow_threaded,
-            args=(current_ui_settings, output_dir, save_details),
-            daemon=True
+        self.worker_thread = start_daemon_worker(
+            self.ocr_workflow_manager.execute_ocr_workflow_threaded,
+            current_ui_settings,
+            output_dir,
+            save_details,
+            name="checkocr2-ocr-workflow",
         )
-        self.worker_thread.start()
 
     def _validate_inputs_for_ocr(self):
         output_dir = self.output_folder_path.get().strip()

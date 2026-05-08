@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import queue
+from pathlib import Path
 
 from PIL import Image
 
@@ -64,3 +65,58 @@ def test_image_upscaling_resizes_pil_images_without_ocr(ocr_module):
     assert disabled is source
     assert upscaled.size == (20, 12)
     assert source.size == (8, 5)
+
+
+def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
+    ocr_module,
+    monkeypatch,
+    tmp_path,
+):
+    manager, _events = make_workflow_manager(ocr_module)
+    saved_paths = []
+
+    class FakeScreenshot:
+        def __init__(self, region):
+            self.region = region
+
+        def save(self, path):
+            saved_paths.append(str(path))
+
+    monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
+    monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
+    monkeypatch.setattr(ocr_module, "screenshot", lambda region: FakeScreenshot(region))
+    coords = {
+        "click": (1, 1),
+        "all": (0, 0, 20, 20),
+        "date": (1, 2, 5, 6),
+        "rate": (7, 8, 12, 13),
+    }
+
+    date_image, rate_image = manager._capture_screenshots_internal(
+        "A001",
+        tmp_path,
+        coords,
+        paste_d=0,
+        load_d=0,
+        save_details=False,
+    )
+
+    assert isinstance(date_image, FakeScreenshot)
+    assert isinstance(rate_image, FakeScreenshot)
+    assert saved_paths == []
+
+    manager._capture_screenshots_internal(
+        "A001",
+        tmp_path,
+        coords,
+        paste_d=0,
+        load_d=0,
+        save_details=True,
+    )
+
+    assert [Path(path).name for path in saved_paths] == [
+        "A001.png",
+        "A001_date.png",
+        "A001_rate.png",
+    ]
