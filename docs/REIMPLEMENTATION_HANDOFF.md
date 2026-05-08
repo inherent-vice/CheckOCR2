@@ -20,7 +20,7 @@ behavior.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, table, settings, paths, image-processing, runtime-state,
-  run-report, queue-dispatch, and file/coordinates/timing/options/preset/log
+  run-report, queue-dispatch, and file/coordinates/timing/options/preset/grid/log
   panel seams now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
@@ -35,8 +35,8 @@ behavior.
 Latest full gate result: `ruff` passed, `pytest` passed with 87 tests,
 `compileall` passed, clean PyInstaller release build completed after
 hidden-import cleanup, real package smoke passed at about `596.35 MB` with
-startup `1.141` seconds, and the full test suite passed with 91 tests after
-preset-panel extraction.
+startup `1.141` seconds, and the full test suite passed with 92 tests after
+grid-panel extraction.
 
 ## Commands To Re-Run Before Release
 

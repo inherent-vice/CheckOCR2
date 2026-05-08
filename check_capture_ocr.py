@@ -47,6 +47,7 @@ from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
 from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
 from checkocr2.ui.panels.file_panel import create_file_panel
+from checkocr2.ui.panels.grid_panel import create_grid_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
 from checkocr2.ui.panels.options_panel import create_options_panel
 from checkocr2.ui.panels.preset_panel import create_preset_panel
@@ -1414,83 +1415,7 @@ class CheckCaptureOCRApp(tk.Tk):
         create_preset_panel(self, parent)
 
     def _create_center_excel_grid(self, parent):
-        grid_section = self._create_section_frame_styled(parent, "📊 Excel 데이터 그리드", fill_parent=True)
-        
-        control_frame = tk.Frame(grid_section)
-        self.theme_manager.register_widget(control_frame, {'bg': 'white'})
-        control_frame.pack(fill='x', pady=(0,10))
-
-        # 좌측 컨트롤
-        left_controls = tk.Frame(control_frame)
-        self.theme_manager.register_widget(left_controls, {'bg': 'white'})
-        left_controls.pack(side='left', fill='x', expand=True, padx=(0,5))
-        
-        load_excel_btn = tk.Button(left_controls, text="📁 Excel 로드", command=self.load_excel_to_grid, font=('Segoe UI', 9), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(load_excel_btn, {'bg': 'primary', 'fg': 'white', 'activebackground':'dark'})
-        load_excel_btn.pack(side='left', padx=(0,5))
-
-        add_row_btn = tk.Button(left_controls, text="➕ 행 추가", command=self.add_empty_row_ui, font=('Segoe UI', 9), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(add_row_btn, {'bg': 'success', 'fg': 'white', 'activebackground':'dark'})
-        add_row_btn.pack(side='left', padx=(0,5))
-
-        paste_btn = tk.Button(left_controls, text="📋 붙여넣기", command=self.paste_from_clipboard_ui, font=('Segoe UI', 9), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(paste_btn, {'bg': 'secondary', 'fg': 'white', 'activebackground':'dark'})
-        paste_btn.pack(side='left', padx=(0,5))
-
-        # 우측 컨트롤
-        right_controls = tk.Frame(control_frame)
-        self.theme_manager.register_widget(right_controls, {'bg': 'white'})
-        right_controls.pack(side='right')
-
-        delete_rows_btn = tk.Button(right_controls, text="🗑️ 선택 삭제", command=self.delete_selected_rows_ui, font=('Segoe UI', 9), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(delete_rows_btn, {'bg': 'danger', 'fg': 'white', 'activebackground':'dark'})
-        delete_rows_btn.pack(side='right', padx=(5,0))
-
-        clear_all_btn = tk.Button(right_controls, text="🧹 전체 삭제", command=self.clear_all_data_ui, font=('Segoe UI', 9), relief='flat', cursor='hand2')
-        self.theme_manager.register_widget(clear_all_btn, {'bg': 'warning', 'fg': 'on_surface', 'activebackground':'dark'})
-        clear_all_btn.pack(side='right', padx=(5,0))
-
-        tree_frame = tk.Frame(grid_section)
-        self.theme_manager.register_widget(tree_frame, {'bg': 'white'})
-        tree_frame.pack(fill='both', expand=True)
-
-        columns = ('종목코드', '종목명', '날짜', '금리', '상태')
-        self.grid_tree = ttk.Treeview(tree_frame, columns=columns, show='headings', style="Treeview")
-        
-        for col_name in columns: self.grid_tree.heading(col_name, text=col_name)
-        col_widths = {'종목코드': 95, '종목명': 180, '날짜': 120, '금리': 95, '상태': 100}
-        for col_name, width in col_widths.items():
-            self.grid_tree.column(col_name, width=width, anchor='center', minwidth=width-20, stretch=tk.YES)
-
-        v_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.grid_tree.yview, style="TScrollbar")
-        h_scrollbar = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.grid_tree.xview, style="TScrollbar")
-        self.grid_tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
-
-        self.grid_tree.grid(row=0, column=0, sticky='nsew')
-        v_scrollbar.grid(row=0, column=1, sticky='ns')
-        h_scrollbar.grid(row=1, column=0, sticky='ew')
-        
-        tree_frame.grid_rowconfigure(0, weight=1)
-        tree_frame.grid_columnconfigure(0, weight=1)
-
-        self.grid_tree.bind('<Double-1>', self.on_cell_double_click_ui)
-        self.grid_tree.bind('<Button-3>', self.show_context_menu_ui)
-        self.grid_tree.bind('<Delete>', lambda e: self.delete_selected_rows_ui())
-        self.grid_tree.bind('<Control-c>', lambda e: self.copy_selected_rows_ui())
-        self.grid_tree.bind('<Control-v>', lambda e: self.paste_from_clipboard_ui())
-
-        # 상태 레이블
-        status_frame = tk.Frame(grid_section)
-        self.theme_manager.register_widget(status_frame, {'bg': 'white'})
-        status_frame.pack(fill='x', pady=(10,0))
-        self.grid_status_label = tk.Label(status_frame, text="총 0행 | 완료: 0 | 대기: 0 | 오류: 0", font=('Segoe UI', 9))
-        self.theme_manager.register_widget(self.grid_status_label, {'bg': 'white', 'fg': 'on_surface'})
-        self.grid_status_label.pack(side='left')
-        self.grid_progress_label = tk.Label(status_frame, text="진행률: 0.0%", font=('Segoe UI', 9, 'bold'))
-        self.theme_manager.register_widget(self.grid_progress_label, {'bg': 'white', 'fg': 'primary'})
-        self.grid_progress_label.pack(side='right')
-        
-        self.refresh_grid_tags()
+        create_grid_panel(self, parent)
 
     def refresh_grid_tags(self):
         if not self.grid_tree: return

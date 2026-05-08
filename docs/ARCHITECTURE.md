@@ -44,6 +44,8 @@ working.
   upscaling option panel builder.
 - `checkocr2/ui/panels/preset_panel.py`: preset load/apply/delete/save panel
   builder.
+- `checkocr2/ui/panels/grid_panel.py`: central Excel row grid, scrollbars,
+  row-control buttons, key bindings, and status-label panel builder.
 - `checkocr2/ui/panels/log_panel.py`: right-side log panel builder.
 
 ## Runtime Flow
