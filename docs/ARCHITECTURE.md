@@ -31,6 +31,9 @@ working.
 - `checkocr2/worker.py`: daemon worker helper.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/runtime_state.py`: explicit GUI runtime state to button-state map.
+- `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
+- `checkocr2/ui/panels/log_panel.py`: first extracted Tk panel builder for the
+  right-side log surface.
 
 ## Runtime Flow
 
@@ -65,6 +68,10 @@ The grid is loaded from Excel and exported to `<input_stem>_updated.xlsx`.
 Each run also writes `<input_stem>_run_report.json` with row status, blank
 fields, timing, export information, and error details. The report is the primary
 evidence source for future speed tuning.
+
+Packaged releases include `checkocr2/build_metadata.json`. It records app
+version, build date, Python version, direct dependency versions, and a dependency
+hash so package smoke output can be tied to a reproducible build environment.
 
 ## Testing Boundaries
 

@@ -1,0 +1,13 @@
+# Direct runtime dependencies for running CheckOCR2.
+-c constraints.txt
+
+easyocr
+numpy
+opencv-python
+openpyxl
+pandas
+Pillow
+PyAutoGUI
+pyperclip
+torch
+torchvision

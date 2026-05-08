@@ -47,6 +47,7 @@ the package bootstrap and remains available for existing shortcuts.
 - `worker.py`: background thread helper.
 - `run_report.py`: JSON timing/error report writer.
 - `runtime_state.py`: explicit GUI start/stop/OCR readiness state.
+- `build_metadata.py`: package metadata and dependency hash generation.
 
 ## Documentation Map
 
@@ -65,3 +66,5 @@ the package bootstrap and remains available for existing shortcuts.
 - Tests should fake OCR and screen automation unless running an explicit smoke.
 - Personal settings, screenshots, production workbooks, and benchmark crops must
   stay out of git.
+- Build metadata and package smoke output are evidence, not substitutes for real
+  OCR fixture/live-run accuracy checks.

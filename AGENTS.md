@@ -7,7 +7,7 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 ## Build, Test, and Development Commands
 
 - `python -m venv .venv` then `.venv\Scripts\Activate.ps1`: create and enter a local Windows virtual environment.
-- `python -m pip install -r requirements.txt`: install GUI, OCR, Excel, image, and packaging dependencies.
+- `python -m pip install -r requirements.txt`: install dev dependencies. Use `requirements-runtime.txt` or `requirements-build.txt` for narrower runtime/build installs.
 - `python check_capture_ocr.py`: run the desktop app locally.
 - `python Check_Capture_Excel_V6.1_배포.py`: run through the legacy final-release filename.
 - `python -m checkocr2.main`: run through the package bootstrap path.
@@ -16,7 +16,7 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 - `python -m compileall check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: quick syntax check before committing.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: validate the OCR benchmark harness while fixtures are being built.
 - `python -m PyInstaller build_app.spec`: build the OneDIR Windows package under `dist/CheckCaptureOCR_V6.1/`.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45`: smoke-test the packaged EXE.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata`: smoke-test the packaged EXE and verify packaged build metadata.
 
 ## Coding Style & Naming Conventions
 

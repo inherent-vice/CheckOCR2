@@ -25,6 +25,12 @@ Date: 2026-05-08
 - Stopped saving full-area screenshots unless detailed image saving is enabled.
 - Added benchmark and package-smoke scripts:
   `scripts/benchmark_ocr.py` and `scripts/package_smoke.py`.
+- Split dependency entry files into runtime, build, and dev layers with direct
+  dependency pins in `constraints.txt`.
+- Added packaged build metadata with app version, build date, Python version,
+  direct dependency versions, and dependency hash.
+- Extracted the first low-risk UI panel into `checkocr2/ui/panels/log_panel.py`
+  while keeping the main GUI controller behavior intact.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -43,7 +49,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python -m PyInstaller build_app.spec --noconfirm
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata
 ```
 
 Manual GUI smoke remains required after startup, threading, UI state, or
@@ -53,13 +59,13 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 47 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 54 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - `python -m PyInstaller build_app.spec --noconfirm`: build completed.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45`: passed.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata`: passed with package size `1868.402 MB` and metadata in the report.
 
 Known build warnings: PyInstaller still reports optional `tensorboard` collection
 failure for `torch.utils.tensorboard` and missing `tbb12.dll` for a numba TBB
@@ -74,6 +80,6 @@ pool dependency. These warnings did not block the packaged GUI smoke.
 - Benchmark EasyOCR `detail=1`, confidence-based handling, and candidate engines
   only after fixture baselines exist.
 - Split runtime/build/dev dependency sets and reduce PyInstaller hidden imports
-  only after package smoke proves each removal.
+  further only after package smoke proves each removal.
 - Continue extracting UI panels only while the GUI parity checklist and tests
   stay green.

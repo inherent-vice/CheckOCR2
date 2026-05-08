@@ -58,6 +58,19 @@ def touch_exe(tmp_path: Path) -> Path:
     return exe_path
 
 
+def write_metadata_for_exe(exe_path: Path) -> dict[str, str]:
+    metadata = {
+        "app_version": "6.1.0",
+        "build_date": "2026-05-08T00:00:00+00:00",
+        "python_version": "3.12.6",
+        "dependency_hash": "abc123",
+    }
+    metadata_path = exe_path.parent / "_internal" / "checkocr2" / "build_metadata.json"
+    metadata_path.parent.mkdir(parents=True)
+    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
+    return metadata
+
+
 def test_find_matching_window_filters_to_launched_process():
     windows = [
         package_smoke.WindowInfo(hwnd=1, pid=200, title="Check Capture OCR old instance"),
@@ -75,6 +88,7 @@ def test_find_matching_window_filters_to_launched_process():
 
 def test_run_package_smoke_reports_ok_and_terminates(tmp_path):
     exe_path = touch_exe(tmp_path)
+    metadata = write_metadata_for_exe(exe_path)
     process = FakeProcess(pid=100)
 
     def launch(path: Path) -> FakeProcess:
@@ -95,9 +109,30 @@ def test_run_package_smoke_reports_ok_and_terminates(tmp_path):
     assert report["window_title"] == "Check Capture OCR V6.1"
     assert report["window_pid"] == 100
     assert report["window_hwnd"] == 10
+    assert report["package_metadata"] == metadata
+    assert report["package_size_mb"] >= 0
     assert report["termination"] == {"terminated": True, "killed": False, "exit_code": 0}
     assert process.terminated
     assert not process.killed
+
+
+def test_run_package_smoke_can_require_packaged_metadata(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_missing"
+    assert report["package_metadata"] is None
 
 
 def test_run_package_smoke_times_out_and_terminates(tmp_path):

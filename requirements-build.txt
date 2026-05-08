@@ -1,0 +1,5 @@
+# Build dependencies for producing the Windows OneDIR package.
+-r requirements-runtime.txt
+-c constraints.txt
+
+PyInstaller

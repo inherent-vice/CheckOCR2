@@ -25,6 +25,14 @@ python -m pip install -r requirements.txt
 python check_capture_ocr.py
 ```
 
+For narrower installs:
+
+- `requirements-runtime.txt`: runtime dependencies only.
+- `requirements-build.txt`: runtime plus PyInstaller.
+- `requirements-dev.txt`: build dependencies plus pytest and ruff.
+- `constraints.txt`: pinned direct dependency versions from the verified Windows
+  environment.
+
 Runtime settings are stored outside the repo at
 `%APPDATA%\CheckOCR2\settings.json`. Keep `settings.example.json` as the
 source-controlled template only.
@@ -37,7 +45,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python -m PyInstaller build_app.spec --noconfirm
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata
 ```
 
 Run GUI smoke checks through all three Python entry points after touching
@@ -63,6 +71,11 @@ An OCR run writes `<input_stem>_updated.xlsx` and
 `<input_stem>_run_report.json` in the selected output folder. The JSON report
 contains per-row timing, status counts, blank-field counts, export timing, and
 errors. Use it before changing OCR settings or fixed wait times.
+
+Packaged builds include `checkocr2/build_metadata.json` with the app version,
+build date, Python version, direct dependency versions, and dependency hash.
+The package smoke script reports startup elapsed time, package size, and this
+metadata when present.
 
 ## Current Evidence Gates
 

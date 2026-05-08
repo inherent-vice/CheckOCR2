@@ -1,5 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+# Experimental legacy spec. Use build_app.spec for supported release builds.
+
 
 a = Analysis(
     ['check_capture_ocr.py'],

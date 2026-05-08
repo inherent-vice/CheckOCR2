@@ -1,38 +1,4 @@
-# Check Capture OCR - EasyOCR Edition (전처리 기능 제거 버전)
-# 패키지 크기: 120MB (opencv 제거로 추가 45MB 감소, 기존 PaddleOCR 500MB 대비 76% 감소)
+# Developer convenience install.
+# For runtime-only installs use requirements-runtime.txt.
 
-# 핵심 OCR 라이브러리
-easyocr>=1.7.0          # PaddleOCR 대체 - 가벼운 배포, 한국어 지원 우수
-
-# GUI 프레임워크
-customtkinter==5.2.2    # 모던한 UI/UX, 다크/라이트 테마 지원
-# tkinter는 Python 내장이므로 별도 설치 불필요
-
-# 데이터 처리
-pandas>=1.5.0
-openpyxl>=3.0.0         # Excel 파일 읽기/쓰기
-
-# 이미지 처리
-Pillow>=9.0.0          # PIL 이미지 처리
-# opencv-python 제거 - 전처리 기능 삭제로 더 이상 불필요
-numpy>=1.21.0           # 배열 처리
-
-# 자동화
-pyautogui>=0.9.54       # 화면 자동화
-pyperclip>=1.8.2        # 클립보드 조작
-
-# 추가 유틸리티
-setuptools>=65.0.0      # 설치 도구
-psutil==5.9.6           # 시스템 모니터링
-
-# 선택적 의존성 (성능 향상용)
-torch>=1.13.0          # GPU 가속 (선택사항)
-torchvision>=0.14.0   # 컴퓨터 비전 (선택사항)
-PyInstaller>=5.10.0
-
-# 추가 의존성
-opencv-python>=4.7.0  # 추가 이미지 처리 지원
-
-# 선택적 의존성 (성능 향상용)
-# torch==2.1.0          # GPU 가속 (선택사항)
-# torchvision==0.16.0   # 컴퓨터 비전 (선택사항) 
+-r requirements-dev.txt

@@ -1,7 +1,8 @@
 """Smoke-test a packaged Check Capture OCR executable.
 
 The script launches the provided EXE, waits for the main Tk window title, emits
-a JSON status report to stdout, and then terminates the process it launched.
+a JSON status report to stdout, reads packaged build metadata when present, and
+then terminates the process it launched.
 """
 
 from __future__ import annotations
@@ -15,12 +16,13 @@ import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 DEFAULT_TITLE_FRAGMENT = "Check Capture OCR"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_POLL_INTERVAL_SECONDS = 0.5
 DEFAULT_TERMINATE_TIMEOUT_SECONDS = 5.0
+SmokeReport = dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -82,6 +84,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=positive_float,
         default=DEFAULT_TERMINATE_TIMEOUT_SECONDS,
         help="Seconds to wait after terminating before killing the process",
+    )
+    parser.add_argument(
+        "--require-package-metadata",
+        action="store_true",
+        help="Fail unless packaged build_metadata.json is present and readable",
     )
     return parser.parse_args(argv)
 
@@ -232,11 +239,12 @@ def run_package_smoke(
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
     poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
     terminate_timeout_seconds: float = DEFAULT_TERMINATE_TIMEOUT_SECONDS,
+    require_package_metadata: bool = False,
     process_launcher: ProcessLauncher = launch_exe,
     list_windows: WindowLister = iter_window_titles,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
-) -> tuple[int, dict[str, bool | float | int | str | dict[str, bool | int | str | None] | None]]:
+) -> tuple[int, SmokeReport]:
     exe_path = exe_path.expanduser()
     if not exe_path.exists():
         report = build_error_report(
@@ -260,11 +268,12 @@ def run_package_smoke(
     process: SmokeProcess | None = None
     start = clock()
     exit_code = 1
-    report: dict[str, bool | float | int | str | dict[str, bool | int | str | None] | None] = {
+    report: SmokeReport = {
         "status": "launching",
         "exe_path": str(exe_path),
         "title_fragment": title_fragment,
         "timeout_seconds": timeout_seconds,
+        "package_size_mb": round(directory_size_bytes(exe_path.parent) / (1024 * 1024), 3),
     }
 
     try:
@@ -282,15 +291,25 @@ def run_package_smoke(
         report["elapsed_seconds"] = round(clock() - start, 3)
 
         if wait_status == "ok" and window is not None:
+            package_metadata = read_packaged_metadata(exe_path)
             report.update(
                 {
                     "status": "ok",
                     "window_title": window.title,
                     "window_pid": window.pid,
                     "window_hwnd": window.hwnd,
+                    "package_metadata": package_metadata,
                 }
             )
             exit_code = 0
+            if require_package_metadata and package_metadata is None:
+                report.update(
+                    {
+                        "status": "metadata_missing",
+                        "error": "Packaged build_metadata.json was not found",
+                    }
+                )
+                exit_code = 1
         elif wait_status == "process_exited":
             report.update(
                 {
@@ -334,6 +353,28 @@ def run_package_smoke(
     return exit_code, report
 
 
+def read_packaged_metadata(exe_path: Path) -> dict[str, object] | None:
+    candidates = [
+        exe_path.parent / "_internal" / "checkocr2" / "build_metadata.json",
+        exe_path.parent / "checkocr2" / "build_metadata.json",
+        exe_path.parent / "build_metadata.json",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return json.loads(candidate.read_text(encoding="utf-8"))
+    return None
+
+
+def directory_size_bytes(path: Path) -> int:
+    if path.is_file():
+        return path.stat().st_size
+    total = 0
+    for child in path.rglob("*"):
+        if child.is_file():
+            total += child.stat().st_size
+    return total
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     exit_code, report = run_package_smoke(
@@ -342,6 +383,7 @@ def main(argv: list[str] | None = None) -> int:
         timeout_seconds=args.timeout,
         poll_interval_seconds=args.poll_interval,
         terminate_timeout_seconds=args.terminate_timeout,
+        require_package_metadata=args.require_package_metadata,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

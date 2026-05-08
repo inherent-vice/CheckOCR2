@@ -13,6 +13,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import numpy as np
 from PIL import Image
 
+from checkocr2.build_metadata import format_build_metadata, load_build_metadata
 from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import SettingsError
 from checkocr2.image_processing import upscale_image
@@ -37,6 +38,7 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.ui.panels.log_panel import create_log_panel
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
     CapturedImages,
@@ -1355,23 +1357,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self._create_preset_section(scrollable_frame) # fill_parent=True 인자 유지
 
     def _create_right_panel_content(self, parent):
-        log_section_frame = self._create_section_frame_styled(parent, "📊 상태 및 로그", fill_parent=True)
-        
-        log_text_frame = tk.Frame(log_section_frame)
-        self.theme_manager.register_widget(log_text_frame, {'bg': 'white'})
-        log_text_frame.pack(fill='both', expand=True, pady=(0,5))
-
-        self.log_text_widget = tk.Text(log_text_frame, font=('Segoe UI', 9), relief='solid', bd=1, wrap='word', state='disabled', width=20) # width=20으로 변경
-        self.theme_manager.register_widget(self.log_text_widget, {'bg': 'white', 'fg': 'on_surface', 'insertbackground': 'on_surface'})
-        
-        log_scroll = ttk.Scrollbar(log_text_frame, orient="vertical", command=self.log_text_widget.yview, style="TScrollbar")
-        self.log_text_widget.configure(yscrollcommand=log_scroll.set)
-        
-        self.log_text_widget.pack(side="left", fill="both", expand=True)
-        log_scroll.pack(side="right", fill="y")
-
-        # 로그 태그 색상은 테마 매니저에서 관리하므로 여기서는 설정하지 않음
-        # 테마 적용 시 자동으로 업데이트됨
+        self.log_text_widget = create_log_panel(self, parent)
 
     def _create_file_section(self, parent):
         section = self._create_section_frame_styled(parent, "📁 파일 설정")
@@ -2090,8 +2076,11 @@ class CheckCaptureOCRApp(tk.Tk):
         messagebox.showinfo("키보드 단축키", shortcuts, parent=self)
 
     def show_about(self):
-        about_text = """📋 Check Capture OCR - V6
-OCR 자동화 애플리케이션 (EasyOCR 기반)"""
+        build_summary = format_build_metadata(load_build_metadata())
+        about_text = f"""📋 Check Capture OCR - V6
+OCR 자동화 애플리케이션 (EasyOCR 기반)
+
+{build_summary}"""
         messagebox.showinfo("프로그램 정보", about_text, parent=self)
 
     def run_ocr_process(self):

@@ -9,11 +9,14 @@ import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
+from checkocr2.build_metadata import write_build_metadata
 
 # 현재 디렉토리
 block_cipher = None
 app_name = "CheckCaptureOCR_V6.1"
 main_script = "check_capture_ocr.py"
+build_metadata_path = os.path.join("build", "generated", "build_metadata.json")
+write_build_metadata(build_metadata_path)
 
 # EasyOCR 모델 및 데이터 파일 수집
 easyocr_datas = collect_data_files('easyocr')
@@ -24,6 +27,7 @@ added_files = [
     ('eye_ocr_02_scanline.png', '.'),  # PNG 아이콘 (작업표시줄용)
     ('app_icon.ico', '.'),  # 백업 아이콘 파일 (있는 경우)
     ('app_icon.png', '.'),  # 백업 PNG 아이콘 (있는 경우)
+    (build_metadata_path, 'checkocr2'),
 ]
 
 # 실제로 존재하는 파일만 포함
