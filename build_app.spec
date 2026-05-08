@@ -125,22 +125,18 @@ hidden_imports = [
     'scipy',
     'scipy.ndimage',
     'skimage',
-    'sklearn',
-    'matplotlib',
     'yaml',
-    'requests',
-    'urllib3',
-    'certifi',
 ]
 
 # EasyOCR 하위 모듈들 자동 수집
 easyocr_modules = collect_submodules('easyocr')
 hidden_imports.extend(easyocr_modules)
 
-# PyTorch 하위 모듈들 수집
-torch_modules = collect_submodules('torch')
-hidden_imports.extend(torch_modules)
+# Keep PyTorch targeted. collect_submodules('torch') pulls optional internals
+# such as tensorboard integration and must stay out unless package smoke proves
+# a concrete missing-module failure.
 
+# PyTorch uses the targeted hidden_imports above.
 # tkinter 하위 모듈들 수집
 tkinter_modules = collect_submodules('tkinter')
 hidden_imports.extend(tkinter_modules)

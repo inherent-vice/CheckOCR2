@@ -371,9 +371,45 @@ def test_run_package_smoke_can_require_ocr_ready_status(tmp_path):
     assert exit_code == 0
     assert report["status"] == "ok"
     assert report["ocr_ready_required"] is True
+    assert report["ocr_ready_mode"] == "fast"
     assert report["ocr_ready"] is True
     assert report["ocr_ready_status"]["runtime_state"] == "Ready"
     assert package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV not in os.environ
+    assert package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV not in os.environ
+
+
+def test_run_package_smoke_can_require_real_ocr_ready_status(tmp_path, monkeypatch):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+    monkeypatch.setenv(package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV, "stale")
+
+    def launch(_path: Path) -> FakeProcess:
+        assert package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV not in os.environ
+        status_path = Path(os.environ[package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV])
+        status_path.write_text(
+            json.dumps({"runtime_state": "Ready", "ocr_ready": True}),
+            encoding="utf-8",
+        )
+        return process
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_ocr_ready=True,
+        ocr_ready_mode="real",
+        process_launcher=launch,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["ocr_ready_required"] is True
+    assert report["ocr_ready_mode"] == "real"
+    assert report["ocr_ready"] is True
+    assert report["ocr_ready_status"]["runtime_state"] == "Ready"
+    assert os.environ[package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV] == "stale"
     assert package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV not in os.environ
 
 

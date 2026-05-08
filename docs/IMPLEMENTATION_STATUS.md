@@ -44,8 +44,11 @@ Date: 2026-05-08
   installed.
 - Added packaged build metadata with app version, build date, Python version,
   direct dependency versions, and dependency hash.
-- Added explicit package-smoke OCR readiness mode so the packaged EXE can prove
-  the GUI reaches `Ready` without loading real OCR models during smoke tests.
+- Removed stale PyInstaller hidden imports for uninstalled optional packages
+  and stopped broad `collect_submodules('torch')` collection; PyTorch is now
+  kept to targeted hidden imports plus PyInstaller's own Torch hooks.
+- Added explicit package-smoke OCR readiness modes: `fast` for startup smoke
+  without model loading and `real` for packaged EasyOCR reader initialization.
 - Extracted low-risk UI panels into `checkocr2/ui/panels/file_panel.py` and
   `checkocr2/ui/panels/log_panel.py` plus timing controls in
   `checkocr2/ui/panels/timing_panel.py` while keeping the main GUI controller
@@ -81,7 +84,7 @@ python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowli
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
 Manual GUI smoke remains required after startup, threading, UI state, or
@@ -91,7 +94,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 87 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 87 passed before package-smoke real mode was added; rerun after that change passed with 88 tests.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -101,9 +104,10 @@ Latest verification on 2026-05-08:
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - Source GUI fast-OCR smoke passed after queue-dispatch extraction; the Tk app
   wrote package-smoke status with `runtime_state="Ready"` and `ocr_ready=true`.
-- Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed.
+- Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after PyInstaller hidden-import cleanup.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: passed with package size `596.347 MB`, startup time under `5` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5`: real packaged EasyOCR initialization smoke passed with package size `596.35 MB`, startup time `1.141` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
 
 Known build warnings: PyInstaller still reports optional `tensorboard`
 collection failure for `torch.utils.tensorboard`; the clean release venv keeps
@@ -116,7 +120,7 @@ that warning non-blocking while package smoke remains green.
 - Run a same-input 10-row live OCR comparison before reducing wait times or
   changing OCR defaults.
 - Benchmark candidate engines only after fixture baselines exist.
-- Split runtime/build/dev dependency sets and reduce PyInstaller hidden imports
-  further only after package smoke proves each removal.
+- Continue package-size cleanup only one measured PyInstaller/dependency change
+  at a time, with clean build and package smoke after each removal.
 - Continue extracting UI panels only while the GUI parity checklist and tests
   stay green.

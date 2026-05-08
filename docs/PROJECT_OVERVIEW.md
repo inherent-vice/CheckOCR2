@@ -54,6 +54,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `README.md`: quick start, commands, repo map, evidence gates.
 - `docs/ARCHITECTURE.md`: module boundaries and runtime flow.
 - `docs/REIMPLEMENTATION_PLAN.md`: phased modernization roadmap.
+- `docs/REIMPLEMENTATION_HANDOFF.md`: current verified state, release gates,
+  and next implementation order.
 - `docs/IMPLEMENTATION_STATUS.md`: completed work and remaining gates.
 - `docs/GUI_PARITY_CHECKLIST.md`: manual parity checklist before UI changes.
 - `docs/OCR_BENCHMARK_PLAN.md`: fixture, benchmark, and matrix-sweep plan.

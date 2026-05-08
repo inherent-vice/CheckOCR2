@@ -26,6 +26,8 @@ DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_POLL_INTERVAL_SECONDS = 0.5
 DEFAULT_TERMINATE_TIMEOUT_SECONDS = 5.0
 DEFAULT_OCR_READY_TIMEOUT_SECONDS = 20.0
+DEFAULT_OCR_READY_MODE = "fast"
+OCR_READY_MODES = ("fast", "real")
 PACKAGE_SMOKE_FAST_OCR_ENV = "CHECKOCR2_PACKAGE_SMOKE_FAST_OCR"
 PACKAGE_SMOKE_STATUS_FILE_ENV = "CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE"
 REQUIRED_METADATA_DISTRIBUTIONS = ("opencv-python-headless",)
@@ -108,6 +110,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=positive_float,
         default=DEFAULT_OCR_READY_TIMEOUT_SECONDS,
         help="Seconds to wait for package-smoke OCR Ready status",
+    )
+    parser.add_argument(
+        "--ocr-ready-mode",
+        choices=OCR_READY_MODES,
+        default=DEFAULT_OCR_READY_MODE,
+        help=(
+            "OCR Ready validation mode. 'fast' bypasses model loading for "
+            "startup smoke; 'real' waits for packaged EasyOCR initialization."
+        ),
     )
     parser.add_argument(
         "--max-package-size-mb",
@@ -303,6 +314,7 @@ def run_package_smoke(
     require_package_metadata: bool = False,
     require_ocr_ready: bool = False,
     ocr_ready_timeout_seconds: float = DEFAULT_OCR_READY_TIMEOUT_SECONDS,
+    ocr_ready_mode: str = DEFAULT_OCR_READY_MODE,
     max_package_size_mb: float | None = None,
     max_startup_seconds: float | None = None,
     process_launcher: ProcessLauncher = launch_exe,
@@ -342,11 +354,15 @@ def run_package_smoke(
         "max_package_size_mb": max_package_size_mb,
         "max_startup_seconds": max_startup_seconds,
         "ocr_ready_required": require_ocr_ready,
+        "ocr_ready_mode": ocr_ready_mode if require_ocr_ready else None,
     }
     status_path: Path | None = None
 
     try:
-        with TemporarySmokeEnvironment(require_ocr_ready=require_ocr_ready) as status_path:
+        with TemporarySmokeEnvironment(
+            require_ocr_ready=require_ocr_ready,
+            ocr_ready_mode=ocr_ready_mode,
+        ) as status_path:
             process = process_launcher(exe_path)
         report["pid"] = process.pid
         wait_status, window, process_return_code = wait_for_window(
@@ -617,8 +633,9 @@ def smoke_status_path() -> Path:
 
 
 class TemporarySmokeEnvironment:
-    def __init__(self, *, require_ocr_ready: bool):
+    def __init__(self, *, require_ocr_ready: bool, ocr_ready_mode: str = DEFAULT_OCR_READY_MODE):
         self.require_ocr_ready = require_ocr_ready
+        self.ocr_ready_mode = ocr_ready_mode
         self.status_path = smoke_status_path() if require_ocr_ready else None
         self.previous: dict[str, str | None] = {}
 
@@ -626,12 +643,18 @@ class TemporarySmokeEnvironment:
         if not self.require_ocr_ready or self.status_path is None:
             return None
         updates = {
-            PACKAGE_SMOKE_FAST_OCR_ENV: "1",
             PACKAGE_SMOKE_STATUS_FILE_ENV: str(self.status_path),
         }
+        if self.ocr_ready_mode == "fast":
+            updates[PACKAGE_SMOKE_FAST_OCR_ENV] = "1"
+        else:
+            updates[PACKAGE_SMOKE_FAST_OCR_ENV] = None
         for key, value in updates.items():
             self.previous[key] = os.environ.get(key)
-            os.environ[key] = value
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
         return self.status_path
 
     def __exit__(self, *_exc_info: object) -> None:
@@ -653,6 +676,7 @@ def main(argv: list[str] | None = None) -> int:
         require_package_metadata=args.require_package_metadata,
         require_ocr_ready=args.require_ocr_ready,
         ocr_ready_timeout_seconds=args.ocr_ready_timeout,
+        ocr_ready_mode=args.ocr_ready_mode,
         max_package_size_mb=args.max_package_size_mb,
         max_startup_seconds=args.max_startup_seconds,
     )
