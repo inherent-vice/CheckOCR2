@@ -4,50 +4,76 @@ Date: 2026-05-08
 
 ## Completed
 
-- Preserved both Python launchers: `check_capture_ocr.py` and
-  `Check_Capture_Excel_V6.1_배포.py`.
+- Preserved all three Python entry paths:
+  `check_capture_ocr.py`, `Check_Capture_Excel_V6.1_배포.py`, and
+  `python -m checkocr2.main`.
 - Moved reusable logic into `checkocr2/` modules for settings, models, events,
   paths, image processing, OCR text normalization, Excel I/O, table rows, OCR
-  engine access, and screen automation.
-- Migrated runtime settings from tracked `settings.json` to the per-user
-  `%APPDATA%\CheckOCR2\settings.json` path. The source repo now keeps only
+  engine access, screen automation, worker helpers, workflow execution, run
+  reports, and runtime UI state.
+- Migrated runtime settings from tracked `settings.json` to
+  `%APPDATA%\CheckOCR2\settings.json`; the repo keeps only
   `settings.example.json`.
-- Made EasyOCR initialization asynchronous so the GUI window appears before the
-  model load completes. The OCR start button stays disabled until the engine is
-  ready.
-- Added `scripts/benchmark_ocr.py` and `docs/OCR_BENCHMARK_PLAN.md` for
-  repeatable OCR accuracy and latency benchmarking.
-- Added `scripts/package_smoke.py` for repeatable packaged-EXE window checks.
-- Added JSON OCR run reports next to the exported workbook with per-row timing,
+- Made EasyOCR initialization asynchronous so the GUI appears before model load
+  completes. OCR start remains disabled until the reader is ready.
+- Added explicit GUI states: `Starting`, `OCR Loading`, `Ready`, `Running`,
+  `Stopping`, and `Error`.
+- Routed OCR row processing through a workflow seam while preserving existing
+  capture/OCR behavior and GUI queue events.
+- Added JSON OCR run reports next to exported workbooks with per-row timing,
   blank-field counts, status counts, export timing, and failure reasons.
-- Added package bootstrap modules: `checkocr2/main.py`, `checkocr2/app.py`,
-  `checkocr2/logging_config.py`, and `checkocr2/worker.py`.
-- Added a Tk-free `checkocr2/workflow.py` seam and routed the existing GUI OCR
-  row loop through it while reusing the current capture/OCR methods.
-- Added pytest characterization/unit tests for settings migration, path helpers,
-  Excel import/export, table behavior, OCR text parsing, async OCR init, OCR
-  engine adapter, screen automation adapter, worker thread helper, workflow
-  behavior, package smoke, and benchmark safety checks.
+- Stopped saving full-area screenshots unless detailed image saving is enabled.
+- Added benchmark and package-smoke scripts:
+  `scripts/benchmark_ocr.py` and `scripts/package_smoke.py`.
+- Added root and technical documentation:
+  `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
+  this status document.
+- Added pytest coverage for settings migration, path helpers, Excel I/O, table
+  behavior, OCR text parsing, async OCR init, runtime state, OCR engine adapter,
+  screen automation, worker helper, workflow behavior, run reports, benchmark
+  safety, and package smoke logic.
 
 ## Verification
 
-- `python -m ruff check .`
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`
-- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`
-- `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`
-- `python -m pytest tests\test_run_report.py tests\test_workflow_module.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-timing-pytest`
-- Launched `python check_capture_ocr.py` and confirmed the `📊 Check Capture OCR V6.1`
-  window was responsive.
-- Launched `python Check_Capture_Excel_V6.1_배포.py` and confirmed the same window.
-- Launched `python -m checkocr2.main` and confirmed the same window.
-- Built with `python -m PyInstaller build_app.spec --noconfirm`.
-- Ran `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45`
-  and confirmed `status: ok` for the packaged window.
+Run this full gate before release or push:
+
+```powershell
+python -m ruff check .
+python -m pytest --basetemp $env:TEMP\checkocr2-pytest
+python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
+python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
+python -m PyInstaller build_app.spec --noconfirm
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45
+```
+
+Manual GUI smoke remains required after startup, threading, UI state, or
+packaging changes. Launch the canonical app, compatibility launcher, and package
+launcher, then confirm the window title and OCR-ready transition.
+
+Latest verification on 2026-05-08:
+
+- `python -m ruff check .`: passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 47 passed.
+- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
+- `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
+- Python GUI smoke passed for the canonical launcher, compatibility launcher,
+  and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
+- `python -m PyInstaller build_app.spec --noconfirm`: build completed.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45`: passed.
+
+Known build warnings: PyInstaller still reports optional `tensorboard` collection
+failure for `torch.utils.tensorboard` and missing `tbb12.dll` for a numba TBB
+pool dependency. These warnings did not block the packaged GUI smoke.
 
 ## Remaining Evidence Gates
 
-- Build real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` before
-  changing OCR engine, confidence, or timing defaults.
-- Run a live 10-row OCR comparison on the same input before reducing fixed wait
-  times.
-- Continue extracting UI panels only after the current tests are kept green.
+- Build real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with a
+  `ground_truth.csv`.
+- Run a same-input 10-row live OCR comparison before reducing wait times or
+  changing OCR defaults.
+- Benchmark EasyOCR `detail=1`, confidence-based handling, and candidate engines
+  only after fixture baselines exist.
+- Split runtime/build/dev dependency sets and reduce PyInstaller hidden imports
+  only after package smoke proves each removal.
+- Continue extracting UI panels only while the GUI parity checklist and tests
+  stay green.

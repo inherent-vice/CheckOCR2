@@ -1,122 +1,67 @@
-# CheckOCR2 Project Overview
+# Project Overview
 
-## Project Description
-CheckOCR2 is a comprehensive OCR (Optical Character Recognition) desktop application built with Python and Tkinter. The application specializes in automated data extraction from screen captures, with a focus on financial data processing including stock codes, company names, dates, and interest rates.
+## Purpose
 
-## Key Features
-- **Screen Capture & OCR**: Automated screen capture with region selection and OCR processing
-- **Excel Integration**: Import/export Excel files with comprehensive data management
-- **Multi-threading**: Asynchronous processing with worker threads for non-blocking UI
-- **Theme Management**: Modern UI with customizable themes and dark/light mode support
-- **Advanced Settings**: Configurable OCR parameters, timing controls, and processing options
-- **Data Validation**: Built-in validation for extracted data with error handling
-- **Preset Management**: Save and load processing presets for different use cases
-- **Real-time Progress**: Live progress tracking with detailed status updates
+CheckOCR2 automates a repetitive OCR workflow on Windows:
 
-## Core Components
+1. Load stock/code rows from Excel.
+2. Copy each code into an external target screen.
+3. Capture configured date and rate regions.
+4. Run EasyOCR and normalize the extracted values.
+5. Update the grid and export an `_updated.xlsx` workbook.
+6. Write a JSON run report for timing and failure analysis.
 
-### Main Application (`CheckCaptureOCRApp`)
-- Central GUI application class inheriting from `tkinter.Tk`
-- Manages all UI components and coordinates between different modules
-- Handles user interactions and application lifecycle
+The project is being modernized without changing the current Tkinter GUI
+workflow that operators already use.
 
-### Logging System
-- Comprehensive logging with configurable levels (DEBUG, INFO, WARNING, ERROR)
-- File-based logging with rotation and console output
-- Thread-safe logging for multi-threaded operations
+## Main User Workflow
 
-### Settings Management (`SettingsManager`)
-- Persistent configuration storage using JSON files
-- Advanced settings for OCR parameters, UI preferences, and processing options
-- Preset management for saving/loading different configurations
+- Select an input Excel workbook.
+- Confirm or adjust the output folder.
+- Load rows into the grid.
+- Configure click point and capture areas when needed.
+- Start OCR with `F5` or the toolbar button.
+- Stop with `Esc`, `F5`, or the stop button.
+- Review grid statuses, exported Excel output, and run report JSON.
 
-### Theme Management (`ThemeManager`)
-- Modern UI theming system with multiple color schemes
-- Dynamic theme switching without application restart
-- Widget registration system for consistent styling
+## Current Implementation
 
-### Work Controller (`WorkController`)
-- Controls the execution flow of OCR processing tasks
-- Thread-safe start/stop mechanisms with proper cleanup
-- Status tracking and progress reporting
+`check_capture_ocr.py` remains the canonical GUI implementation. It keeps the
+menus, toolbar, grid, dialogs, shortcuts, and compatibility behavior. Reusable
+logic is extracted into `checkocr2/` modules so each seam can be tested without
+loading the full GUI.
 
-### Area Visualization System
-- Interactive overlay windows for region selection
-- Visual feedback for capture areas with customizable colors
-- Drag-and-drop interface for area positioning
+The old release filename, `Check_Capture_Excel_V6.1_배포.py`, now delegates to
+the package bootstrap and remains available for existing shortcuts.
 
-### Data Management (`DataManager`)
-- Excel data import/export functionality
-- In-memory data structure management for processing results
-- Data validation and transformation utilities
-- Grid synchronization with UI components
+## Important Modules
 
-### OCR Workflow Management
-- Automated capture and processing pipeline
-- Error handling and retry mechanisms
-- Progress tracking and status reporting
-- Integration with external OCR services/libraries
+- `settings.py`: per-user JSON settings under `%APPDATA%\CheckOCR2`.
+- `excel_io.py`: Excel read/write behavior.
+- `table_model.py`: grid row and status rules.
+- `ocr_text.py`: date and rate normalization.
+- `image_processing.py`: crop validation and image upscaling.
+- `ocr_engine.py`: EasyOCR adapter boundary.
+- `screen_automation.py`: pyautogui and clipboard wrappers.
+- `workflow.py`: row processing workflow outside Tkinter.
+- `worker.py`: background thread helper.
+- `run_report.py`: JSON timing/error report writer.
+- `runtime_state.py`: explicit GUI start/stop/OCR readiness state.
 
-## Technical Architecture
+## Documentation Map
 
-### Multi-threading Design
-- Main UI thread for user interface responsiveness
-- Worker threads for OCR processing and file operations
-- Message queue system for thread-safe communication
-- Proper thread synchronization and cleanup
+- `README.md`: quick start, commands, repo map, evidence gates.
+- `docs/ARCHITECTURE.md`: module boundaries and runtime flow.
+- `docs/REIMPLEMENTATION_PLAN.md`: phased modernization roadmap.
+- `docs/IMPLEMENTATION_STATUS.md`: completed work and remaining gates.
+- `docs/GUI_PARITY_CHECKLIST.md`: manual parity checklist before UI changes.
+- `docs/OCR_BENCHMARK_PLAN.md`: fixture and benchmark plan.
+- `docs/RUN_REPORT.md`: JSON report schema and usage.
 
-### Configuration Management
-- JSON-based configuration files for settings persistence
-- Hierarchical settings structure (basic/advanced)
-- Default value handling and validation
-- Migration support for configuration updates
+## Known Constraints
 
-### Error Handling Strategy
-- Comprehensive exception handling throughout the application
-- User-friendly error messages with technical details in logs
-- Graceful degradation when components fail
-- Recovery mechanisms for common error scenarios
-
-## File Structure
-```
-CheckOCR2/
-├── check_capture_ocr.py                # Canonical application implementation
-├── Check_Capture_Excel_V6.1_배포.py    # Compatibility launcher for old shortcuts
-├── build_app.spec                      # Primary PyInstaller OneDIR recipe
-├── CheckCaptureOCR_V6.spec             # Simpler PyInstaller recipe
-├── DEPLOYMENT_GUIDE.md                 # Deployment instructions
-├── docs/                               # Project documentation
-├── legacy/                             # Historical V4/V5/V6 snapshots
-├── tools/                              # Development utilities, such as icon builders
-└── app_icon*, eye_ocr_*                # Runtime icon assets
-```
-
-## Dependencies
-- **tkinter**: GUI framework (built-in with Python)
-- **threading**: Multi-threading support (built-in)
-- **json**: Configuration file handling (built-in)
-- **logging**: Comprehensive logging system (built-in)
-- **datetime**: Date/time operations (built-in)
-- **pathlib**: Modern path handling (built-in)
-- **PIL/Pillow**: Image processing (external)
-- **openpyxl**: Excel file operations (external)
-- **Additional OCR libraries**: As specified in requirements
-
-## Target Use Cases
-1. **Financial Data Extraction**: Automated extraction of stock prices, rates, and financial metrics
-2. **Document Processing**: Batch processing of documents with structured data
-3. **Data Entry Automation**: Reducing manual data entry through OCR automation
-4. **Quality Assurance**: Validation and verification of extracted data
-5. **Report Generation**: Automated generation of reports from processed data
-
-## Performance Characteristics
-- **Processing Speed**: Optimized for batch processing with configurable timing
-- **Memory Usage**: Efficient memory management with data streaming capabilities
-- **Scalability**: Handles large datasets through chunked processing
-- **Reliability**: Robust error handling and recovery mechanisms
-
-## Security Considerations
-- **Data Privacy**: Local processing without external data transmission
-- **File Access**: Controlled file system access with validation
-- **Configuration Security**: Secure storage of sensitive settings
-- **Input Validation**: Comprehensive validation of user inputs and file contents
+- OCR tuning requires real crop fixtures and a same-input live comparison.
+- Desktop automation depends on screen coordinates and the external target app.
+- Tests should fake OCR and screen automation unless running an explicit smoke.
+- Personal settings, screenshots, production workbooks, and benchmark crops must
+  stay out of git.

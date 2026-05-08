@@ -33,6 +33,7 @@ from checkocr2.run_report import (
     report_output_path,
     write_run_report,
 )
+from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
@@ -1021,6 +1022,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self.worker_thread = None
         self.ocr_init_thread = None
         self.ocr_initializing = False
+        self.runtime_state = RuntimeState.STARTING
 
         self.input_excel_path = tk.StringVar()
         self.output_folder_path = tk.StringVar()
@@ -1050,14 +1052,14 @@ class CheckCaptureOCRApp(tk.Tk):
         self.check_queue()
         self.load_last_settings()
         self.theme_manager.apply_theme_to_all_widgets()
-        self._set_ocr_ready_ui(False)
+        self._set_runtime_state(RuntimeState.STARTING)
         self.after(100, self.start_ocr_initialization_async)
 
     def start_ocr_initialization_async(self):
         if self.ocr_initializing or self.ocr_workflow_manager.ocr_reader:
             return
         self.ocr_initializing = True
-        self._set_ocr_ready_ui(False)
+        self._set_runtime_state(RuntimeState.OCR_LOADING)
 
         def initialize():
             self.ocr_workflow_manager.initialize_ocr()
@@ -1066,13 +1068,20 @@ class CheckCaptureOCRApp(tk.Tk):
         self.ocr_init_thread = threading.Thread(target=initialize, daemon=True)
         self.ocr_init_thread.start()
 
-    def _set_ocr_ready_ui(self, ready):
+    def _set_runtime_state(self, state):
+        self.runtime_state = state
+        ui_state = runtime_state_ui(state)
         if not hasattr(self, "run_btn") or not self.run_btn:
             return
-        if ready:
-            self.run_btn.config(state="normal", text="🚀 OCR 시작 (F5)")
-        else:
-            self.run_btn.config(state="disabled", text="OCR 준비 중...")
+        self.run_btn.config(state=ui_state.run_button_state, text=ui_state.run_button_text)
+        if hasattr(self, "stop_btn") and self.stop_btn:
+            self.stop_btn.config(state=ui_state.stop_button_state)
+
+    def _set_ocr_ready_ui(self, ready):
+        self._set_runtime_state(RuntimeState.READY if ready else RuntimeState.OCR_LOADING)
+
+    def _ready_or_error_state(self):
+        return RuntimeState.READY if self.ocr_workflow_manager.ocr_reader else RuntimeState.ERROR
 
     def _setup_application_icon(self):
         """애플리케이션 아이콘을 창과 작업표시줄에 모두 설정"""
@@ -1172,11 +1181,11 @@ class CheckCaptureOCRApp(tk.Tk):
                 elif msg_type == "ocr_ready":
                     ready = bool(data[0]) if data else False
                     self.ocr_initializing = False
-                    self._set_ocr_ready_ui(ready)
                     if ready:
+                        self._set_runtime_state(RuntimeState.READY)
                         self.message_queue.put(("log", "OCR 엔진 준비 완료", "INFO"))
-                    elif hasattr(self, "run_btn") and self.run_btn:
-                        self.run_btn.config(state="disabled", text="OCR 초기화 실패")
+                    else:
+                        self._set_runtime_state(RuntimeState.ERROR)
                 elif msg_type == "complete":
                    # 이 메시지는 주로 UI 상태를 완료 상태로 변경하는 데 사용
                    # summary_message는 finalize_export 메시지에서 사용됨
@@ -2032,12 +2041,14 @@ class CheckCaptureOCRApp(tk.Tk):
     def stop_processing_ui_initiated(self):
         if self.work_controller.is_running:
             message = self.work_controller.stop_work()
+            self._set_runtime_state(RuntimeState.STOPPING)
             self.message_queue.put(("log", message, "INFO"))
 
     def _on_work_complete_ui_only(self, summary_message):
         self.logger.info("[_on_work_complete_ui_only] 함수 호출됨 (Main Thread)")
         self.work_controller.reset()
         self.data_manager.current_processing_index = -1
+        self._set_runtime_state(self._ready_or_error_state())
         self.refresh_grid_ui()
         # 메시지 박스 표시는 finalize_export_and_complete에서 수행
         self.quick_save_settings() # 완료 시 설정 저장
@@ -2090,6 +2101,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
         if not self._validate_inputs_for_ocr(): return
 
         self.work_controller.start_work()
+        self._set_runtime_state(RuntimeState.RUNNING)
         current_ui_settings = self.get_current_ui_settings()
         output_dir = self.output_folder_path.get().strip()
         save_details = self.save_detail_images.get()
@@ -2471,6 +2483,10 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
             )
             report_manager._flush_current_run_report()
 
+        self.work_controller.reset()
+        self.data_manager.current_processing_index = -1
+        self._set_runtime_state(self._ready_or_error_state())
+
         # 그리드 UI 최종 새로고침
         # _finalize_processing_states 및 export_grid_to_excel_data 후에 UI를 새로고침하여 최종 상태와 데이터를 표시
         self.refresh_grid_ui() # 상태 최종화 결과 반영 및 최종 데이터 표시
@@ -2502,6 +2518,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
         self.logger.info("[_on_work_stopped] 함수 호출됨 (Main Thread)")
         self.work_controller.reset() # WorkController 상태 리셋
         self.data_manager.current_processing_index = -1
+        self._set_runtime_state(self._ready_or_error_state())
         # 중단 시에도 최종 상태 정리 후 UI 새로고침하여 '중단됨' 상태 표시
         self._finalize_processing_states() # 중단된 항목들 상태 최종화
         self.refresh_grid_ui() # 최종 UI 새로고침

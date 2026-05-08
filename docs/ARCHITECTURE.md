@@ -1,0 +1,76 @@
+# Architecture
+
+## Current Shape
+
+CheckOCR2 is still centered on `check_capture_ocr.py`, which owns the Tkinter
+window, menus, panels, grid, dialogs, and release-compatible behavior. The
+refactor extracts stable, testable seams into `checkocr2/` without removing the
+existing GUI surface.
+
+The intended direction is an incremental split, not a rewrite. Every extraction
+must keep the canonical launcher, compatibility launcher, and package launcher
+working.
+
+## Package Modules
+
+- `checkocr2/main.py` and `checkocr2/app.py`: bootstrap helpers that preserve
+  import and launch compatibility.
+- `checkocr2/settings.py`: per-user settings store and migration from old
+  repo-local settings.
+- `checkocr2/models.py`: shared column names, status constants, and simple
+  data models.
+- `checkocr2/paths.py`: output path generation, UNC normalization, and folder
+  helpers.
+- `checkocr2/excel_io.py`: Excel import/export logic.
+- `checkocr2/table_model.py`: row CRUD and final status normalization.
+- `checkocr2/ocr_text.py`: OCR date/rate text normalization.
+- `checkocr2/image_processing.py`: crop validation and upscaling.
+- `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary.
+- `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.
+- `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
+- `checkocr2/worker.py`: daemon worker helper.
+- `checkocr2/run_report.py`: JSON run report creation/finalization.
+- `checkocr2/runtime_state.py`: explicit GUI runtime state to button-state map.
+
+## Runtime Flow
+
+```text
+Tk app -> WorkController -> worker thread -> OCRWorkflowManager/WorkflowRunner
+Workflow -> screen automation -> screenshots -> preprocessing -> OCR engine
+Workflow -> queue events -> Tk app -> grid/log/dialog updates
+Tk app -> Excel export -> run report finalization
+```
+
+The GUI initializes first, then EasyOCR loads asynchronously. OCR start remains
+disabled until the reader is ready. This keeps startup responsive even when
+model loading is slow.
+
+## UI Runtime States
+
+The GUI uses `RuntimeState` to keep the start/stop buttons predictable:
+
+- `Starting`: app is constructing the UI.
+- `OCR Loading`: EasyOCR is initializing in the background.
+- `Ready`: OCR can be started.
+- `Running`: OCR worker is active; F5/stop requests cancellation.
+- `Stopping`: cancellation was requested and the worker is draining.
+- `Error`: OCR engine initialization failed.
+
+Export failures are reported as export errors but return the GUI to the OCR
+ready state when the OCR reader is still available.
+
+## Data And Reports
+
+The grid is loaded from Excel and exported to `<input_stem>_updated.xlsx`.
+Each run also writes `<input_stem>_run_report.json` with row status, blank
+fields, timing, export information, and error details. The report is the primary
+evidence source for future speed tuning.
+
+## Testing Boundaries
+
+Unit tests should avoid real EasyOCR, desktop automation, and dialogs unless the
+test is explicitly a smoke check. Prefer fake readers, fake screenshots, fake
+clipboard/screen functions, and direct queue inspection.
+
+Use `docs/GUI_PARITY_CHECKLIST.md` before UI-moving changes, and keep
+`docs/REIMPLEMENTATION_PLAN.md` as the migration roadmap.

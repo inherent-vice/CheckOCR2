@@ -245,7 +245,10 @@ def test_finalize_export_report_records_failure_when_old_output_exists(ocr_modul
         data_manager=manager.data_manager,
         logger=logging.getLogger("tests.ocr.app"),
         ocr_workflow_manager=manager,
+        work_controller=ocr_module.WorkController(),
         _finalize_processing_states=lambda: None,
+        _ready_or_error_state=lambda: ocr_module.RuntimeState.READY,
+        _set_runtime_state=lambda _state: None,
         refresh_grid_ui=lambda: None,
     )
 
