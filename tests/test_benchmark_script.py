@@ -10,7 +10,12 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from scripts.benchmark_ocr import resolve_crop_path, run_benchmark, validate_output_path
+from scripts.benchmark_ocr import (
+    FIELD_ALLOWLISTS,
+    resolve_crop_path,
+    run_benchmark,
+    validate_output_path,
+)
 
 
 def test_benchmark_script_dry_run_writes_report(tmp_path):
@@ -137,6 +142,7 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
             detail=1,
             upscale_factor=1.0,
             upscale_method="LANCZOS",
+            allowlist_mode="none",
         )
     )
 
@@ -149,3 +155,53 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
     assert report["results"][0]["confidence"] == pytest.approx(0.9)
     assert report["results"][1]["confidence"] is None
     assert report["results"][2]["confidence"] == pytest.approx(0.5)
+
+
+def test_benchmark_field_allowlist_passes_field_specific_easyocr_allowlists(
+    tmp_path,
+    monkeypatch,
+):
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    for name in ("date.png", "rate.png"):
+        Image.new("RGB", (8, 8), "white").save(fixture_dir / name)
+    fixture_csv = fixture_dir / "ground_truth.csv"
+    fixture_csv.write_text(
+        "crop_path,field,expected_text\n"
+        "date.png,date,2026/05/08\n"
+        "rate.png,rate,3.500\n",
+        encoding="utf-8",
+    )
+    outputs = iter([["2026-05-08"], ["3.5"]])
+    allowlist_calls = []
+
+    class FakeReader:
+        def __init__(self, languages, gpu=False):
+            self.languages = languages
+            self.gpu = gpu
+
+        def readtext(self, image, detail=0, allowlist=None):
+            allowlist_calls.append(allowlist)
+            return next(outputs)
+
+    monkeypatch.setitem(sys.modules, "easyocr", types.SimpleNamespace(Reader=FakeReader))
+
+    report = run_benchmark(
+        Namespace(
+            fixture_csv=fixture_csv,
+            limit=0,
+            allow_empty_fixture=False,
+            dry_run=False,
+            gpu=False,
+            detail=0,
+            upscale_factor=1.0,
+            upscale_method="LANCZOS",
+            allowlist_mode="field",
+        )
+    )
+
+    assert report["status"] == "ok"
+    assert report["settings"]["allowlist_mode"] == "field"
+    assert allowlist_calls == [FIELD_ALLOWLISTS["date"], FIELD_ALLOWLISTS["rate"]]
+    assert report["results"][0]["allowlist"] == FIELD_ALLOWLISTS["date"]
+    assert report["results"][1]["allowlist"] == FIELD_ALLOWLISTS["rate"]

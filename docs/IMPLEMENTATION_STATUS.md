@@ -27,6 +27,8 @@ Date: 2026-05-08
   `scripts/benchmark_ocr.py` and `scripts/package_smoke.py`.
 - Added `scripts/benchmark_ocr_matrix.py` to run preprocessing/detail
   combinations and summarize candidate regressions against a fixed baseline.
+- Added field-specific EasyOCR allowlist benchmarking for date/rate crops,
+  exposed through `--allowlist-mode field` and matrix `--allowlist-modes`.
 - Split dependency entry files into runtime, build, and dev layers with direct
   dependency pins in `constraints.txt`.
 - Added packaged build metadata with app version, build date, Python version,
@@ -58,6 +60,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
+python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
 python -m PyInstaller build_app.spec --noconfirm
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready
 ```
@@ -73,6 +76,7 @@ Latest verification on 2026-05-08:
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
+- `python -m pytest tests\test_ocr_engine.py tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py --basetemp $env:TEMP\checkocr2-allowlist-pytest`: 11 passed for field allowlist benchmark coverage.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - `python -m PyInstaller build_app.spec --noconfirm`: build completed.

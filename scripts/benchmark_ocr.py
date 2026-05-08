@@ -15,6 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+FIELD_ALLOWLISTS = {
+    "date": "0123456789./-",
+    "rate": "0123456789.,%",
+}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture-csv", type=Path, default=Path("tests/fixtures/ocr_crops/ground_truth.csv"))
@@ -35,6 +41,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--detail", type=int, choices=(0, 1), default=0)
     parser.add_argument("--upscale-factor", type=float, default=2.0)
     parser.add_argument("--upscale-method", default="LANCZOS")
+    parser.add_argument(
+        "--allowlist-mode",
+        choices=("none", "field"),
+        default="none",
+        help="Pass field-specific EasyOCR character allowlists for date/rate crops",
+    )
     return parser.parse_args()
 
 
@@ -97,6 +109,12 @@ def normalize(field: str, text: str) -> str:
     return text.strip()
 
 
+def allowlist_for_field(field: str, mode: str) -> str | None:
+    if mode != "field":
+        return None
+    return FIELD_ALLOWLISTS.get(field.lower())
+
+
 def extract_text(results: list[Any], detail: int) -> tuple[str, float | None]:
     if detail == 0:
         return " ".join(str(item) for item in results).strip(), None
@@ -124,6 +142,7 @@ def p95(values: list[float]) -> float:
 
 def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
     cases = load_cases(args.fixture_csv, args.limit, allow_empty=args.allow_empty_fixture)
+    allowlist_mode = getattr(args, "allowlist_mode", "none")
     report: dict[str, Any] = {
         "fixture_csv": str(args.fixture_csv),
         "total_cases": len(cases),
@@ -132,6 +151,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             "detail": args.detail,
             "upscale_factor": args.upscale_factor,
             "upscale_method": args.upscale_method,
+            "allowlist_mode": allowlist_mode,
         },
         "dry_run": args.dry_run,
         "results": [],
@@ -175,7 +195,11 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             factor=args.upscale_factor,
             method=args.upscale_method,
         )
-        raw_results = reader.readtext(np.array(image), detail=args.detail)
+        allowlist = allowlist_for_field(field, allowlist_mode)
+        readtext_kwargs: dict[str, Any] = {"detail": args.detail}
+        if allowlist is not None:
+            readtext_kwargs["allowlist"] = allowlist
+        raw_results = reader.readtext(np.array(image), **readtext_kwargs)
         latency = (time.perf_counter() - start) * 1000
         latencies_ms.append(latency)
 
@@ -193,6 +217,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
                 "raw_text": raw_text,
                 "normalized": normalized,
                 "confidence": confidence,
+                "allowlist": allowlist,
                 "latency_ms": round(latency, 2),
                 "matched": matched,
             }

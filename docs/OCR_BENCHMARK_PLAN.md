@@ -40,6 +40,7 @@ Compare preprocessing settings:
 ```powershell
 python scripts/benchmark_ocr.py --upscale-factor 1.5 --upscale-method BICUBIC --output-json .analysis_tmp/easyocr_1_5_bicubic.json
 python scripts/benchmark_ocr.py --detail 1 --output-json .analysis_tmp/easyocr_detail_1.json
+python scripts/benchmark_ocr.py --allowlist-mode field --output-json .analysis_tmp/easyocr_field_allowlist.json
 ```
 
 Run the preprocessing/detail matrix:
@@ -47,13 +48,17 @@ Run the preprocessing/detail matrix:
 ```powershell
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --output-json .analysis_tmp/ocr_benchmark_matrix.json
+python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json
 ```
 
 The matrix runner sweeps upscale factors, interpolation methods, and EasyOCR
 detail modes. Defaults are factors `1.0,1.5,2.0,2.5,3.0`, methods
-`BILINEAR,BICUBIC,LANCZOS`, and details `0,1`. It compares every candidate
+`BILINEAR,BICUBIC,LANCZOS`, details `0,1`, and allowlist mode `none`.
+Pass `--allowlist-modes none,field` to include field-specific EasyOCR
+character allowlists for date and rate crops. It compares every candidate
 against the first combination as the baseline, so use the default ordering to
-keep `detail=0`, factor `1.0`, and method `BILINEAR` as the reference.
+keep `detail=0`, factor `1.0`, method `BILINEAR`, and allowlist `none` as the
+reference.
 
 Reports include raw OCR text and crop paths, so write them under
 `.analysis_tmp/`. The script rejects other repository-local output paths unless

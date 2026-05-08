@@ -82,7 +82,8 @@ mode that bypasses real model loading and verifies the GUI reaches `Ready`.
 Use `scripts\benchmark_ocr_matrix.py` after fixture creation to sweep OCR
 upscale factors, interpolation methods, and EasyOCR detail modes against the
 same ground-truth set. The matrix report compares every candidate with the
-first combination as the baseline.
+first combination as the baseline. Add `--allowlist-modes none,field` when
+testing field-specific EasyOCR character allowlists for date and rate crops.
 
 ## Current Evidence Gates
 

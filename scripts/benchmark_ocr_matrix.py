@@ -18,6 +18,7 @@ from scripts.benchmark_ocr import run_benchmark, validate_output_path  # noqa: E
 DEFAULT_FACTORS = "1.0,1.5,2.0,2.5,3.0"
 DEFAULT_METHODS = "BILINEAR,BICUBIC,LANCZOS"
 DEFAULT_DETAILS = "0,1"
+DEFAULT_ALLOWLIST_MODES = "none"
 
 
 def parse_csv_floats(value: str) -> list[float]:
@@ -44,6 +45,14 @@ def parse_csv_strings(value: str) -> list[str]:
     return parsed
 
 
+def parse_csv_allowlist_modes(value: str) -> list[str]:
+    parsed = [part.lower() for part in parse_csv_strings(value)]
+    invalid = [mode for mode in parsed if mode not in {"none", "field"}]
+    if invalid:
+        raise argparse.ArgumentTypeError("allowlist modes must be none or field")
+    return parsed
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture-csv", type=Path, default=Path("tests/fixtures/ocr_crops/ground_truth.csv"))
@@ -56,6 +65,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--upscale-factors", type=parse_csv_floats, default=parse_csv_floats(DEFAULT_FACTORS))
     parser.add_argument("--upscale-methods", type=parse_csv_strings, default=parse_csv_strings(DEFAULT_METHODS))
     parser.add_argument("--details", type=parse_csv_ints, default=parse_csv_ints(DEFAULT_DETAILS))
+    parser.add_argument(
+        "--allowlist-modes",
+        type=parse_csv_allowlist_modes,
+        default=parse_csv_allowlist_modes(DEFAULT_ALLOWLIST_MODES),
+    )
     return parser.parse_args(argv)
 
 
@@ -64,7 +78,8 @@ def candidate_key(report: dict[str, Any]) -> str:
     return (
         f"detail={settings.get('detail')};"
         f"factor={settings.get('upscale_factor')};"
-        f"method={settings.get('upscale_method')}"
+        f"method={settings.get('upscale_method')};"
+        f"allowlist={settings.get('allowlist_mode')}"
     )
 
 
@@ -98,7 +113,14 @@ def compare_to_baseline(candidate: dict[str, Any], baseline: dict[str, Any]) -> 
     }
 
 
-def benchmark_args(base_args: argparse.Namespace, *, factor: float, method: str, detail: int) -> Namespace:
+def benchmark_args(
+    base_args: argparse.Namespace,
+    *,
+    factor: float,
+    method: str,
+    detail: int,
+    allowlist_mode: str,
+) -> Namespace:
     return Namespace(
         fixture_csv=base_args.fixture_csv,
         limit=base_args.limit,
@@ -108,6 +130,7 @@ def benchmark_args(base_args: argparse.Namespace, *, factor: float, method: str,
         detail=detail,
         upscale_factor=factor,
         upscale_method=method,
+        allowlist_mode=allowlist_mode,
     )
 
 
@@ -119,12 +142,21 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
     for detail in args.details:
         for factor in args.upscale_factors:
             for method in args.upscale_methods:
-                report = run_benchmark(benchmark_args(args, factor=factor, method=method, detail=detail))
-                summary = summarize_report(report)
-                reports.append(report)
-                summaries.append(summary)
-                if baseline_summary is None:
-                    baseline_summary = summary
+                for allowlist_mode in args.allowlist_modes:
+                    report = run_benchmark(
+                        benchmark_args(
+                            args,
+                            factor=factor,
+                            method=method,
+                            detail=detail,
+                            allowlist_mode=allowlist_mode,
+                        )
+                    )
+                    summary = summarize_report(report)
+                    reports.append(report)
+                    summaries.append(summary)
+                    if baseline_summary is None:
+                        baseline_summary = summary
 
     baseline_summary = baseline_summary or {}
     comparisons = [
