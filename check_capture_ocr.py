@@ -47,6 +47,7 @@ from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
 from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
+from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
@@ -1435,32 +1436,7 @@ class CheckCaptureOCRApp(tk.Tk):
         preview_all_btn.pack(fill='x', pady=(8, 0))
 
     def _create_timing_section(self, parent):
-        section = self._create_section_frame_styled(parent, "⏱️ 타이밍 설정")
-        common_font = ('Segoe UI', 9)
-        
-        timing_grid = tk.Frame(section)
-        self.theme_manager.register_widget(timing_grid, {'bg': 'white'})
-        timing_grid.pack(fill='x')
-
-        left_timing = tk.Frame(timing_grid)
-        self.theme_manager.register_widget(left_timing, {'bg': 'white'})
-        left_timing.pack(side='left', fill='x', expand=True, padx=(0, 5))
-        paste_lbl = tk.Label(left_timing, text="붙여넣기 딜레이(초):", font=(common_font[0], common_font[1], 'bold'))
-        self.theme_manager.register_widget(paste_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        paste_lbl.pack(anchor='w', pady=(0,2))
-        paste_entry = tk.Entry(left_timing, textvariable=self.paste_delay, font=common_font, width=10, relief='solid', bd=1)
-        self.theme_manager.register_widget(paste_entry, {'bg': 'white', 'fg': 'on_surface'})
-        paste_entry.pack(fill='x')
-
-        right_timing = tk.Frame(timing_grid)
-        self.theme_manager.register_widget(right_timing, {'bg': 'white'})
-        right_timing.pack(side='left', fill='x', expand=True, padx=(5, 0))
-        load_lbl = tk.Label(right_timing, text="로딩 딜레이(초):", font=(common_font[0], common_font[1], 'bold'))
-        self.theme_manager.register_widget(load_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        load_lbl.pack(anchor='w', pady=(0,2))
-        load_entry = tk.Entry(right_timing, textvariable=self.loading_delay, font=common_font, width=10, relief='solid', bd=1)
-        self.theme_manager.register_widget(load_entry, {'bg': 'white', 'fg': 'on_surface'})
-        load_entry.pack(fill='x')
+        create_timing_panel(self, parent)
 
     def _create_options_section(self, parent):
         section = self._create_section_frame_styled(parent, "⚙️ 옵션 설정")

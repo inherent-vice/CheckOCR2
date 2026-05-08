@@ -47,7 +47,8 @@ Date: 2026-05-08
 - Added explicit package-smoke OCR readiness mode so the packaged EXE can prove
   the GUI reaches `Ready` without loading real OCR models during smoke tests.
 - Extracted low-risk UI panels into `checkocr2/ui/panels/file_panel.py` and
-  `checkocr2/ui/panels/log_panel.py` while keeping the main GUI controller
+  `checkocr2/ui/panels/log_panel.py` plus timing controls in
+  `checkocr2/ui/panels/timing_panel.py` while keeping the main GUI controller
   behavior intact.
 - Extracted legacy Tk queue dispatch into `checkocr2/ui/queue_dispatcher.py`
   with unit coverage for log, dialog, OCR-ready, grid, stopped, and final-export
@@ -90,7 +91,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 86 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 87 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
