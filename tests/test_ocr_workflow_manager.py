@@ -87,6 +87,7 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
 ):
     manager, _events = make_workflow_manager(ocr_module)
     saved_paths = []
+    captured_regions = []
 
     class FakeScreenshot:
         def __init__(self, region):
@@ -95,10 +96,14 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
         def save(self, path):
             saved_paths.append(str(path))
 
+    def fake_screenshot(region):
+        captured_regions.append(region)
+        return FakeScreenshot(region)
+
     monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
     monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
     monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
-    monkeypatch.setattr(ocr_module, "screenshot", lambda region: FakeScreenshot(region))
+    monkeypatch.setattr(ocr_module, "screenshot", fake_screenshot)
     coords = {
         "click": (1, 1),
         "all": (0, 0, 20, 20),
@@ -117,11 +122,14 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
 
     assert isinstance(date_image, FakeScreenshot)
     assert isinstance(rate_image, FakeScreenshot)
+    assert captured_regions == [(1, 2, 4, 4), (7, 8, 5, 5)]
     assert saved_paths == []
+    assert manager._last_capture_timing["capture_all_ms"] == 0.0
     assert manager._last_capture_timing["save_all_ms"] == 0.0
     assert "capture_total_ms" in manager._last_capture_timing
     assert "click_ms" in manager._last_capture_timing
 
+    captured_regions.clear()
     manager._capture_screenshots_internal(
         "A001",
         tmp_path,
@@ -136,6 +144,7 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
         "A001_date.png",
         "A001_rate.png",
     ]
+    assert captured_regions == [(0, 0, 20, 20), (1, 2, 4, 4), (7, 8, 5, 5)]
 
 
 def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypatch, tmp_path):

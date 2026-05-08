@@ -22,7 +22,8 @@ Date: 2026-05-08
   capture/OCR behavior and GUI queue events.
 - Added JSON OCR run reports next to exported workbooks with per-row timing,
   blank-field counts, status counts, export timing, and failure reasons.
-- Stopped saving full-area screenshots unless detailed image saving is enabled.
+- Stopped full-area screenshot capture and saving unless detailed image saving
+  is enabled; date/rate crop capture still runs normally.
 - Added benchmark and package-smoke scripts:
   `scripts/benchmark_ocr.py` and `scripts/package_smoke.py`.
 - Added `scripts/benchmark_ocr_matrix.py` to run preprocessing/detail

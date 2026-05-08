@@ -713,15 +713,17 @@ class OCRWorkflowManager:
             self.message_queue.put(("log", f"[{safe_stock_code}] 전체 영역 좌표 오류: {coords['all']}", "ERROR"))
             timing["capture_total_ms"] = self._elapsed_ms(capture_started)
             return None, None
-        screenshot_started = perf_counter()
-        screenshot_all = screenshot(region=(x1_all, y1_all, x2_all - x1_all, y2_all - y1_all))
-        timing["capture_all_ms"] = self._elapsed_ms(screenshot_started)
         if save_details:
+            screenshot_started = perf_counter()
+            screenshot_all = screenshot(region=(x1_all, y1_all, x2_all - x1_all, y2_all - y1_all))
+            timing["capture_all_ms"] = self._elapsed_ms(screenshot_started)
             save_started = perf_counter()
             allarea_path = os.path.join(save_folder, f"{safe_stock_code}.png")
             screenshot_all.save(allarea_path)
             timing["save_all_ms"] = self._elapsed_ms(save_started)
             self.message_queue.put(("log", f"전체 영역 이미지 저장: {allarea_path}", "INFO"))
+        else:
+            timing["capture_all_ms"] = 0.0
 
         # 날짜 영역
         if not save_details:
