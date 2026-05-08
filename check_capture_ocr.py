@@ -37,7 +37,15 @@ from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
 from checkocr2.worker import start_daemon_worker
-from checkocr2.workflow import CapturedImages, OcrResult, WorkflowOptions, WorkflowRunner
+from checkocr2.workflow import (
+    CapturedImages,
+    OcrResult,
+    WorkflowOptions,
+    WorkflowRunner,
+)
+from checkocr2.workflow import (
+    finalize_processing_states as finalize_workflow_processing_states,
+)
 
 
 ############################################
@@ -447,7 +455,7 @@ class DataManager:
     def export_grid_to_excel_data(self, output_dir, input_file_path_str):
         if not self.excel_data:
             self.message_queue.put(("log", "내보낼 데이터가 없습니다.", "INFO"))
-            return
+            return None
 
         new_file_path = updated_workbook_path(output_dir, input_file_path_str)
 
@@ -456,10 +464,13 @@ class DataManager:
             self.logger.debug(f"[export_grid_to_excel_data] 내보내기 직전 데이터: {self.excel_data}")
             
             export_grid_rows(self.excel_data, new_file_path)
+            export_success_path = new_file_path
             self.message_queue.put(("log", f"결과 Excel 파일 저장 완료: {new_file_path}", "SUCCESS"))
+            return export_success_path
         except Exception as e:
             self.message_queue.put(("log", f"Excel 파일 저장 실패: {e}", "ERROR"))
             self.logger.exception("Excel 파일 저장 중 예외 발생")
+            raise
 
 
 ############################################
@@ -596,11 +607,13 @@ class OCRWorkflowManager:
                 ),
             )
             if result.stopped:
+                finalize_workflow_processing_states(self.data_manager.excel_data)
                 self.logger.info("[OCRWorkflowManager] 작업 루프 종료됨 (사용자 중단).")
             else:
                 self.logger.info("[OCRWorkflowManager] 모든 항목 처리 완료. 최종 처리 메시지 전송 중.")
 
             if self._current_run_report is not None:
+                finalize_workflow_processing_states(self.data_manager.excel_data)
                 record_row_reports(self._current_run_report, self.data_manager.excel_data, row_timing_by_index)
                 finalize_run_report(
                     self._current_run_report,
@@ -616,6 +629,7 @@ class OCRWorkflowManager:
             self.logger.exception("OCR 전체 워크플로우에서 예외 발생")
             # 워크플로우 자체에서 예외 발생 시에도 중단 처리 및 stopped 메시지 보냄
             if self._current_run_report is not None:
+                finalize_workflow_processing_states(self.data_manager.excel_data)
                 finalize_run_report(
                     self._current_run_report,
                     self.data_manager.excel_data,
@@ -890,9 +904,16 @@ class OCRWorkflowManager:
 
         # 데이터 내보내기 호출
         export_started = perf_counter()
-        self.data_manager.export_grid_to_excel_data(output_dir=output_dir_str, input_file_path_str=input_excel_path_str)
-        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
+        export_error = None
         output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
+        try:
+            output_workbook = self.data_manager.export_grid_to_excel_data(
+                output_dir=output_dir_str,
+                input_file_path_str=input_excel_path_str,
+            ) or output_workbook
+        except Exception as export_exc:
+            export_error = f"Excel export failed: {export_exc}"
+        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
         report_manager = self
         if report_manager._current_run_report is not None:
             existing_timings = {
@@ -901,8 +922,7 @@ class OCRWorkflowManager:
             }
             record_row_reports(report_manager._current_run_report, self.data_manager.excel_data, existing_timings)
             summary = report_manager._current_run_report.get("summary", {})
-            export_error = None
-            if not output_workbook.exists():
+            if export_error is None and not output_workbook.exists():
                 export_error = f"Export workbook was not found after export: {output_workbook}"
             finalize_run_report(
                 report_manager._current_run_report,
@@ -916,11 +936,19 @@ class OCRWorkflowManager:
             )
             report_manager._flush_current_run_report()
 
+        if export_error is not None:
+            self.refresh_grid_ui()
+            messagebox.showerror("Excel export failed", export_error)
+            return
+
         # 그리드 UI 최종 새로고침
         # _finalize_processing_states 및 export_grid_to_excel_data 후에 UI를 새로고침하여 최종 상태와 데이터를 표시
         self.refresh_grid_ui() # 상태 최종화 결과 반영 및 최종 데이터 표시
 
         # 최종 완료 메시지 박스 표시
+        if export_error is not None:
+            messagebox.showerror("Excel export failed", export_error)
+            return
         messagebox.showinfo("처리 완료", summary_message)
 
     def _apply_image_upscaling(self, image_source, enable_upscaling, upscaling_factor, upscaling_method):
@@ -2414,9 +2442,13 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
 
         # 데이터 내보내기 호출
         export_started = perf_counter()
-        self.data_manager.export_grid_to_excel_data(output_dir_str, input_excel_path_str)
-        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
+        export_error = None
         output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
+        try:
+            output_workbook = self.data_manager.export_grid_to_excel_data(output_dir_str, input_excel_path_str) or output_workbook
+        except Exception as export_exc:
+            export_error = f"Excel export failed: {export_exc}"
+        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
         report_manager = self.ocr_workflow_manager
         if report_manager._current_run_report is not None:
             existing_timings = {
@@ -2425,8 +2457,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
             }
             record_row_reports(report_manager._current_run_report, self.data_manager.excel_data, existing_timings)
             summary = report_manager._current_run_report.get("summary", {})
-            export_error = None
-            if not output_workbook.exists():
+            if export_error is None and not output_workbook.exists():
                 export_error = f"Export workbook was not found after export: {output_workbook}"
             finalize_run_report(
                 report_manager._current_run_report,
@@ -2445,6 +2476,9 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
         self.refresh_grid_ui() # 상태 최종화 결과 반영 및 최종 데이터 표시
 
         # 최종 완료 메시지 박스 표시
+        if export_error is not None:
+            messagebox.showerror("Excel export failed", export_error)
+            return
         messagebox.showinfo("처리 완료", summary_message)
 
     def _generate_ocr_summary_internal(self, processed_count, total_items):

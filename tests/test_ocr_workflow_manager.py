@@ -4,10 +4,20 @@ import json
 import logging
 import queue
 from pathlib import Path
+from types import SimpleNamespace
 
 from PIL import Image
 
-from checkocr2.models import CODE_COL, DATE_COL, NAME_COL, RATE_COL, STATUS_COL
+from checkocr2.models import (
+    CODE_COL,
+    DATE_COL,
+    NAME_COL,
+    RATE_COL,
+    STATUS_COL,
+    STATUS_DONE,
+    STATUS_STOPPED,
+)
+from checkocr2.run_report import create_run_report
 
 
 class DummySettings:
@@ -173,3 +183,88 @@ def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypa
     assert "capture_timing_ms" in report["rows"][0]["timing_ms"]
     assert "ocr_timing_ms" in report["rows"][0]["timing_ms"]
     assert "update_ms" in report["rows"][0]["timing_ms"]
+
+
+def test_stopped_workflow_report_uses_final_stopped_status(ocr_module, monkeypatch, tmp_path):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.ocr_reader = object()
+    manager.data_manager.excel_data = [
+        {CODE_COL: "A001", NAME_COL: "Alpha", DATE_COL: "", RATE_COL: "", STATUS_COL: ""}
+    ]
+
+    class DummyVar:
+        def get(self):
+            return str(tmp_path / "source.xlsx")
+
+    class DummyApp:
+        input_excel_path = DummyVar()
+
+    def stop_after_capture(*args, **kwargs):
+        manager.work_controller.stop_work()
+        return Image.new("RGB", (10, 10), "white"), Image.new("RGB", (10, 10), "white")
+
+    manager.app = DummyApp()
+    monkeypatch.setattr(manager, "_capture_screenshots_internal", stop_after_capture)
+    ui_settings = {
+        "delays": {"paste": 0, "loading": 0},
+        "click_point": (1, 1),
+        "all_area": (0, 0, 20, 20),
+        "date_area": (0, 0, 10, 10),
+        "rate_area": (10, 10, 20, 20),
+    }
+
+    manager.execute_ocr_workflow_threaded(ui_settings, str(tmp_path), save_detail_images_bool=False)
+
+    report = json.loads((tmp_path / "source_run_report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["stopped"] is True
+    assert report["summary"]["status_counts"] == {STATUS_STOPPED: 1}
+    assert report["rows"][0]["status"] == STATUS_STOPPED
+
+
+def test_finalize_export_report_records_failure_when_old_output_exists(ocr_module, monkeypatch, tmp_path):
+    rows = [
+        {CODE_COL: "A001", NAME_COL: "Alpha", DATE_COL: "2026/05/08", RATE_COL: "3.500", STATUS_COL: STATUS_DONE}
+    ]
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.data_manager.excel_data = rows
+    manager._current_run_report = create_run_report(
+        output_dir=str(tmp_path),
+        input_excel_path=str(tmp_path / "source.xlsx"),
+        total_items=1,
+        save_detail_images=False,
+    )
+    manager._current_run_report["rows"] = [{"index": 0, "timing_ms": {"row_total_ms": 1.0}}]
+    manager._current_run_report["summary"]["processed_count"] = 1
+    manager._current_run_report_path = tmp_path / "source_run_report.json"
+    stale_output = tmp_path / "source_updated.xlsx"
+    stale_output.write_text("stale output", encoding="utf-8")
+    errors = []
+    infos = []
+
+    dummy_app = SimpleNamespace(
+        data_manager=manager.data_manager,
+        logger=logging.getLogger("tests.ocr.app"),
+        ocr_workflow_manager=manager,
+        _finalize_processing_states=lambda: None,
+        refresh_grid_ui=lambda: None,
+    )
+
+    def fail_export_grid_rows(rows, output_path):
+        raise PermissionError("locked workbook")
+
+    monkeypatch.setattr(ocr_module, "export_grid_rows", fail_export_grid_rows)
+    monkeypatch.setattr(ocr_module.messagebox, "showerror", lambda title, message: errors.append((title, message)))
+    monkeypatch.setattr(ocr_module.messagebox, "showinfo", lambda title, message: infos.append((title, message)))
+
+    ocr_module.CheckCaptureOCRApp._finalize_export_and_complete(
+        dummy_app,
+        str(tmp_path),
+        str(tmp_path / "source.xlsx"),
+        "done",
+    )
+
+    report = json.loads((tmp_path / "source_run_report.json").read_text(encoding="utf-8"))
+    assert "Excel export failed: locked workbook" in report["errors"]
+    assert report["summary"]["export_timing_ms"]["export_ms"] >= 0
+    assert errors == [("Excel export failed", "Excel export failed: locked workbook")]
+    assert infos == []
