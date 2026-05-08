@@ -48,6 +48,7 @@ from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_fro
 from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
 from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
+from checkocr2.ui.panels.options_panel import create_options_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.worker import start_daemon_worker
@@ -1406,80 +1407,7 @@ class CheckCaptureOCRApp(tk.Tk):
         create_timing_panel(self, parent)
 
     def _create_options_section(self, parent):
-        section = self._create_section_frame_styled(parent, "⚙️ 옵션 설정")
-        common_font = ('Segoe UI', 9)
-        
-        save_img_cb = tk.Checkbutton(section, text="상세 이미지 저장 (영역별 개별 파일)", variable=self.save_detail_images, font=common_font)
-        self.theme_manager.register_widget(save_img_cb, {'bg': 'white', 'fg': 'on_surface', 'selectcolor': 'light', 'activebackground': 'white', 'activeforeground': 'on_surface'})
-        save_img_cb.pack(anchor='w', pady=(0, 8))
-
-        self.skip_kbp_var = tk.BooleanVar(value=self.settings_manager.get_advanced('skip_kbp_code', True))
-        skip_kbp_cb = tk.Checkbutton(section, text="'KBP' 코드 건너뛰기 (빈 값으로 완료 처리)", variable=self.skip_kbp_var, font=common_font, command=self.save_advanced_ui_to_settings)
-        self.theme_manager.register_widget(skip_kbp_cb, {'bg': 'white', 'fg': 'on_surface', 'selectcolor': 'light', 'activebackground': 'white', 'activeforeground': 'on_surface'})
-        skip_kbp_cb.pack(anchor='w', pady=(0, 8))
-        
-        # 업스케일링 설정 초기값 로드
-        self.enable_upscaling.set(self.settings_manager.get_advanced('upscaling_enabled', True))
-        self.upscaling_factor.set(self.settings_manager.get_advanced('upscaling_factor', 2.0))
-        self.upscaling_method.set(self.settings_manager.get_advanced('upscaling_method', 'LANCZOS'))
-        
-        # 업스케일링 옵션 섹션
-        upscaling_frame = tk.Frame(section)
-        self.theme_manager.register_widget(upscaling_frame, {'bg': 'white'})
-        upscaling_frame.pack(fill='x', pady=(8, 0))
-        
-        # 업스케일링 활성화 체크박스
-        self.enable_upscaling_cb = tk.Checkbutton(upscaling_frame, text="🔍 OCR 업스케일링 활성화 (인식률 향상)", 
-                                                  variable=self.enable_upscaling, font=common_font, 
-                                                  command=self.on_upscaling_toggle)
-        self.theme_manager.register_widget(self.enable_upscaling_cb, {'bg': 'white', 'fg': 'on_surface', 'selectcolor': 'light', 'activebackground': 'white', 'activeforeground': 'on_surface'})
-        self.enable_upscaling_cb.pack(anchor='w', pady=(0, 5))
-        
-        # 업스케일링 세부 설정 프레임
-        self.upscaling_details_frame = tk.Frame(upscaling_frame)
-        self.theme_manager.register_widget(self.upscaling_details_frame, {'bg': 'white'})
-        self.upscaling_details_frame.pack(fill='x', padx=(20, 0))
-        
-        # 배율 설정
-        factor_frame = tk.Frame(self.upscaling_details_frame)
-        self.theme_manager.register_widget(factor_frame, {'bg': 'white'})
-        factor_frame.pack(fill='x', pady=(0, 5))
-        
-        factor_lbl = tk.Label(factor_frame, text="배율:", font=common_font, width=8)
-        self.theme_manager.register_widget(factor_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        factor_lbl.pack(side='left')
-        
-        self.factor_combo = ttk.Combobox(factor_frame, textvariable=self.upscaling_factor, 
-                                         values=[1.5, 2.0, 2.5, 3.0, 4.0], width=8, state="readonly", 
-                                         font=common_font, style="TCombobox")
-        self.factor_combo.pack(side='left', padx=(5, 10))
-        
-        factor_desc = tk.Label(factor_frame, text="(2.0x 권장)", font=(common_font[0], common_font[1]-1), 
-                              foreground='gray')
-        self.theme_manager.register_widget(factor_desc, {'bg': 'white', 'fg': 'outline'})
-        factor_desc.pack(side='left')
-        
-        # 리샘플링 방법 설정
-        method_frame = tk.Frame(self.upscaling_details_frame)
-        self.theme_manager.register_widget(method_frame, {'bg': 'white'})
-        method_frame.pack(fill='x')
-        
-        method_lbl = tk.Label(method_frame, text="품질:", font=common_font, width=8)
-        self.theme_manager.register_widget(method_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        method_lbl.pack(side='left')
-        
-        self.method_combo = ttk.Combobox(method_frame, textvariable=self.upscaling_method,
-                                         values=["LANCZOS", "BICUBIC", "BILINEAR"], width=10, state="readonly",
-                                         font=common_font, style="TCombobox")
-        self.method_combo.pack(side='left', padx=(5, 10))
-        
-        method_desc = tk.Label(method_frame, text="(LANCZOS 최고품질)", font=(common_font[0], common_font[1]-1),
-                              foreground='gray')
-        self.theme_manager.register_widget(method_desc, {'bg': 'white', 'fg': 'outline'})
-        method_desc.pack(side='left')
-        
-        # 초기 상태 설정
-        self.on_upscaling_toggle()
+        create_options_panel(self, parent)
 
     def _create_preset_section(self, parent):
         section = self._create_section_frame_styled(parent, "💾 프리셋 관리", fill_parent=True)
