@@ -31,7 +31,8 @@ def make_row(code: str, name: str = "Name") -> dict[str, str]:
 def test_workflow_success_updates_grid_row_and_emits_legacy_compatible_events():
     rows = [make_row("A001", "Alpha")]
     automation = FakeAutomationAdapter()
-    ocr = FakeOcrAdapter({"A001": OcrResult("2026/05/08", "3.500")})
+    timing = {"ocr_timing_ms": {"date_ocr_ms": 1.2}}
+    ocr = FakeOcrAdapter({"A001": OcrResult("2026/05/08", "3.500", metadata={"timing_ms": timing})})
     runner = WorkflowRunner(automation, ocr)
 
     result = runner.process_rows(
@@ -45,6 +46,7 @@ def test_workflow_success_updates_grid_row_and_emits_legacy_compatible_events():
     assert rows[0][DATE_COL] == "2026/05/08"
     assert rows[0][RATE_COL] == "3.500"
     assert rows[0][STATUS_COL] == STATUS_DONE
+    assert "update_ms" in timing
     assert runner.legacy_tuples() == [
         ("grid_update", ("processing", 0)),
         ("grid_update", ("complete", 0, "2026/05/08", "3.500", STATUS_DONE)),

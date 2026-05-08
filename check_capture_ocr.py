@@ -7,6 +7,7 @@ import subprocess
 import threading
 import tkinter as tk
 from datetime import datetime
+from time import perf_counter
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import numpy as np
@@ -25,6 +26,13 @@ from checkocr2.ocr_text import (
 )
 from checkocr2.paths import clean_folder_path as normalize_folder_path
 from checkocr2.paths import sanitize_filename, updated_workbook_path
+from checkocr2.run_report import (
+    create_run_report,
+    finalize_run_report,
+    record_row_reports,
+    report_output_path,
+    write_run_report,
+)
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
@@ -466,6 +474,10 @@ class OCRWorkflowManager:
         self.settings_manager = settings_manager
         self.data_manager = data_manager # DataManager 인스턴스
         self.ocr_reader = None
+        self._current_run_report = None
+        self._current_run_report_path = None
+        self._last_capture_timing = {}
+        self._last_ocr_timings = {}
 
     def initialize_ocr(self):
         try:
@@ -513,29 +525,59 @@ class OCRWorkflowManager:
                 save_folder = os.path.join(output_dir_str, "ocr_images")
 
             os.makedirs(save_folder, exist_ok=True)
+            self._last_capture_timing = {}
+            self._last_ocr_timings = {}
+            row_timing_by_index = {}
+            row_started_by_index = {}
+            self._current_run_report_path = report_output_path(output_dir_str, input_excel_file)
+            self._current_run_report = create_run_report(
+                output_dir=output_dir_str,
+                input_excel_path=input_excel_file or "",
+                total_items=len(self.data_manager.excel_data),
+                save_detail_images=save_detail_images_bool,
+            )
 
             class TkAutomationAdapter:
                 def capture(_adapter_self, row, context):
+                    capture_started = perf_counter()
                     date_img_src, rate_img_src = self._capture_screenshots_internal(
                         row.code, save_folder, coords, paste_d, load_d, save_detail_images_bool
                     )
+                    capture_timing = dict(self._last_capture_timing)
+                    capture_timing.setdefault("capture_adapter_ms", self._elapsed_ms(capture_started))
+                    row_timing_by_index.setdefault(context.index, {})["capture_timing_ms"] = capture_timing
                     if date_img_src is None or rate_img_src is None:
                         return None
-                    return CapturedImages(date_img_src, rate_img_src)
+                    return CapturedImages(date_img_src, rate_img_src, metadata={"timing_ms": capture_timing})
 
             class EasyOcrAdapter:
                 def read(_adapter_self, images, row, context):
+                    ocr_started = perf_counter()
+                    self._last_ocr_timings = {}
                     date_result, rate_result = self._process_single_ocr_internal(
                         images.date_image,
                         images.rate_image,
                         save_detail_images_bool,
                     )
-                    return OcrResult(date_result, rate_result)
+                    ocr_timing = dict(self._last_ocr_timings)
+                    ocr_timing.setdefault("ocr_adapter_ms", self._elapsed_ms(ocr_started))
+                    timing = row_timing_by_index.setdefault(context.index, {})
+                    timing["ocr_timing_ms"] = ocr_timing
+                    return OcrResult(date_result, rate_result, metadata={"timing_ms": timing})
 
             def emit_to_tk_queue(event):
                 legacy_event = event.as_legacy_tuple()
-                if legacy_event[0] == "grid_update" and legacy_event[1][0] == "processing":
-                    self.data_manager.current_processing_index = legacy_event[1][1]
+                if legacy_event[0] == "grid_update":
+                    update_payload = legacy_event[1]
+                    update_type = update_payload[0]
+                    row_index = update_payload[1]
+                    if update_type == "processing":
+                        row_started_by_index[row_index] = perf_counter()
+                        self.data_manager.current_processing_index = row_index
+                    elif update_type in {"complete", "error"} and row_index in row_started_by_index:
+                        row_timing_by_index.setdefault(row_index, {})["row_total_ms"] = self._elapsed_ms(
+                            row_started_by_index[row_index]
+                        )
                 self.message_queue.put(legacy_event)
 
             runner = WorkflowRunner(
@@ -558,31 +600,87 @@ class OCRWorkflowManager:
             else:
                 self.logger.info("[OCRWorkflowManager] 모든 항목 처리 완료. 최종 처리 메시지 전송 중.")
 
+            if self._current_run_report is not None:
+                record_row_reports(self._current_run_report, self.data_manager.excel_data, row_timing_by_index)
+                finalize_run_report(
+                    self._current_run_report,
+                    self.data_manager.excel_data,
+                    processed_count=result.processed_count,
+                    total_items=result.total_items,
+                    stopped=result.stopped,
+                )
+                self._flush_current_run_report()
+
         except Exception as e_workflow:
             self.message_queue.put(("log", f"OCR 전체 워크플로우 오류: {e_workflow}", "ERROR"))
             self.logger.exception("OCR 전체 워크플로우에서 예외 발생")
             # 워크플로우 자체에서 예외 발생 시에도 중단 처리 및 stopped 메시지 보냄
+            if self._current_run_report is not None:
+                finalize_run_report(
+                    self._current_run_report,
+                    self.data_manager.excel_data,
+                    processed_count=0,
+                    total_items=len(self.data_manager.excel_data),
+                    stopped=True,
+                    error=str(e_workflow),
+                )
+                self._flush_current_run_report()
             if not self.work_controller.is_stopped:
                  self.work_controller.stop_work() # is_stopped 플래그 설정 및 stop_event 설정
             # 예외 발생 후에도 stopped 메시지를 보내 UI 상태를 중단됨으로 변경
             self.message_queue.put(("stopped", None))
 
+    def _flush_current_run_report(self):
+        if self._current_run_report is None or self._current_run_report_path is None:
+            return
+        try:
+            report_path = write_run_report(self._current_run_report, self._current_run_report_path)
+            self.message_queue.put(("log", f"OCR run report saved: {report_path}", "INFO"))
+        except Exception as report_error:
+            self.message_queue.put(("log", f"OCR run report save failed: {report_error}", "WARNING"))
+            self.logger.exception("OCR run report save failed")
+
+    @staticmethod
+    def _elapsed_ms(started_at):
+        return round((perf_counter() - started_at) * 1000, 3)
+
     def _capture_screenshots_internal(self, stock_code, save_folder, coords, paste_d, load_d, save_details):
-        if self.work_controller.is_stopped: return None, None
+        capture_started = perf_counter()
+        timing = {}
+        self._last_capture_timing = timing
+        if self.work_controller.is_stopped:
+            timing["capture_total_ms"] = self._elapsed_ms(capture_started)
+            return None, None
+        copy_started = perf_counter()
         copy_text(stock_code)
+        timing["copy_ms"] = self._elapsed_ms(copy_started)
+        click_started = perf_counter()
         click(
             coords['click'][0],
             coords['click'][1],
             clicks=2,
             interval=self.settings_manager.get_advanced('click_interval', 0.1),
         )
+        timing["click_ms"] = self._elapsed_ms(click_started)
+        wait_started = perf_counter()
         
         # time.sleep 대신 work_controller.stop_event.wait 사용
-        if self.work_controller.stop_event.wait(timeout=paste_d): return None, None # 중단되면 None 반환
+        if self.work_controller.stop_event.wait(timeout=paste_d):
+            timing["paste_wait_ms"] = self._elapsed_ms(wait_started)
+            timing["capture_total_ms"] = self._elapsed_ms(capture_started)
+            return None, None
         
+        timing["paste_wait_ms"] = self._elapsed_ms(wait_started)
+        paste_started = perf_counter()
         hotkey('ctrl', 'v')
+        timing["paste_hotkey_ms"] = self._elapsed_ms(paste_started)
 
-        if self.work_controller.stop_event.wait(timeout=load_d): return None, None
+        wait_started = perf_counter()
+        if self.work_controller.stop_event.wait(timeout=load_d):
+            timing["load_wait_ms"] = self._elapsed_ms(wait_started)
+            timing["capture_total_ms"] = self._elapsed_ms(capture_started)
+            return None, None
+        timing["load_wait_ms"] = self._elapsed_ms(wait_started)
 
         safe_stock_code = sanitize_filename(stock_code)
         date_img_src, rate_img_src = None, None
@@ -591,37 +689,58 @@ class OCRWorkflowManager:
         x1_all, y1_all, x2_all, y2_all = coords['all']
         if not (x2_all > x1_all and y2_all > y1_all):
             self.message_queue.put(("log", f"[{safe_stock_code}] 전체 영역 좌표 오류: {coords['all']}", "ERROR"))
+            timing["capture_total_ms"] = self._elapsed_ms(capture_started)
             return None, None
+        screenshot_started = perf_counter()
         screenshot_all = screenshot(region=(x1_all, y1_all, x2_all - x1_all, y2_all - y1_all))
+        timing["capture_all_ms"] = self._elapsed_ms(screenshot_started)
         if save_details:
+            save_started = perf_counter()
             allarea_path = os.path.join(save_folder, f"{safe_stock_code}.png")
             screenshot_all.save(allarea_path)
+            timing["save_all_ms"] = self._elapsed_ms(save_started)
             self.message_queue.put(("log", f"전체 영역 이미지 저장: {allarea_path}", "INFO"))
 
         # 날짜 영역
+        if not save_details:
+            timing["save_all_ms"] = 0.0
+
         x1_date, y1_date, x2_date, y2_date = coords['date']
         if not (x2_date > x1_date and y2_date > y1_date):
             self.message_queue.put(("log", f"[{safe_stock_code}] 날짜 영역 좌표 오류: {coords['date']}", "ERROR"))
         else:
+            screenshot_started = perf_counter()
             screenshot_date = screenshot(region=(x1_date, y1_date, x2_date - x1_date, y2_date - y1_date))
+            timing["capture_date_ms"] = self._elapsed_ms(screenshot_started)
             if save_details:
+                save_started = perf_counter()
                 date_img_src = os.path.join(save_folder, f"{safe_stock_code}_date.png")
                 screenshot_date.save(date_img_src)
+                timing["save_date_ms"] = self._elapsed_ms(save_started)
                 self.message_queue.put(("log", f"날짜 영역 이미지 저장: {date_img_src}", "INFO"))
-            else: date_img_src = screenshot_date
+            else:
+                timing["save_date_ms"] = 0.0
+                date_img_src = screenshot_date
 
         # 금리 영역
         x1_rate, y1_rate, x2_rate, y2_rate = coords['rate']
         if not (x2_rate > x1_rate and y2_rate > y1_rate):
             self.message_queue.put(("log", f"[{safe_stock_code}] 금리 영역 좌표 오류: {coords['rate']}", "ERROR"))
         else:
+            screenshot_started = perf_counter()
             screenshot_rate = screenshot(region=(x1_rate, y1_rate, x2_rate - x1_rate, y2_rate - y1_rate))
+            timing["capture_rate_ms"] = self._elapsed_ms(screenshot_started)
             if save_details:
+                save_started = perf_counter()
                 rate_img_src = os.path.join(save_folder, f"{safe_stock_code}_rate.png")
                 screenshot_rate.save(rate_img_src)
+                timing["save_rate_ms"] = self._elapsed_ms(save_started)
                 self.message_queue.put(("log", f"금리 영역 이미지 저장: {rate_img_src}", "INFO"))
-            else: rate_img_src = screenshot_rate
+            else:
+                timing["save_rate_ms"] = 0.0
+                rate_img_src = screenshot_rate
         
+        timing["capture_total_ms"] = self._elapsed_ms(capture_started)
         return date_img_src, rate_img_src
 
     def _process_single_ocr_internal(self, date_img_src, rate_img_src, save_details):
@@ -638,8 +757,12 @@ class OCRWorkflowManager:
 
     def _extract_text_with_ocr_attempts_internal(self, image_source, analysis_function, field_name, save_details):
         if self.work_controller.is_stopped: return ""
+        field_key = "date" if "date" in getattr(analysis_function, "__name__", "") else "rate"
+        extract_started = perf_counter()
         try:
+            image_load_started = perf_counter()
             original_img = Image.open(image_source) if isinstance(image_source, str) else image_source
+            self._last_ocr_timings[f"{field_key}_image_load_ms"] = self._elapsed_ms(image_load_started)
             if original_img is None:
                 self.message_queue.put(("log", f"{field_name} 이미지 소스 로드 실패: {image_source}", "WARNING"))
                 return ""
@@ -652,23 +775,31 @@ class OCRWorkflowManager:
             upscaling_method = self.settings_manager.get_advanced('upscaling_method', 'LANCZOS')
             
             # 업스케일링 적용
+            preprocess_started = perf_counter()
             processed_img = self._apply_image_upscaling(original_img, enable_upscaling, upscaling_factor, upscaling_method)
             
             # 업스케일링된 이미지를 numpy 배열로 변환하여 OCR 수행
             img_array = np.array(processed_img)
+            self._last_ocr_timings[f"{field_key}_preprocess_ms"] = self._elapsed_ms(preprocess_started)
+            ocr_started = perf_counter()
             ocr_results = read_ocr_text(self.ocr_reader, img_array, detail=0)
+            self._last_ocr_timings[f"{field_key}_ocr_ms"] = self._elapsed_ms(ocr_started)
             all_text = " ".join(ocr_results) if ocr_results else ""
             
             # 업스케일링 정보 포함한 로그 메시지
             scale_info = f" (업스케일링: {upscaling_factor}x {upscaling_method})" if enable_upscaling and upscaling_factor > 1.0 else ""
             self.message_queue.put(("log", f"[{field_name}] OCR 결과{scale_info}: '{all_text}'", "INFO"))
             
-            return analysis_function(all_text, field_name)
+            parse_started = perf_counter()
+            parsed_text = analysis_function(all_text, field_name)
+            self._last_ocr_timings[f"{field_key}_parse_ms"] = self._elapsed_ms(parse_started)
+            return parsed_text
         except Exception as e:
             self.message_queue.put(("log", f"{field_name} 추출 중 오류: {e}", "ERROR"))
             self.logger.exception(f"{field_name} 추출 중 예외 발생")
             return ""
         finally:
+            self._last_ocr_timings[f"{field_key}_total_ms"] = self._elapsed_ms(extract_started)
             if isinstance(image_source, str) and not save_details:
                 if os.path.exists(image_source) and ("_date.png" in image_source or "_rate.png" in image_source):
                     try:
@@ -758,7 +889,32 @@ class OCRWorkflowManager:
         self._finalize_processing_states() # 이 함수는 이제 data_manager.excel_data를 직접 업데이트
 
         # 데이터 내보내기 호출
-        self.data_manager.export_grid_to_excel_data(output_dir_str, input_excel_path_str)
+        export_started = perf_counter()
+        self.data_manager.export_grid_to_excel_data(output_dir=output_dir_str, input_file_path_str=input_excel_path_str)
+        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
+        output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
+        report_manager = self
+        if report_manager._current_run_report is not None:
+            existing_timings = {
+                row_report.get("index"): row_report.get("timing_ms", {})
+                for row_report in report_manager._current_run_report.get("rows", [])
+            }
+            record_row_reports(report_manager._current_run_report, self.data_manager.excel_data, existing_timings)
+            summary = report_manager._current_run_report.get("summary", {})
+            export_error = None
+            if not output_workbook.exists():
+                export_error = f"Export workbook was not found after export: {output_workbook}"
+            finalize_run_report(
+                report_manager._current_run_report,
+                self.data_manager.excel_data,
+                processed_count=int(summary.get("processed_count", 0) or 0),
+                total_items=int(summary.get("total_items", len(self.data_manager.excel_data)) or 0),
+                stopped=bool(summary.get("stopped", False)),
+                output_workbook_path=output_workbook,
+                export_timing_ms=export_timing_ms,
+                error=export_error,
+            )
+            report_manager._flush_current_run_report()
 
         # 그리드 UI 최종 새로고침
         # _finalize_processing_states 및 export_grid_to_excel_data 후에 UI를 새로고침하여 최종 상태와 데이터를 표시
@@ -2166,10 +2322,10 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
             self.work_controller.stop_work()
             # Attempt to join the worker thread for a short timeout
             # This might prevent crashes but doesn't guarantee clean exit if thread is stuck
-            if self.worker_thread and self.worker_thread.is_alive():
+            if self.worker_thread and self.worker_thread.is_alive:
                 try:
                     self.worker_thread.join(timeout=2) # Wait up to 2 seconds
-                    if self.worker_thread.is_alive():
+                    if self.worker_thread.is_alive:
                          self.logger.warning("작업 스레드가 종료 시간 내에 응답하지 않았습니다.")
                 except Exception as e:
                      self.logger.error(f"작업 스레드 종료 중 오류 발생: {e}")
@@ -2257,7 +2413,32 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
         self._finalize_processing_states() # 이 함수는 이제 data_manager.excel_data를 직접 업데이트
 
         # 데이터 내보내기 호출
+        export_started = perf_counter()
         self.data_manager.export_grid_to_excel_data(output_dir_str, input_excel_path_str)
+        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
+        output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
+        report_manager = self.ocr_workflow_manager
+        if report_manager._current_run_report is not None:
+            existing_timings = {
+                row_report.get("index"): row_report.get("timing_ms", {})
+                for row_report in report_manager._current_run_report.get("rows", [])
+            }
+            record_row_reports(report_manager._current_run_report, self.data_manager.excel_data, existing_timings)
+            summary = report_manager._current_run_report.get("summary", {})
+            export_error = None
+            if not output_workbook.exists():
+                export_error = f"Export workbook was not found after export: {output_workbook}"
+            finalize_run_report(
+                report_manager._current_run_report,
+                self.data_manager.excel_data,
+                processed_count=int(summary.get("processed_count", 0) or 0),
+                total_items=int(summary.get("total_items", len(self.data_manager.excel_data)) or 0),
+                stopped=bool(summary.get("stopped", False)),
+                output_workbook_path=output_workbook,
+                export_timing_ms=export_timing_ms,
+                error=export_error,
+            )
+            report_manager._flush_current_run_report()
 
         # 그리드 UI 최종 새로고침
         # _finalize_processing_states 및 export_grid_to_excel_data 후에 UI를 새로고침하여 최종 상태와 데이터를 표시

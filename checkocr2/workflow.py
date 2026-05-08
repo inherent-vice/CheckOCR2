@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass, field
+from time import perf_counter
 from typing import Any, Protocol
 
 from .events import UiEvent, UiEventType, log_event
@@ -60,6 +61,7 @@ class CapturedImages:
 class OcrResult:
     date: str = ""
     rate: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -224,8 +226,10 @@ class WorkflowRunner:
                 self._emit_stopped()
                 return WorkflowResult(processed_count, total_items, stopped=True)
 
+            update_started = perf_counter()
             _set_result(source_row, result.date, result.rate, STATUS_DONE)
             self._emit(grid_update_event("complete", index, result.date, result.rate, STATUS_DONE))
+            _record_update_timing(result, _elapsed_ms(update_started))
             self._emit(log_event(f"[{row.code}] complete - date: '{result.date}', rate: '{result.rate}'", "SUCCESS"))
             processed_count += 1
 
@@ -337,6 +341,16 @@ def _set_result(row: GridRow, date: str, rate: str, status: str) -> None:
         row[DATE_COL] = date
         row[RATE_COL] = rate
         row[STATUS_COL] = status
+
+
+def _record_update_timing(result: OcrResult, update_ms: float) -> None:
+    timing = result.metadata.get("timing_ms")
+    if isinstance(timing, MutableMapping):
+        timing["update_ms"] = update_ms
+
+
+def _elapsed_ms(started_at: float) -> float:
+    return round((perf_counter() - started_at) * 1000, 3)
 
 
 __all__ = [

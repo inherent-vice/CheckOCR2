@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 import logging
 import queue
 from pathlib import Path
 
 from PIL import Image
+
+from checkocr2.models import CODE_COL, DATE_COL, NAME_COL, RATE_COL, STATUS_COL
 
 
 class DummySettings:
@@ -105,6 +108,9 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     assert isinstance(date_image, FakeScreenshot)
     assert isinstance(rate_image, FakeScreenshot)
     assert saved_paths == []
+    assert manager._last_capture_timing["save_all_ms"] == 0.0
+    assert "capture_total_ms" in manager._last_capture_timing
+    assert "click_ms" in manager._last_capture_timing
 
     manager._capture_screenshots_internal(
         "A001",
@@ -120,3 +126,50 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
         "A001_date.png",
         "A001_rate.png",
     ]
+
+
+def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypatch, tmp_path):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.ocr_reader = object()
+    manager.data_manager.excel_data = [
+        {
+            CODE_COL: "A001",
+            NAME_COL: "Alpha",
+            DATE_COL: "",
+            RATE_COL: "",
+            STATUS_COL: "",
+        }
+    ]
+
+    class DummyVar:
+        def get(self):
+            return str(tmp_path / "source.xlsx")
+
+    class DummyApp:
+        input_excel_path = DummyVar()
+
+    ocr_outputs = iter([["2026-05-08"], ["3.5"]])
+    monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
+    monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
+    monkeypatch.setattr(ocr_module, "screenshot", lambda region: Image.new("RGB", (20, 20), "white"))
+    monkeypatch.setattr(ocr_module, "read_ocr_text", lambda *args, **kwargs: next(ocr_outputs))
+    manager.app = DummyApp()
+    ui_settings = {
+        "delays": {"paste": 0, "loading": 0},
+        "click_point": (1, 1),
+        "all_area": (0, 0, 20, 20),
+        "date_area": (0, 0, 10, 10),
+        "rate_area": (10, 10, 20, 20),
+    }
+
+    manager.execute_ocr_workflow_threaded(ui_settings, str(tmp_path), save_detail_images_bool=False)
+
+    report_path = tmp_path / "source_run_report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["summary"]["processed_count"] == 1
+    assert report["rows"][0]["date"] == "2026/05/08"
+    assert report["rows"][0]["rate"] == "3.500"
+    assert "capture_timing_ms" in report["rows"][0]["timing_ms"]
+    assert "ocr_timing_ms" in report["rows"][0]["timing_ms"]
+    assert "update_ms" in report["rows"][0]["timing_ms"]

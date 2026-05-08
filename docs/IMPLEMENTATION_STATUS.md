@@ -18,6 +18,8 @@ Date: 2026-05-08
 - Added `scripts/benchmark_ocr.py` and `docs/OCR_BENCHMARK_PLAN.md` for
   repeatable OCR accuracy and latency benchmarking.
 - Added `scripts/package_smoke.py` for repeatable packaged-EXE window checks.
+- Added JSON OCR run reports next to the exported workbook with per-row timing,
+  blank-field counts, status counts, export timing, and failure reasons.
 - Added package bootstrap modules: `checkocr2/main.py`, `checkocr2/app.py`,
   `checkocr2/logging_config.py`, and `checkocr2/worker.py`.
 - Added a Tk-free `checkocr2/workflow.py` seam and routed the existing GUI OCR
@@ -33,6 +35,7 @@ Date: 2026-05-08
 - `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`
+- `python -m pytest tests\test_run_report.py tests\test_workflow_module.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-timing-pytest`
 - Launched `python check_capture_ocr.py` and confirmed the `📊 Check Capture OCR V6.1`
   window was responsive.
 - Launched `python Check_Capture_Excel_V6.1_배포.py` and confirmed the same window.
