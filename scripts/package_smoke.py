@@ -115,6 +115,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Fail if the packaged directory is larger than this size in MB",
     )
+    parser.add_argument(
+        "--max-startup-seconds",
+        type=positive_float,
+        default=None,
+        help="Fail if the main window takes longer than this many seconds to appear",
+    )
     return parser.parse_args(argv)
 
 
@@ -298,6 +304,7 @@ def run_package_smoke(
     require_ocr_ready: bool = False,
     ocr_ready_timeout_seconds: float = DEFAULT_OCR_READY_TIMEOUT_SECONDS,
     max_package_size_mb: float | None = None,
+    max_startup_seconds: float | None = None,
     process_launcher: ProcessLauncher = launch_exe,
     list_windows: WindowLister = iter_window_titles,
     sleep: Callable[[float], None] = time.sleep,
@@ -333,6 +340,7 @@ def run_package_smoke(
         "timeout_seconds": timeout_seconds,
         "package_size_mb": round(directory_size_bytes(exe_path.parent) / (1024 * 1024), 3),
         "max_package_size_mb": max_package_size_mb,
+        "max_startup_seconds": max_startup_seconds,
         "ocr_ready_required": require_ocr_ready,
     }
     status_path: Path | None = None
@@ -398,6 +406,21 @@ def run_package_smoke(
                         "error": (
                             f"Package size {report['package_size_mb']} MB exceeds "
                             f"budget {max_package_size_mb} MB"
+                        ),
+                    }
+                )
+                exit_code = 1
+            if (
+                max_startup_seconds is not None
+                and float(report["elapsed_seconds"]) > max_startup_seconds
+                and exit_code == 0
+            ):
+                report.update(
+                    {
+                        "status": "startup_time_exceeded",
+                        "error": (
+                            f"Startup time {report['elapsed_seconds']} seconds exceeds "
+                            f"budget {max_startup_seconds} seconds"
                         ),
                     }
                 )
@@ -631,6 +654,7 @@ def main(argv: list[str] | None = None) -> int:
         require_ocr_ready=args.require_ocr_ready,
         ocr_ready_timeout_seconds=args.ocr_ready_timeout,
         max_package_size_mb=args.max_package_size_mb,
+        max_startup_seconds=args.max_startup_seconds,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

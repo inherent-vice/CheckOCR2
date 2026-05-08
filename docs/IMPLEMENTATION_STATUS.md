@@ -80,7 +80,7 @@ python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowli
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
 Manual GUI smoke remains required after startup, threading, UI state, or
@@ -90,7 +90,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 84 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 86 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
@@ -102,7 +102,7 @@ Latest verification on 2026-05-08:
   wrote package-smoke status with `runtime_state="Ready"` and `ocr_ready=true`.
 - Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650`: passed with package size `596.345 MB`, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: passed with package size `596.347 MB`, startup time under `5` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
 
 Known build warnings: PyInstaller still reports optional `tensorboard`
 collection failure for `torch.utils.tensorboard`; the clean release venv keeps

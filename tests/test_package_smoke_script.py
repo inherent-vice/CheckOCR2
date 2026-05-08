@@ -171,6 +171,50 @@ def test_run_package_smoke_reports_package_size_exceeded(tmp_path):
     assert "exceeds budget 1.0 MB" in report["error"]
 
 
+def test_run_package_smoke_accepts_startup_time_within_budget(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+    clock = FakeClock([0.0, 0.0, 1.0])
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        max_startup_seconds=5.0,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+        clock=clock,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["elapsed_seconds"] == 1.0
+    assert report["max_startup_seconds"] == 5.0
+
+
+def test_run_package_smoke_reports_startup_time_exceeded(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+    clock = FakeClock([0.0, 0.0, 6.0])
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        max_startup_seconds=5.0,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+        clock=clock,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "startup_time_exceeded"
+    assert report["elapsed_seconds"] == 6.0
+    assert "exceeds budget 5.0 seconds" in report["error"]
+
+
 def test_run_package_smoke_can_require_packaged_metadata(tmp_path):
     exe_path = touch_exe(tmp_path)
     process = FakeProcess(pid=100)

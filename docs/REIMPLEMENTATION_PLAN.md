@@ -293,7 +293,7 @@ Validation:
 - `dist/CheckCaptureOCR_V6.1/CheckCaptureOCR_V6.1.exe` launches.
 - Window title, icon, settings load, and clean exit verified.
 - Package size and startup time recorded, and package smoke enforces the
-  approved package size budget.
+  approved package size and startup-time budgets.
 
 ## Test Strategy
 
