@@ -1,0 +1,43 @@
+{
+  "click_point": [340, 165],
+  "all_area": [15, 200, 1845, 870],
+  "date_area": [826, 88, 1064, 127],
+  "rate_area": [1069, 89, 1326, 126],
+  "delays": {
+    "paste": 0.5,
+    "loading": 2.5
+  },
+  "advanced": {
+    "ocr_languages": ["en"],
+    "ocr_max_attempts": 1,
+    "ocr_detail_level": 0,
+    "click_interval": 0.1,
+    "min_date_confidence": 0.0,
+    "min_rate_confidence": 0.0,
+    "ui_theme": "modern_blue",
+    "skip_kbp_code": true,
+    "upscaling_enabled": true,
+    "upscaling_factor": 2.0,
+    "upscaling_method": "LANCZOS"
+  },
+  "presets": {},
+  "current": {
+    "click_point": [340, 165],
+    "all_area": [15, 200, 1845, 870],
+    "date_area": [826, 88, 1064, 127],
+    "rate_area": [1069, 89, 1326, 126],
+    "delays": {
+      "paste": 0.5,
+      "loading": 2.5
+    },
+    "save_detail_images": true,
+    "skip_kbp_code": true,
+    "upscaling": {
+      "enabled": true,
+      "factor": 2.0,
+      "method": "LANCZOS"
+    },
+    "input_excel_path": "",
+    "output_folder_path": ""
+  }
+}

@@ -1,22 +1,33 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox, ttk, simpledialog
-import pandas as pd
-import pyperclip
-import pyautogui
-import time
-import os
-from PIL import Image, ImageTk
-import numpy as np
-import easyocr
-import json
+import copy
 import logging
-from datetime import datetime
-import threading
+import os
+import platform  # OS 정보 확인용
 import queue
-import re
 import subprocess
-import platform # OS 정보 확인용
-from typing import Optional
+import threading
+import tkinter as tk
+from datetime import datetime
+from tkinter import filedialog, messagebox, simpledialog, ttk
+
+import numpy as np
+from PIL import Image
+
+from checkocr2.excel_io import export_grid_rows, load_grid_rows
+from checkocr2.exceptions import SettingsError
+from checkocr2.image_processing import upscale_image
+from checkocr2.ocr_engine import create_easyocr_reader, read_ocr_text
+from checkocr2.ocr_text import (
+    clean_date_text,
+    clean_rate_text,
+    is_valid_date_format,
+    is_valid_rate_format,
+)
+from checkocr2.paths import clean_folder_path as normalize_folder_path
+from checkocr2.paths import sanitize_filename, updated_workbook_path
+from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
+from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
+from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+
 
 ############################################
 # 로깅 설정
@@ -61,91 +72,22 @@ def setup_logging(log_queue):
 ############################################
 # 통합 설정 관리 시스템
 ############################################
-class UnifiedSettingsManager:
+class UnifiedSettingsManager(SettingsStore):
+    """Compatibility adapter around the package settings store."""
+
     def __init__(self):
-        self.settings_file = "settings.json"
-        self.data = self.load_settings()
-
-        if 'presets' not in self.data: self.data['presets'] = {}
-        if 'current' not in self.data: self.data['current'] = {}
-        if 'advanced' not in self.data: self.data['advanced'] = self._get_default_advanced_settings()
-
-    def load_settings(self):
         try:
-            if os.path.exists(self.settings_file):
-                with open(self.settings_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-        except Exception as e:
+            super().__init__()
+        except SettingsError as e:
             print(f"설정 로드 오류: {e}")
-        return {}
-
-    def save_settings(self):
-        try:
-            with open(self.settings_file, 'w', encoding='utf-8') as f:
-                json.dump(self.data, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"설정 저장 오류: {e}")
+            self.settings_file = "settings.json"
+            self.legacy_settings_file = "settings.json"
+            self.data = copy.deepcopy(DEFAULT_SETTINGS)
 
     def save_preset(self, name, settings):
-        self.data['presets'][name] = {
-            'click_point': settings['click_point'],
-            'all_area': settings['all_area'],
-            'date_area': settings['date_area'],
-            'rate_area': settings['rate_area'],
-            'delays': settings['delays'],
-            'save_detail_images': settings.get('save_detail_images', True),
-            'advanced': settings.get('advanced', {}),
-            'created_at': datetime.now().isoformat()
-        }
-        self.save_settings()
-
-    def get_preset_names(self):
-        return list(self.data['presets'].keys())
-
-    def apply_preset(self, name):
-        return self.data['presets'].get(name, None)
-
-    def delete_preset(self, name):
-        if name in self.data['presets']:
-            del self.data['presets'][name]
-            self.save_settings()
-
-    def save_current_settings(self, settings):
-        self.data['current'] = settings
-        self.save_settings()
-
-    def get_current_settings(self):
-        return self.data.get('current', {})
-
-    def _get_default_advanced_settings(self):
-        return {
-            'ocr_languages': ['en'],
-            'ocr_max_attempts': 1,
-            'ocr_detail_level': 0,
-            'click_interval': 0.1,
-            'min_date_confidence': 0.0,
-            'min_rate_confidence': 0.0,
-            'ui_theme': 'modern_blue', # 기본 테마 추가
-            'skip_kbp_code': True, # KBP 코드 건너뛰기 기본값 추가
-            'upscaling_enabled': True, # 업스케일링 기본 활성화
-            'upscaling_factor': 2.0, # 기본 2배 확대
-            'upscaling_method': 'LANCZOS' # 기본 고품질 리샘플링
-        }
-
-    def _get_optimal_thread_count(self):
-        cpu_count = os.cpu_count() or 4
-        return min(max(cpu_count, 2), 8)
-
-    def get_advanced(self, key, default=None):
-        return self.data['advanced'].get(key, default)
-
-    def set_advanced(self, key, value):
-        self.data['advanced'][key] = value
-        self.save_settings()
-
-    def reset_advanced_settings(self):
-        self.data['advanced'] = self._get_default_advanced_settings()
-        self.save_settings()
+        settings = dict(settings)
+        settings["created_at"] = datetime.now().isoformat()
+        super().save_preset(name, settings)
 
 ############################################
 # 테마 관리 시스템
@@ -489,30 +431,10 @@ class DataManager:
 
     def load_excel_to_grid_data(self, file_path):
         try:
-            df = pd.read_excel(file_path, dtype=str)
+            new_data, missing_columns = load_grid_rows(file_path)
             self.clear_all_data_internal()
-
-            col_map = {}
-            expected_cols = {'종목코드': ['종목코드', 'code', 'item code'],
-                             '종목명': ['종목명', 'name', 'item name', '회사명']}
-            df_cols_lower = {str(col).lower(): str(col) for col in df.columns}
-
-            for target_col, possible_names in expected_cols.items():
-                for p_name in possible_names:
-                    if p_name in df_cols_lower:
-                        col_map[target_col] = df_cols_lower[p_name]
-                        break
-                if target_col not in col_map:
-                    self.logger.warning(f"Excel 파일에 '{target_col}'에 해당하는 컬럼을 찾을 수 없습니다.")
-                    col_map[target_col] = None
-            
-            new_data = []
-            for _, row in df.iterrows():
-                new_data.append({
-                    '종목코드': str(row[col_map['종목코드']]) if col_map.get('종목코드') and col_map['종목코드'] in row else '',
-                    '종목명': str(row[col_map['종목명']]) if col_map.get('종목명') and col_map['종목명'] in row else '',
-                    '날짜': '', '금리': '', '상태': '대기 중'
-                })
+            for target_col in missing_columns:
+                self.logger.warning(f"Excel 파일에 '{target_col}'에 해당하는 컬럼을 찾을 수 없습니다.")
             self.excel_data = new_data
             return len(self.excel_data)
         except Exception as e:
@@ -521,31 +443,20 @@ class DataManager:
             return 0
             
     def add_empty_row_data(self):
-        self.excel_data.append({'종목코드': '', '종목명': '', '날짜': '', '금리': '', '상태': '대기 중'})
+        self.excel_data.append(empty_row())
 
     def paste_from_clipboard_data(self, clipboard_content):
         try:
-            lines = clipboard_content.strip().split('\n')
-            added_count = 0
-            for line in lines:
-                parts = line.split('\t')
-                if len(parts) >= 1 and parts[0].strip():
-                    self.excel_data.append({
-                        '종목코드': parts[0].strip() if len(parts) > 0 else '',
-                        '종목명': parts[1].strip() if len(parts) > 1 else '',
-                        '날짜': '', '금리': '', '상태': '대기 중'
-                    })
-                    added_count +=1
-            return added_count
+            rows = rows_from_clipboard(clipboard_content)
+            self.excel_data.extend(rows)
+            return len(rows)
         except Exception as e:
             self.logger.exception("클립보드 붙여넣기 실패")
             self.message_queue.put(("error_messagebox", "붙여넣기 중 오류", f"{e}"))
             return 0
 
     def delete_rows_data(self, indices_to_delete):
-        for index in sorted(indices_to_delete, reverse=True):
-            if 0 <= index < len(self.excel_data):
-                del self.excel_data[index]
+        delete_rows(self.excel_data, indices_to_delete)
     
     def clear_all_data_internal(self):
         self.excel_data.clear()
@@ -559,8 +470,7 @@ class DataManager:
 
     def get_row_for_copy(self, index):
         if 0 <= index < len(self.excel_data):
-            row = self.excel_data[index]
-            return f"{row['종목코드']}\t{row['종목명']}\t{row['날짜']}\t{row['금리']}\t{row['상태']}"
+            return row_for_copy(self.excel_data[index])
         return ""
 
     def export_grid_to_excel_data(self, output_dir, input_file_path_str):
@@ -568,22 +478,13 @@ class DataManager:
             self.message_queue.put(("log", "내보낼 데이터가 없습니다.", "INFO"))
             return
 
-        base_name = os.path.basename(input_file_path_str) if input_file_path_str else "ocr_results"
-        new_file_name = os.path.splitext(base_name)[0] + '_updated.xlsx'
-        new_file_path = os.path.join(output_dir, new_file_name)
+        new_file_path = updated_workbook_path(output_dir, input_file_path_str)
 
         try:
             # 디버그 로그: 엑셀 내보내기 직전 데이터 상태 확인
             self.logger.debug(f"[export_grid_to_excel_data] 내보내기 직전 데이터: {self.excel_data}")
             
-            df_export = pd.DataFrame(self.excel_data)
-            df_export = df_export[['종목코드', '종목명', '날짜', '금리', '상태']]
-            
-            # Excel 내보내기 시 '중단됨' 상태를 빈 문자열로 변경
-            df_export['상태'] = df_export['상태'].apply(lambda x: '' if x == '중단됨' else x)
-
-            with pd.ExcelWriter(new_file_path, engine='openpyxl') as writer:
-                df_export.to_excel(writer, sheet_name='OCR_Results', index=False)
+            export_grid_rows(self.excel_data, new_file_path)
             self.message_queue.put(("log", f"결과 Excel 파일 저장 완료: {new_file_path}", "SUCCESS"))
         except Exception as e:
             self.message_queue.put(("log", f"Excel 파일 저장 실패: {e}", "ERROR"))
@@ -609,13 +510,13 @@ class OCRWorkflowManager:
             # gpu_enabled = self.settings_manager.get_advanced('ocr_gpu_enabled', False) # GPU 설정 제거
             gpu_enabled = False # GPU 사용 비활성화로 고정
             languages = ['en'] # 영어로 고정
-            self.ocr_reader = easyocr.Reader(languages, gpu=gpu_enabled)
+            self.ocr_reader = create_easyocr_reader(languages, gpu=gpu_enabled)
             self.logger.info(f"EasyOCR 초기화 완료 - 언어: {languages}, GPU: {gpu_enabled}")
         except Exception as e:
             self.logger.error(f"EasyOCR 초기화 실패: {e}")
             try:
                 self.logger.info("기본 모드(영어, CPU)로 EasyOCR 재초기화 시도...")
-                self.ocr_reader = easyocr.Reader(['en'], gpu=False)
+                self.ocr_reader = create_easyocr_reader(['en'], gpu=False)
                 self.settings_manager.set_advanced('ocr_gpu_enabled', False)
                 self.settings_manager.set_advanced('ocr_languages', ['en'])
                 self.logger.info("EasyOCR 영어 모드(CPU)로 초기화 완료.")
@@ -737,17 +638,22 @@ class OCRWorkflowManager:
 
     def _capture_screenshots_internal(self, stock_code, save_folder, coords, paste_d, load_d, save_details):
         if self.work_controller.is_stopped: return None, None
-        pyperclip.copy(stock_code)
-        pyautogui.click(x=coords['click'][0], y=coords['click'][1], clicks=2, interval=self.settings_manager.get_advanced('click_interval', 0.1))
+        copy_text(stock_code)
+        click(
+            coords['click'][0],
+            coords['click'][1],
+            clicks=2,
+            interval=self.settings_manager.get_advanced('click_interval', 0.1),
+        )
         
         # time.sleep 대신 work_controller.stop_event.wait 사용
         if self.work_controller.stop_event.wait(timeout=paste_d): return None, None # 중단되면 None 반환
         
-        pyautogui.hotkey('ctrl', 'v')
+        hotkey('ctrl', 'v')
 
         if self.work_controller.stop_event.wait(timeout=load_d): return None, None
 
-        safe_stock_code = re.sub(r'[\\/*?:"<>|]', "_", stock_code)
+        safe_stock_code = sanitize_filename(stock_code)
         date_img_src, rate_img_src = None, None
 
         # 전체 영역
@@ -755,7 +661,7 @@ class OCRWorkflowManager:
         if not (x2_all > x1_all and y2_all > y1_all):
             self.message_queue.put(("log", f"[{safe_stock_code}] 전체 영역 좌표 오류: {coords['all']}", "ERROR"))
             return None, None
-        screenshot_all = pyautogui.screenshot(region=(x1_all, y1_all, x2_all - x1_all, y2_all - y1_all))
+        screenshot_all = screenshot(region=(x1_all, y1_all, x2_all - x1_all, y2_all - y1_all))
         allarea_path = os.path.join(save_folder, f"{safe_stock_code}.png")
         screenshot_all.save(allarea_path)
         self.message_queue.put(("log", f"전체 영역 이미지 저장: {allarea_path}", "INFO"))
@@ -765,7 +671,7 @@ class OCRWorkflowManager:
         if not (x2_date > x1_date and y2_date > y1_date):
             self.message_queue.put(("log", f"[{safe_stock_code}] 날짜 영역 좌표 오류: {coords['date']}", "ERROR"))
         else:
-            screenshot_date = pyautogui.screenshot(region=(x1_date, y1_date, x2_date - x1_date, y2_date - y1_date))
+            screenshot_date = screenshot(region=(x1_date, y1_date, x2_date - x1_date, y2_date - y1_date))
             if save_details:
                 date_img_src = os.path.join(save_folder, f"{safe_stock_code}_date.png")
                 screenshot_date.save(date_img_src)
@@ -777,7 +683,7 @@ class OCRWorkflowManager:
         if not (x2_rate > x1_rate and y2_rate > y1_rate):
             self.message_queue.put(("log", f"[{safe_stock_code}] 금리 영역 좌표 오류: {coords['rate']}", "ERROR"))
         else:
-            screenshot_rate = pyautogui.screenshot(region=(x1_rate, y1_rate, x2_rate - x1_rate, y2_rate - y1_rate))
+            screenshot_rate = screenshot(region=(x1_rate, y1_rate, x2_rate - x1_rate, y2_rate - y1_rate))
             if save_details:
                 rate_img_src = os.path.join(save_folder, f"{safe_stock_code}_rate.png")
                 screenshot_rate.save(rate_img_src)
@@ -818,7 +724,7 @@ class OCRWorkflowManager:
             
             # 업스케일링된 이미지를 numpy 배열로 변환하여 OCR 수행
             img_array = np.array(processed_img)
-            ocr_results = self.ocr_reader.readtext(img_array, detail=0)
+            ocr_results = read_ocr_text(self.ocr_reader, img_array, detail=0)
             all_text = " ".join(ocr_results) if ocr_results else ""
             
             # 업스케일링 정보 포함한 로그 메시지
@@ -866,55 +772,17 @@ class OCRWorkflowManager:
             return ""
 
     def _is_valid_date_format_internal(self, date_str):
-        return bool(re.fullmatch(r'\d{4}/\d{2}/\d{2}', date_str))
+        return is_valid_date_format(date_str)
 
     def _is_valid_rate_format_internal(self, rate_str):
-        return bool(re.fullmatch(r'\d+\.\d+', rate_str))
+        return is_valid_rate_format(rate_str)
 
     def _clean_date_text_internal(self, text):
-        cleaned = re.sub(r'[^\d]', '', text)
-        if len(cleaned) == 8: return f"{cleaned[:4]}/{cleaned[4:6]}/{cleaned[6:]}"
-        elif len(cleaned) == 6:
-            year_prefix = "20" if int(cleaned[:2]) < 70 else "19" # 70년 기준 20xx/19xx
-            return f"{year_prefix}{cleaned[:2]}/{cleaned[2:4]}/{cleaned[4:]}"
-        elif len(cleaned) == 7 and cleaned.startswith('202') and int(cleaned[4]) <=1 : # 202YMDD
-             # 2024101 -> 2024/01/01, 2024501 -> 2024/05/01
-            month_part = cleaned[4]
-            day_part = cleaned[5:]
-            if len(day_part) == 1: day_part = "0" + day_part # 5 -> 05
-            if len(day_part) == 2 and int(day_part) > 31 : # 2024131 -> 2024/01/31, 2024140 (x)
-                 # 이 경우는 YYYYMMD 로 간주. 202413 -> 2024/01/03
-                 if len(cleaned) == 7: # YYYYMMD
-                     return f"{cleaned[:4]}/{cleaned[4:6]}/{cleaned[6].zfill(2)}"
-
-
-            return f"{cleaned[:4]}/{month_part.zfill(2)}/{day_part.zfill(2)}"
-
-
-        return text # 정제 실패 시 원본 반환 (분석 함수에서 재검증)
+        return clean_date_text(text)
 
 
     def _clean_rate_text_internal(self, text):
-        cleaned = text.replace('%','').replace(' ','').replace(',','.').replace('·','.')
-        cleaned = re.sub(r'[^\d.]', '', cleaned)
-        if cleaned.count('.') > 1:
-            parts = cleaned.split('.')
-            cleaned = parts[0] + '.' + ''.join(parts[1:])
-        
-        if re.fullmatch(r'\d+\.\d+', cleaned):
-            try:
-                val = float(cleaned)
-                # 소수점 3자리로 포맷팅, 불필요한 0 제거 안 함 (예: 3.500)
-                return f"{val:.3f}" 
-            except ValueError: return cleaned
-        elif re.fullmatch(r'\d+', cleaned) and 2 <= len(cleaned) <= 5:
-            try: # 35 -> 3.500, 350 -> 3.500, 3500 -> 3.500, 12500 -> 12.500
-                if len(cleaned) == 2: return f"{cleaned[0]}.{cleaned[1]}00"
-                elif len(cleaned) == 3: return f"{cleaned[0]}.{cleaned[1:]}0" if cleaned[1:] != "00" else f"{cleaned[0]}.000" # 300 -> 3.000
-                elif len(cleaned) == 4: return f"{cleaned[0]}.{cleaned[1:]}"
-                elif len(cleaned) == 5: return f"{cleaned[:2]}.{cleaned[2:]}"
-            except: pass
-        return cleaned
+        return clean_rate_text(text)
 
     def _generate_ocr_summary_internal(self, processed_count, total_items):
         date_success = sum(1 for row in self.data_manager.excel_data if row.get('날짜','').strip() and row['상태'] == '완료')
@@ -945,66 +813,9 @@ class OCRWorkflowManager:
             self.message_queue.put(("log", f"상태 최종화 중 오류: {e}", "ERROR"))
             self.logger.exception("처리 상태 최종화 중 예외 발생")
 
-    def _clean_folder_path(self, path: Optional[str]) -> str:
-        if not path:
-            return self.settings_manager.get_advanced('default_output_dir', ".")
-        
-        cleaned_path = str(path).strip()
-        original_path = cleaned_path # UNC prefix 감지용
-
-        is_unc = False
-        prefix = ""
-        
-        # UNC 경로 감지 및 정규화
-        if original_path.startswith("\\\\"):
-            # 올바른 UNC 형식 (\\server\share)
-            is_unc = True
-            prefix = "\\\\"
-            cleaned_path = original_path[2:]
-        elif original_path.startswith("\\") and len(original_path) > 1:
-            # 단일 백슬래시로 시작하는 경우 UNC로 간주하고 정규화
-            is_unc = True
-            prefix = "\\\\"
-            cleaned_path = original_path[1:]  # 첫 번째 백슬래시 제거
-            self.logger.info(f"단일 백슬래시 UNC 경로 정규화: {original_path} -> {prefix + cleaned_path}")
-        elif original_path.startswith("//"):
-            # 슬래시 형식 UNC
-            is_unc = True
-            prefix = "\\\\"  # Windows에서는 백슬래시로 통일
-            cleaned_path = original_path[2:]
-
-        if is_unc:
-            # UNC 경로는 내부적으로 \ 사용을 가정 (Windows 표준)
-            parts = [part for part in cleaned_path.split("/") if part] # / 기준 분리
-            cleaned_path = "\\".join(parts) # \ 기준으로 재조합
-            cleaned_path = prefix + cleaned_path
-            
-            # Windows에서 UNC 경로 검증
-            if platform.system() == "Windows":
-                path_parts = cleaned_path.split('\\')
-                if len(path_parts) >= 3 and path_parts[0] == '' and path_parts[1] == '':
-                    # \\server\share 형식 확인
-                    server = path_parts[2]
-                    if len(path_parts) >= 4:
-                        share = path_parts[3]
-                        self.logger.info(f"UNC 경로 검증됨 - 서버: {server}, 공유: {share}")
-        else:
-            cleaned_path = cleaned_path.replace("\\", "/")
-            while "//" in cleaned_path:
-                cleaned_path = cleaned_path.replace("//", "/")
-        
-        # 공통 정리 (다중 공백 -> 단일 공백)
-        cleaned_path = " ".join(cleaned_path.split())
-        
-        # 최종적으로 os.path.normpath 사용 시 UNC도 어느정도 처리되나, 
-        # Windows UNC는 \\server\share 형태이므로 이에 맞추는 것이 좋음
-        if platform.system() == "Windows" and is_unc:
-            pass # 이미 \\ 형태로 처리됨
-        elif is_unc: # 비윈도우 환경 UNC (smb:// 등은 여기서 다루지 않음)
-            pass # prefix + cleaned_path 유지
-        else:
-            cleaned_path = os.path.normpath(cleaned_path)
-        return cleaned_path
+    def _clean_folder_path(self, path: str | None) -> str:
+        default_dir = self.settings_manager.get_advanced('default_output_dir', ".")
+        return normalize_folder_path(path, default=default_dir, logger=self.logger)
 
     # 엑셀 내보내기 및 최종 완료 처리를 담당하는 함수 (메인 스레드에서 호출됨)
     def _finalize_export_and_complete(self, output_dir_str, input_excel_path_str, summary_message):
@@ -1044,30 +855,16 @@ class OCRWorkflowManager:
             else:
                 original_img = image_source
             
-            # 업스케일링이 비활성화되어 있거나 배율이 1.0 이하면 원본 반환
-            if not enable_upscaling or upscaling_factor <= 1.0:
-                return original_img
-            
-            # 원본 크기
             original_width, original_height = original_img.size
-            
-            # 새로운 크기 계산
-            new_width = int(original_width * upscaling_factor)
-            new_height = int(original_height * upscaling_factor)
-            
-            # 리샘플링 방법 설정
-            resampling_methods = {
-                'LANCZOS': Image.Resampling.LANCZOS,    # 최고 품질
-                'BICUBIC': Image.Resampling.BICUBIC,    # 고품질
-                'BILINEAR': Image.Resampling.BILINEAR   # 빠른 처리
-            }
-            
-            resampling = resampling_methods.get(upscaling_method, Image.Resampling.LANCZOS)
-            
-            # 업스케일링 수행
-            upscaled_img = original_img.resize((new_width, new_height), resampling)
-            
-            self.message_queue.put(("log", f"이미지 업스케일링 완료: {original_width}x{original_height} → {new_width}x{new_height} ({upscaling_method})", "DEBUG"))
+            upscaled_img = upscale_image(
+                original_img,
+                enabled=enable_upscaling,
+                factor=upscaling_factor,
+                method=upscaling_method,
+            )
+            new_width, new_height = upscaled_img.size
+            if upscaled_img is not original_img:
+                self.message_queue.put(("log", f"이미지 업스케일링 완료: {original_width}x{original_height} → {new_width}x{new_height} ({upscaling_method})", "DEBUG"))
             
             return upscaled_img
             
@@ -1106,6 +903,8 @@ class CheckCaptureOCRApp(tk.Tk):
         self.ocr_workflow_manager = OCRWorkflowManager(self, self.logger, self.message_queue, self.work_controller, self.settings_manager, self.data_manager)
         
         self.worker_thread = None
+        self.ocr_init_thread = None
+        self.ocr_initializing = False
 
         self.input_excel_path = tk.StringVar()
         self.output_folder_path = tk.StringVar()
@@ -1130,12 +929,34 @@ class CheckCaptureOCRApp(tk.Tk):
         self.grid_tree = None
         self.log_text_widget = None
 
-        self.ocr_workflow_manager.initialize_ocr()
         self._build_ui()
         self._setup_keyboard_shortcuts()
         self.check_queue()
         self.load_last_settings()
         self.theme_manager.apply_theme_to_all_widgets()
+        self._set_ocr_ready_ui(False)
+        self.after(100, self.start_ocr_initialization_async)
+
+    def start_ocr_initialization_async(self):
+        if self.ocr_initializing or self.ocr_workflow_manager.ocr_reader:
+            return
+        self.ocr_initializing = True
+        self._set_ocr_ready_ui(False)
+
+        def initialize():
+            self.ocr_workflow_manager.initialize_ocr()
+            self.message_queue.put(("ocr_ready", self.ocr_workflow_manager.ocr_reader is not None))
+
+        self.ocr_init_thread = threading.Thread(target=initialize, daemon=True)
+        self.ocr_init_thread.start()
+
+    def _set_ocr_ready_ui(self, ready):
+        if not hasattr(self, "run_btn") or not self.run_btn:
+            return
+        if ready:
+            self.run_btn.config(state="normal", text="🚀 OCR 시작 (F5)")
+        else:
+            self.run_btn.config(state="disabled", text="OCR 준비 중...")
 
     def _setup_application_icon(self):
         """애플리케이션 아이콘을 창과 작업표시줄에 모두 설정"""
@@ -1232,6 +1053,14 @@ class CheckCaptureOCRApp(tk.Tk):
                 elif msg_type == "error_messagebox":
                     title, message = data[0], data[1]
                     messagebox.showerror(title, message)
+                elif msg_type == "ocr_ready":
+                    ready = bool(data[0]) if data else False
+                    self.ocr_initializing = False
+                    self._set_ocr_ready_ui(ready)
+                    if ready:
+                        self.message_queue.put(("log", "OCR 엔진 준비 완료", "INFO"))
+                    elif hasattr(self, "run_btn") and self.run_btn:
+                        self.run_btn.config(state="disabled", text="OCR 초기화 실패")
                 elif msg_type == "complete":
                    # 이 메시지는 주로 UI 상태를 완료 상태로 변경하는 데 사용
                    # summary_message는 finalize_export 메시지에서 사용됨
@@ -2163,6 +1992,9 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)"""
              return False
         if not output_dir or not os.path.isdir(output_dir):
             messagebox.showwarning("경고", "유효한 Output 폴더를 지정하세요.", parent=self)
+            return False
+        if self.ocr_initializing:
+            messagebox.showwarning("OCR 준비 중", "OCR 엔진을 초기화하고 있습니다. 잠시 후 다시 시작하세요.", parent=self)
             return False
         if not self.ocr_workflow_manager.ocr_reader:
             messagebox.showerror("오류", "OCR 엔진이 초기화되지 않았습니다. 프로그램을 재시작하거나 설정을 확인하세요.", parent=self)

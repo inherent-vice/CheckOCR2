@@ -14,9 +14,19 @@ pip-delete-this-arg.txt
 .coverage.*
 .ipynb_checkpoints/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Logs
 *.log
+
+# Local runtime state
+settings.json
+.analysis_tmp/
+
+# OCR benchmark data can contain real screenshots and OCR text
+tests/fixtures/ocr_crops/
+benchmark*.json
 
 # Cache and temporary files
 *.tmp

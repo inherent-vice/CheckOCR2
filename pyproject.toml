@@ -1,0 +1,36 @@
+[tool.pytest.ini_options]
+addopts = "-ra"
+testpaths = ["tests"]
+norecursedirs = [
+    ".analysis_tmp",
+    "build",
+    "dist",
+    "legacy",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+include = [
+    "check_capture_ocr.py",
+    "checkocr2/*.py",
+    "scripts/*.py",
+    "tests/*.py",
+    "tests/**/*.py",
+]
+extend-exclude = [
+    ".analysis_tmp",
+    "build",
+    "dist",
+    "legacy",
+]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# The canonical app file is still a legacy Tkinter monolith. Keep it in the
+# lint target, but quarantine pre-existing one-line statements and unused legacy
+# locals until those sections are extracted behind tests.
+"check_capture_ocr.py" = ["B007", "E701", "E702", "E703", "F541", "F841"]
