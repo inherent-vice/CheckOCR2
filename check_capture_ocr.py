@@ -20,7 +20,13 @@ from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import SettingsError
 from checkocr2.image_processing import upscale_image
 from checkocr2.logging_config import TkinterLogHandler, setup_logging
-from checkocr2.ocr_engine import create_easyocr_reader, read_ocr_text
+from checkocr2.ocr_engine import (
+    confidence_is_accepted,
+    create_easyocr_reader,
+    extract_text_with_confidence,
+    normalize_confidence_threshold,
+    read_ocr_text,
+)
 from checkocr2.ocr_text import (
     clean_date_text,
     clean_rate_text,
@@ -498,6 +504,7 @@ class OCRWorkflowManager:
         self._current_run_report_path = None
         self._last_capture_timing = {}
         self._last_ocr_timings = {}
+        self._last_ocr_confidences = {}
 
     def initialize_ocr(self):
         try:
@@ -547,7 +554,9 @@ class OCRWorkflowManager:
             os.makedirs(save_folder, exist_ok=True)
             self._last_capture_timing = {}
             self._last_ocr_timings = {}
+            self._last_ocr_confidences = {}
             row_timing_by_index = {}
+            row_metadata_by_index = {}
             row_started_by_index = {}
             self._current_run_report_path = report_output_path(output_dir_str, input_excel_file)
             self._current_run_report = create_run_report(
@@ -574,6 +583,7 @@ class OCRWorkflowManager:
                 def read(_adapter_self, images, row, context):
                     ocr_started = perf_counter()
                     self._last_ocr_timings = {}
+                    self._last_ocr_confidences = {}
                     date_result, rate_result = self._process_single_ocr_internal(
                         images.date_image,
                         images.rate_image,
@@ -583,6 +593,10 @@ class OCRWorkflowManager:
                     ocr_timing.setdefault("ocr_adapter_ms", self._elapsed_ms(ocr_started))
                     timing = row_timing_by_index.setdefault(context.index, {})
                     timing["ocr_timing_ms"] = ocr_timing
+                    if self._last_ocr_confidences:
+                        row_metadata_by_index.setdefault(context.index, {})["ocr_confidence"] = dict(
+                            self._last_ocr_confidences
+                        )
                     return OcrResult(date_result, rate_result, metadata={"timing_ms": timing})
 
             def emit_to_tk_queue(event):
@@ -623,7 +637,12 @@ class OCRWorkflowManager:
 
             if self._current_run_report is not None:
                 finalize_workflow_processing_states(self.data_manager.excel_data)
-                record_row_reports(self._current_run_report, self.data_manager.excel_data, row_timing_by_index)
+                record_row_reports(
+                    self._current_run_report,
+                    self.data_manager.excel_data,
+                    row_timing_by_index,
+                    row_metadata_by_index,
+                )
                 finalize_run_report(
                     self._current_run_report,
                     self.data_manager.excel_data,
@@ -807,9 +826,23 @@ class OCRWorkflowManager:
             img_array = np.array(processed_img)
             self._last_ocr_timings[f"{field_key}_preprocess_ms"] = self._elapsed_ms(preprocess_started)
             ocr_started = perf_counter()
-            ocr_results = read_ocr_text(self.ocr_reader, img_array, detail=0)
+            ocr_detail = self._ocr_detail_level()
+            ocr_results = read_ocr_text(self.ocr_reader, img_array, detail=ocr_detail)
             self._last_ocr_timings[f"{field_key}_ocr_ms"] = self._elapsed_ms(ocr_started)
-            all_text = " ".join(ocr_results) if ocr_results else ""
+            all_text, confidence = extract_text_with_confidence(ocr_results, ocr_detail)
+            if confidence is not None:
+                self._last_ocr_confidences[f"{field_key}_confidence"] = round(confidence, 4)
+            min_confidence = self._minimum_confidence(field_key)
+            if ocr_detail == 1 and not confidence_is_accepted(confidence, min_confidence):
+                threshold = normalize_confidence_threshold(min_confidence)
+                self.message_queue.put(
+                    (
+                        "log",
+                        f"[{field_name}] OCR confidence below threshold: {confidence} < {threshold}",
+                        "WARNING",
+                    )
+                )
+                return ""
             
             # 업스케일링 정보 포함한 로그 메시지
             scale_info = f" (업스케일링: {upscaling_factor}x {upscaling_method})" if enable_upscaling and upscaling_factor > 1.0 else ""
@@ -832,6 +865,15 @@ class OCRWorkflowManager:
                         self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제: {image_source}", "DEBUG"))
                     except Exception as e_remove:
                         self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제 실패: {e_remove}", "WARNING"))
+
+    def _ocr_detail_level(self):
+        try:
+            return 1 if int(self.settings_manager.get_advanced("ocr_detail_level", 0)) == 1 else 0
+        except (TypeError, ValueError):
+            return 0
+
+    def _minimum_confidence(self, field_key):
+        return self.settings_manager.get_advanced(f"min_{field_key}_confidence", 0.0)
     
     def _analyze_date_results_internal(self, raw_text, field_name="날짜"):
         if not raw_text or not raw_text.strip():
@@ -931,7 +973,17 @@ class OCRWorkflowManager:
                 row_report.get("index"): row_report.get("timing_ms", {})
                 for row_report in report_manager._current_run_report.get("rows", [])
             }
-            record_row_reports(report_manager._current_run_report, self.data_manager.excel_data, existing_timings)
+            existing_metadata = {
+                row_report.get("index"): {"ocr_confidence": row_report.get("ocr_confidence")}
+                for row_report in report_manager._current_run_report.get("rows", [])
+                if row_report.get("ocr_confidence")
+            }
+            record_row_reports(
+                report_manager._current_run_report,
+                self.data_manager.excel_data,
+                existing_timings,
+                existing_metadata,
+            )
             summary = report_manager._current_run_report.get("summary", {})
             if export_error is None and not output_workbook.exists():
                 export_error = f"Export workbook was not found after export: {output_workbook}"
@@ -2446,7 +2498,17 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)
                 row_report.get("index"): row_report.get("timing_ms", {})
                 for row_report in report_manager._current_run_report.get("rows", [])
             }
-            record_row_reports(report_manager._current_run_report, self.data_manager.excel_data, existing_timings)
+            existing_metadata = {
+                row_report.get("index"): {"ocr_confidence": row_report.get("ocr_confidence")}
+                for row_report in report_manager._current_run_report.get("rows", [])
+                if row_report.get("ocr_confidence")
+            }
+            record_row_reports(
+                report_manager._current_run_report,
+                self.data_manager.excel_data,
+                existing_timings,
+                existing_metadata,
+            )
             summary = report_manager._current_run_report.get("summary", {})
             if export_error is None and not output_workbook.exists():
                 export_error = f"Export workbook was not found after export: {output_workbook}"

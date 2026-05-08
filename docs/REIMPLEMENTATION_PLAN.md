@@ -51,8 +51,10 @@ test or a manual verification note.
   defaults still add about three seconds per row before OCR cost.
 - Mitigated: full-area screenshots are captured and saved only when detailed
   image saving is enabled; date/rate crop capture still runs normally.
-- Still open: runtime OCR uses `detail=0`, so confidence is discarded in normal
-  app runs. Benchmark tooling can now test `detail=1` and field allowlists.
+- Partially mitigated: runtime OCR defaults to `detail=0` for parity, but
+  `ocr_detail_level=1` can collect confidence and enforce optional date/rate
+  confidence thresholds. Benchmark tooling can also test `detail=1` and field
+  allowlists.
 - Mitigated: tracked `settings.json` was replaced by `settings.example.json`,
   with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
 - Partially mitigated: queue events, rows, and settings have typed seams, but

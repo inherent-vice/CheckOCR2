@@ -30,6 +30,8 @@ Date: 2026-05-08
   combinations and summarize candidate regressions against a fixed baseline.
 - Added field-specific EasyOCR allowlist benchmarking for date/rate crops,
   exposed through `--allowlist-mode field` and matrix `--allowlist-modes`.
+- Added runtime EasyOCR `detail=1` support behind `ocr_detail_level`, with
+  optional date/rate confidence thresholds and run-report confidence fields.
 - Split dependency entry files into runtime, build, and dev layers with direct
   dependency pins in `constraints.txt`.
 - Added packaged build metadata with app version, build date, Python version,
@@ -79,6 +81,7 @@ Latest verification on 2026-05-08:
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
 - `python -m pytest tests\test_ocr_engine.py tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py --basetemp $env:TEMP\checkocr2-allowlist-pytest`: 11 passed for field allowlist benchmark coverage.
+- `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - `python -m PyInstaller build_app.spec --noconfirm`: build completed.
@@ -94,8 +97,7 @@ pool dependency. These warnings did not block the packaged GUI smoke.
   `ground_truth.csv`.
 - Run a same-input 10-row live OCR comparison before reducing wait times or
   changing OCR defaults.
-- Benchmark EasyOCR `detail=1`, confidence-based handling, and candidate engines
-  only after fixture baselines exist.
+- Benchmark candidate engines only after fixture baselines exist.
 - Split runtime/build/dev dependency sets and reduce PyInstaller hidden imports
   further only after package smoke proves each removal.
 - Continue extracting UI panels only while the GUI parity checklist and tests

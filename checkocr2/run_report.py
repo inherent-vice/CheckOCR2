@@ -55,11 +55,13 @@ def record_row_reports(
     report: dict[str, Any],
     rows: list[dict[str, Any]],
     row_timing_by_index: dict[int, dict[str, Any]],
+    row_metadata_by_index: dict[int, dict[str, Any]] | None = None,
 ) -> None:
     """Replace row reports with current grid outcomes and collected timing."""
 
+    metadata_by_index = row_metadata_by_index or {}
     report["rows"] = [
-        _row_report(index, row, row_timing_by_index.get(index, {}))
+        _row_report(index, row, row_timing_by_index.get(index, {}), metadata_by_index.get(index, {}))
         for index, row in enumerate(rows)
     ]
 
@@ -112,7 +114,12 @@ def write_run_report(report: dict[str, Any], path: str | os.PathLike[str]) -> Pa
     return output_path
 
 
-def _row_report(index: int, row: dict[str, Any], timing: dict[str, Any]) -> dict[str, Any]:
+def _row_report(
+    index: int,
+    row: dict[str, Any],
+    timing: dict[str, Any],
+    metadata: dict[str, Any],
+) -> dict[str, Any]:
     date = str(row.get(DATE_COL, "") or "")
     rate = str(row.get(RATE_COL, "") or "")
     status = str(row.get(STATUS_COL, "") or "")
@@ -122,7 +129,7 @@ def _row_report(index: int, row: dict[str, Any], timing: dict[str, Any]) -> dict
     if not rate.strip():
         blank_fields.append("rate")
 
-    return {
+    report = {
         "index": index,
         "code": str(row.get(CODE_COL, "") or ""),
         "name": str(row.get(NAME_COL, "") or ""),
@@ -133,6 +140,9 @@ def _row_report(index: int, row: dict[str, Any], timing: dict[str, Any]) -> dict
         "failure_reason": "" if status == STATUS_DONE else status,
         "timing_ms": timing,
     }
+    if metadata.get("ocr_confidence"):
+        report["ocr_confidence"] = metadata["ocr_confidence"]
+    return report
 
 
 def _now_iso() -> str:

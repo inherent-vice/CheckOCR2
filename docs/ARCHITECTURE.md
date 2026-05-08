@@ -25,7 +25,8 @@ working.
 - `checkocr2/table_model.py`: row CRUD and final status normalization.
 - `checkocr2/ocr_text.py`: OCR date/rate text normalization.
 - `checkocr2/image_processing.py`: crop validation and upscaling.
-- `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary.
+- `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
+  including `detail=1` text/confidence extraction helpers.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
 - `checkocr2/worker.py`: daemon worker helper.
@@ -72,8 +73,8 @@ ready state when the OCR reader is still available.
 
 The grid is loaded from Excel and exported to `<input_stem>_updated.xlsx`.
 Each run also writes `<input_stem>_run_report.json` with row status, blank
-fields, timing, export information, and error details. The report is the primary
-evidence source for future speed tuning.
+fields, timing, optional OCR confidence fields, export information, and error
+details. The report is the primary evidence source for future speed tuning.
 
 Packaged releases include `checkocr2/build_metadata.json`. It records app
 version, build date, Python version, direct dependency versions, and a dependency

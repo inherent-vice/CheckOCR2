@@ -30,7 +30,12 @@ def test_finalize_run_report_counts_blank_fields_and_writes_json(tmp_path):
         save_detail_images=False,
     )
 
-    record_row_reports(report, rows, {0: {"capture_timing_ms": {"click_ms": 1.2}}})
+    record_row_reports(
+        report,
+        rows,
+        {0: {"capture_timing_ms": {"click_ms": 1.2}}},
+        {0: {"ocr_confidence": {"date_confidence": 0.9}}},
+    )
     finalize_run_report(
         report,
         rows,
@@ -51,5 +56,6 @@ def test_finalize_run_report_counts_blank_fields_and_writes_json(tmp_path):
     assert data["summary"]["output_workbook_path"].endswith("source_updated.xlsx")
     assert data["summary"]["export_timing_ms"] == {"export_ms": 3.4}
     assert data["rows"][0]["timing_ms"]["capture_timing_ms"]["click_ms"] == 1.2
+    assert data["rows"][0]["ocr_confidence"] == {"date_confidence": 0.9}
     assert data["rows"][1]["blank_fields"] == ["date"]
     assert data["rows"][1]["failure_reason"] == "capture failed"

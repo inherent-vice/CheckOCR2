@@ -116,20 +116,9 @@ def allowlist_for_field(field: str, mode: str) -> str | None:
 
 
 def extract_text(results: list[Any], detail: int) -> tuple[str, float | None]:
-    if detail == 0:
-        return " ".join(str(item) for item in results).strip(), None
+    from checkocr2.ocr_engine import extract_text_with_confidence
 
-    texts: list[str] = []
-    confidences: list[float] = []
-    for item in results:
-        if isinstance(item, list | tuple) and len(item) >= 3:
-            texts.append(str(item[1]))
-            try:
-                confidences.append(float(item[2]))
-            except (TypeError, ValueError):
-                pass
-    confidence = statistics.fmean(confidences) if confidences else None
-    return " ".join(texts).strip(), confidence
+    return extract_text_with_confidence(results, detail)
 
 
 def p95(values: list[float]) -> float:

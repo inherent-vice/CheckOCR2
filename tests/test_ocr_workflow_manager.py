@@ -80,6 +80,99 @@ def test_image_upscaling_resizes_pil_images_without_ocr(ocr_module):
     assert source.size == (8, 5)
 
 
+def test_extract_text_uses_detail_one_confidence_when_enabled(ocr_module):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings(
+        {
+            "upscaling_enabled": False,
+            "ocr_detail_level": 1,
+            "min_date_confidence": 0.8,
+        }
+    )
+
+    class FakeReader:
+        def __init__(self, results):
+            self.results = results
+            self.calls = []
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append((detail, kwargs))
+            return self.results
+
+    manager.ocr_reader = FakeReader([(None, "2026-05-08", 0.9)])
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        Image.new("RGB", (8, 8), "white"),
+        manager._analyze_date_results_internal,
+        "날짜",
+        save_details=False,
+    )
+
+    assert result == "2026/05/08"
+    assert manager.ocr_reader.calls == [(1, {})]
+    assert manager._last_ocr_confidences == {"date_confidence": 0.9}
+
+
+def test_extract_text_rejects_detail_one_below_confidence_threshold(ocr_module):
+    manager, events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings(
+        {
+            "upscaling_enabled": False,
+            "ocr_detail_level": 1,
+            "min_date_confidence": 0.8,
+        }
+    )
+
+    class FakeReader:
+        def readtext(self, image, detail=0, **kwargs):
+            return [(None, "2026-05-08", 0.5)]
+
+    manager.ocr_reader = FakeReader()
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        Image.new("RGB", (8, 8), "white"),
+        manager._analyze_date_results_internal,
+        "날짜",
+        save_details=False,
+    )
+
+    assert result == ""
+    assert manager._last_ocr_confidences == {"date_confidence": 0.5}
+    assert any(event[0] == "log" and "confidence below threshold" in event[1] for event in list(events.queue))
+
+
+def test_extract_text_detail_zero_ignores_confidence_threshold_for_parity(ocr_module):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings(
+        {
+            "upscaling_enabled": False,
+            "ocr_detail_level": 0,
+            "min_date_confidence": 0.8,
+        }
+    )
+
+    class FakeReader:
+        def __init__(self):
+            self.calls = []
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append((detail, kwargs))
+            return ["2026-05-08"]
+
+    manager.ocr_reader = FakeReader()
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        Image.new("RGB", (8, 8), "white"),
+        manager._analyze_date_results_internal,
+        "날짜",
+        save_details=False,
+    )
+
+    assert result == "2026/05/08"
+    assert manager.ocr_reader.calls == [(0, {})]
+    assert manager._last_ocr_confidences == {}
+
+
 def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     ocr_module,
     monkeypatch,
@@ -192,6 +285,63 @@ def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypa
     assert "capture_timing_ms" in report["rows"][0]["timing_ms"]
     assert "ocr_timing_ms" in report["rows"][0]["timing_ms"]
     assert "update_ms" in report["rows"][0]["timing_ms"]
+
+
+def test_execute_workflow_writes_detail_one_confidence_to_run_report(
+    ocr_module,
+    monkeypatch,
+    tmp_path,
+):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings(
+        {
+            "upscaling_enabled": False,
+            "ocr_detail_level": 1,
+            "min_date_confidence": 0.0,
+            "min_rate_confidence": 0.0,
+        }
+    )
+    manager.ocr_reader = object()
+    manager.data_manager.excel_data = [
+        {
+            CODE_COL: "A001",
+            NAME_COL: "Alpha",
+            DATE_COL: "",
+            RATE_COL: "",
+            STATUS_COL: "",
+        }
+    ]
+
+    class DummyVar:
+        def get(self):
+            return str(tmp_path / "source.xlsx")
+
+    class DummyApp:
+        input_excel_path = DummyVar()
+
+    ocr_outputs = iter([[(None, "2026-05-08", 0.91)], [(None, "3.5", 0.82)]])
+    monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
+    monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
+    monkeypatch.setattr(ocr_module, "screenshot", lambda region: Image.new("RGB", (20, 20), "white"))
+    monkeypatch.setattr(ocr_module, "read_ocr_text", lambda *args, **kwargs: next(ocr_outputs))
+    manager.app = DummyApp()
+    ui_settings = {
+        "delays": {"paste": 0, "loading": 0},
+        "click_point": (1, 1),
+        "all_area": (0, 0, 20, 20),
+        "date_area": (0, 0, 10, 10),
+        "rate_area": (10, 10, 20, 20),
+    }
+
+    manager.execute_ocr_workflow_threaded(ui_settings, str(tmp_path), save_detail_images_bool=False)
+
+    report = json.loads((tmp_path / "source_run_report.json").read_text(encoding="utf-8"))
+    assert report["rows"][0]["ocr_confidence"] == {
+        "date_confidence": 0.91,
+        "rate_confidence": 0.82,
+    }
+    assert "ocr_confidence" not in report["rows"][0]["timing_ms"]
 
 
 def test_stopped_workflow_report_uses_final_stopped_status(ocr_module, monkeypatch, tmp_path):

@@ -19,6 +19,8 @@ For example, processing `checks.xlsx` into `E:\out` creates
 - `timing_ms`: per-row stages such as copy, click, paste wait, load wait,
   screenshot capture, image save, OCR preprocess, OCR date/rate, parse, update,
   and total row time.
+- `ocr_confidence`: optional per-row OCR confidence values when runtime
+  `ocr_detail_level` is set to `1`.
 - `errors`: workflow or export issues that occurred after the run report was
   initialized.
 
