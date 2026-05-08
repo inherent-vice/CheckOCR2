@@ -41,6 +41,8 @@ Date: 2026-05-08
 - Added direct coverage that OCR start is rejected while OCR is still loading
   and that a mixed success/KBP-skip/capture-failure 3-row workflow preserves
   event order and finalization counts.
+- Added benchmark report coverage for exact accuracy, blank count,
+  false-positive count, P95 latency, and confidence fields using fake OCR.
 
 ## Verification
 
@@ -62,7 +64,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 56 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 57 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
