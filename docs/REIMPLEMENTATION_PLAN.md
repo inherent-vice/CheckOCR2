@@ -40,24 +40,28 @@ The following behavior must remain available throughout the migration:
 Any change that affects these items must include a parity check and either a
 test or a manual verification note.
 
-## Current Main Risks
+## Main Risks And Current Status
 
-- `check_capture_ocr.py` owns GUI construction, settings, queue handling, worker
-  lifecycle, Excel I/O, OCR startup, pyautogui automation, parsing, export, and
-  dialogs in one file.
-- EasyOCR initializes during app construction before the UI is ready.
-- OCR workflow is sequential and uses fixed wait times. Current defaults alone
-  add about three seconds per row before OCR cost.
-- Full-area PNGs are saved unconditionally during a run, adding file I/O.
-- OCR uses `detail=0`, so confidence is discarded and low-confidence retries are
-  not possible.
-- `settings.json` is tracked source state but contains local coordinates,
-  presets, and network paths.
-- Queue events, rows, and settings are stringly typed dictionaries/tuples.
-- There are broad exception handlers and one bare `except`, which hide failure
+- Still open: `check_capture_ocr.py` owns most GUI construction, queue
+  handling, worker lifecycle, dialogs, and release-compatible controller
+  behavior. Low-risk panels are being extracted incrementally.
+- Mitigated: EasyOCR now initializes after the UI appears, on a background
+  worker, and OCR start is blocked until the reader is ready.
+- Still open: OCR workflow is sequential and uses fixed wait times. Current
+  defaults still add about three seconds per row before OCR cost.
+- Mitigated: full-area screenshots are captured and saved only when detailed
+  image saving is enabled; date/rate crop capture still runs normally.
+- Still open: runtime OCR uses `detail=0`, so confidence is discarded in normal
+  app runs. Benchmark tooling can now test `detail=1` and field allowlists.
+- Mitigated: tracked `settings.json` was replaced by `settings.example.json`,
+  with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
+- Partially mitigated: queue events, rows, and settings have typed seams, but
+  legacy tuple dispatch remains at the Tk controller edge.
+- Still open: broad exception handlers remain around GUI, file, OCR, and export
   boundaries.
-- Requirements and PyInstaller hidden imports include unused or overly broad
-  dependencies.
+- Partially mitigated: dependency files and build metadata are split, but
+  PyInstaller hidden imports and OCR-related dependency size still need
+  package-smoke-backed cleanup.
 
 ## Target Architecture
 
