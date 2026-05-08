@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import queue
+from types import SimpleNamespace
 
 from checkocr2.runtime_state import RuntimeState
 
@@ -91,3 +92,23 @@ def test_runtime_state_updates_run_and_stop_buttons(ocr_module):
     assert app.runtime_state is RuntimeState.STOPPING
     assert app.run_btn.last_config == {"state": "disabled", "text": "중단 중..."}
     assert app.stop_btn.last_config == {"state": "disabled"}
+
+
+def test_run_ocr_process_is_blocked_while_ocr_is_loading(ocr_module, monkeypatch, tmp_path):
+    warnings = []
+    app = make_app(ocr_module, ready=False)
+    app.ocr_initializing = True
+    app.data_manager = SimpleNamespace(excel_data=[{"종목코드": "A001"}])
+    app.output_folder_path = SimpleNamespace(get=lambda: str(tmp_path))
+    monkeypatch.setattr(
+        ocr_module.messagebox,
+        "showwarning",
+        lambda title, message, parent=None: warnings.append((title, message, parent)),
+        raising=False,
+    )
+
+    app.run_ocr_process()
+
+    assert app.work_controller.is_running is False
+    assert warnings
+    assert "OCR" in warnings[0][0]

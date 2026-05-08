@@ -38,6 +38,9 @@ Date: 2026-05-08
   behavior, OCR text parsing, async OCR init, runtime state, OCR engine adapter,
   screen automation, worker helper, workflow behavior, run reports, benchmark
   safety, and package smoke logic.
+- Added direct coverage that OCR start is rejected while OCR is still loading
+  and that a mixed success/KBP-skip/capture-failure 3-row workflow preserves
+  event order and finalization counts.
 
 ## Verification
 
@@ -59,7 +62,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest verification on 2026-05-08:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 54 passed.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 56 passed.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,

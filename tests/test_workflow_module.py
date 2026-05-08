@@ -96,6 +96,37 @@ def test_workflow_capture_failure_marks_error_and_still_requests_finalization():
     ]
 
 
+def test_workflow_mixed_three_row_run_preserves_event_order_and_counts():
+    rows = [
+        make_row("A001", "Alpha"),
+        make_row("KBP123", "Kbp"),
+        make_row("A003", "Gamma"),
+    ]
+    automation = FakeAutomationAdapter({"A003": None})
+    ocr = FakeOcrAdapter({"A001": OcrResult("2026/05/08", "3.500")})
+    runner = WorkflowRunner(automation, ocr)
+
+    result = runner.process_rows(rows, WorkflowOptions(output_dir="out", input_excel_path="source.xlsx"))
+
+    assert result.processed_count == 2
+    assert result.total_items == 3
+    assert result.finalization_intent == FinalizationIntent("out", "source.xlsx", 2, 3)
+    assert [row[STATUS_COL] for row in rows] == [STATUS_DONE, STATUS_DONE, ERROR_CAPTURE_FAILED]
+    assert [call[0].code for call in automation.calls] == ["A001", "A003"]
+    assert [call[1].code for call in ocr.calls] == ["A001"]
+    assert runner.legacy_tuples() == [
+        ("grid_update", ("processing", 0)),
+        ("grid_update", ("complete", 0, "2026/05/08", "3.500", STATUS_DONE)),
+        ("log", "[A001] complete - date: '2026/05/08', rate: '3.500'", "SUCCESS"),
+        ("grid_update", ("processing", 1)),
+        ("log", "[KBP123] KBP code skipped by workflow setting.", "INFO"),
+        ("grid_update", ("complete", 1, "", "", STATUS_DONE)),
+        ("grid_update", ("processing", 2)),
+        ("grid_update", ("error", 2, ERROR_CAPTURE_FAILED)),
+        ("finalize_export_and_complete", "out", "source.xlsx", 2, 3),
+    ]
+
+
 def test_workflow_stop_emits_stopped_event_without_finalization_intent():
     class StopAfterCapture:
         def __init__(self, token: WorkflowStopToken) -> None:
