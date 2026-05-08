@@ -32,8 +32,9 @@ working.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/runtime_state.py`: explicit GUI runtime state to button-state map.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
-- `checkocr2/ui/panels/log_panel.py`: first extracted Tk panel builder for the
-  right-side log surface.
+- `checkocr2/ui/panels/file_panel.py`: left-side Excel input and output-folder
+  panel builder.
+- `checkocr2/ui/panels/log_panel.py`: right-side log panel builder.
 
 ## Runtime Flow
 

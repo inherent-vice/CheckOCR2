@@ -36,8 +36,9 @@ Date: 2026-05-08
   direct dependency versions, and dependency hash.
 - Added explicit package-smoke OCR readiness mode so the packaged EXE can prove
   the GUI reaches `Ready` without loading real OCR models during smoke tests.
-- Extracted the first low-risk UI panel into `checkocr2/ui/panels/log_panel.py`
-  while keeping the main GUI controller behavior intact.
+- Extracted low-risk UI panels into `checkocr2/ui/panels/file_panel.py` and
+  `checkocr2/ui/panels/log_panel.py` while keeping the main GUI controller
+  behavior intact.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.

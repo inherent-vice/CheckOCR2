@@ -40,6 +40,7 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.ui.panels.file_panel import create_file_panel
 from checkocr2.ui.panels.log_panel import create_log_panel
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
@@ -1393,51 +1394,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self.log_text_widget = create_log_panel(self, parent)
 
     def _create_file_section(self, parent):
-        section = self._create_section_frame_styled(parent, "📁 파일 설정")
-        common_font = ('Segoe UI', 9)
-        btn_font = ('Segoe UI', 9)
-        btn_width = 5
-        btn_height = 1
-        
-        excel_frame = tk.Frame(section)
-        self.theme_manager.register_widget(excel_frame, {'bg': 'white'})
-        excel_frame.pack(fill='x', pady=(0, 5))
-        
-        excel_lbl = tk.Label(excel_frame, text="Excel 입력 파일:", font=(common_font[0], common_font[1], 'bold'))
-        self.theme_manager.register_widget(excel_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        excel_lbl.pack(anchor='w', pady=(0,2))
-        
-        excel_input_frame = tk.Frame(excel_frame)
-        self.theme_manager.register_widget(excel_input_frame, {'bg': 'white'})
-        excel_input_frame.pack(fill='x')
-        
-        self.excel_entry = tk.Entry(excel_input_frame, textvariable=self.input_excel_path, font=common_font, relief='solid', bd=1)
-        self.theme_manager.register_widget(self.excel_entry, {'bg': 'white', 'fg': 'on_surface'})
-        self.excel_entry.pack(side='left', fill='x', expand=True, padx=(0, 5))
-        
-        excel_browse_btn = tk.Button(excel_input_frame, text="찾기", command=self.browse_input_excel, font=btn_font, relief='flat', cursor='hand2', width=btn_width, height=btn_height, pady=0)
-        self.theme_manager.register_widget(excel_browse_btn, {'bg': 'secondary', 'fg': 'white', 'activebackground':'dark'})
-        excel_browse_btn.pack(side='right')
-
-        output_frame = tk.Frame(section)
-        self.theme_manager.register_widget(output_frame, {'bg': 'white'})
-        output_frame.pack(fill='x', pady=(8, 0))
-        output_lbl = tk.Label(output_frame, text="출력 폴더:", font=(common_font[0], common_font[1], 'bold'))
-        self.theme_manager.register_widget(output_lbl, {'bg': 'white', 'fg': 'on_surface'})
-        output_lbl.pack(anchor='w', pady=(0,2))
-        output_input_frame = tk.Frame(output_frame)
-        self.theme_manager.register_widget(output_input_frame, {'bg': 'white'})
-        output_input_frame.pack(fill='x')
-        self.output_entry = tk.Entry(output_input_frame, textvariable=self.output_folder_path, font=common_font, relief='solid', bd=1)
-        self.theme_manager.register_widget(self.output_entry, {'bg': 'white', 'fg': 'on_surface', 'relief': 'solid', 'bd': 1})
-        self.output_entry.pack(side='left', fill='x', expand=True, padx=(0, 5))
-        output_browse_btn = tk.Button(output_input_frame, text="찾기", command=self.browse_output_folder, font=btn_font, relief='flat', cursor='hand2', width=btn_width, height=btn_height, pady=0)
-        self.theme_manager.register_widget(output_browse_btn, {'bg': 'secondary', 'fg': 'white', 'activebackground':'dark'})
-        output_browse_btn.pack(side='right')
-
-        self.open_folder_btn = tk.Button(output_input_frame, text="📂", command=self.open_output_folder, font=btn_font, relief='flat', cursor='hand2', width=3, height=btn_height, pady=0)
-        self.theme_manager.register_widget(self.open_folder_btn, {'bg': 'primary', 'fg': 'white', 'activebackground':'dark'})
-        self.open_folder_btn.pack(side='left', padx=(5,0))
+        create_file_panel(self, parent)
 
     def _create_coordinates_section(self, parent):
         section = self._create_section_frame_styled(parent, "🎯 좌표 및 영역 설정")
