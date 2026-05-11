@@ -19,8 +19,8 @@ working.
   repo-local settings.
 - `checkocr2/models.py`: shared column names, status constants, and simple
   data models.
-- `checkocr2/events.py`: typed queue/UI event contracts and legacy grid-update
-  payload parsing.
+- `checkocr2/events.py`: typed queue/UI event contracts plus legacy
+  grid-update and final-export payload parsing.
 - `checkocr2/paths.py`: output path generation, UNC normalization, and folder
   helpers.
 - `checkocr2/excel_io.py`: Excel import/export logic.

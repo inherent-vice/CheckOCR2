@@ -33,6 +33,14 @@ class GridUpdate:
     payload: tuple[Any, ...] = ()
 
 
+@dataclass(frozen=True)
+class FinalizeExportRequest:
+    output_dir: str
+    input_path: str
+    processed_count: int
+    total_items: int
+
+
 def parse_legacy_grid_update(data: object) -> GridUpdate:
     if not isinstance(data, tuple | list):
         raise TypeError("grid update payload must be a sequence")
@@ -46,6 +54,19 @@ def parse_legacy_grid_update(data: object) -> GridUpdate:
     if not isinstance(row_index, int):
         raise TypeError("grid update row index must be an integer")
     return GridUpdate(update_type, row_index, tuple(data[2:]))
+
+
+def parse_legacy_finalize_export(data: object) -> FinalizeExportRequest:
+    if not isinstance(data, tuple | list):
+        raise TypeError("finalize export payload must be a sequence")
+    if len(data) != 4:
+        raise ValueError("finalize export payload requires output, input, processed count, and total items")
+
+    output_dir, input_path, processed_count, total_items = data
+    if not isinstance(processed_count, int) or not isinstance(total_items, int):
+        raise TypeError("finalize export counts must be integers")
+
+    return FinalizeExportRequest(str(output_dir), str(input_path), processed_count, total_items)
 
 
 def log_event(message: str, level: str = "INFO") -> UiEvent:

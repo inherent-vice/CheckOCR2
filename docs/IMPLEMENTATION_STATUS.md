@@ -80,6 +80,8 @@ Date: 2026-05-08
   leaving the Tk controller to handle scroll, refresh, and logging only.
 - Added a typed `GridUpdate` parser in `checkocr2/events.py`, keeping legacy
   tuple transport knowledge out of `table_model.py`.
+- Added a typed final-export request parser in `checkocr2/events.py`, keeping
+  finalization payload validation out of the queue dispatcher.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -141,7 +143,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 122 passed after grid-update row mutation extraction, grid status extraction, OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, and typed exception-boundary coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 123 passed after final-export parser extraction, grid-update row mutation extraction, grid status extraction, OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, and typed exception-boundary coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -157,6 +159,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_dialogs.py tests\test_menu.py tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-dialog-review-pytest`: 7 passed for dialog extraction, wrapper delegation, and help-menu wiring.
 - `python -m pytest tests\test_start_validation.py tests\test_async_ocr_initialization.py --basetemp $env:TEMP\checkocr2-start-validation-pytest`: 10 passed for OCR-start validation and loading-state behavior.
 - `python -m pytest tests\test_excel_table_modules.py tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-grid-update-green`: 16 passed for legacy grid-update row mutation, queue dispatch, clipboard selection text, grid status summary text, and shared workflow error-status constants.
+- `python -m pytest tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-finalize-parser-green`: 11 passed for final-export payload parsing and workflow event compatibility.
 
 Latest package verification on 2026-05-08:
 

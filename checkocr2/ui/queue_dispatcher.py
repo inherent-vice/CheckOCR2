@@ -7,6 +7,7 @@ import queue
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
+from checkocr2.events import parse_legacy_finalize_export
 from checkocr2.runtime_state import RuntimeState
 
 
@@ -109,12 +110,14 @@ def dispatch_ocr_ready_message(app: QueueDispatcherHost, data: Sequence[Any]) ->
 
 
 def dispatch_finalize_export_message(app: QueueDispatcherHost, data: Sequence[Any]) -> None:
-    if len(data) == 4:
-        output_dir, input_path, processed_count, total_items = data
-        summary = app._generate_ocr_summary_internal(processed_count, total_items)
-        app._finalize_export_and_complete(output_dir, input_path, summary)
-    else:
+    try:
+        request = parse_legacy_finalize_export(data)
+    except (TypeError, ValueError):
         app.logger.error("잘못된 finalize_export_and_complete 메시지 형식: %s", data)
+        return
+
+    summary = app._generate_ocr_summary_internal(request.processed_count, request.total_items)
+    app._finalize_export_and_complete(request.output_dir, request.input_path, summary)
 
 
 def queue_check_interval(is_running: bool) -> int:

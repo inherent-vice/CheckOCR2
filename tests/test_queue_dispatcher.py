@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import queue
 
+import pytest
+
+from checkocr2.events import FinalizeExportRequest, parse_legacy_finalize_export
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 
@@ -95,6 +98,21 @@ def test_process_legacy_message_queue_reports_bad_finalize_payload():
     assert processed == 1
     assert app.finalized == []
     assert app.logger.errors == ["잘못된 finalize_export_and_complete 메시지 형식: ['bad']"]
+
+
+def test_parse_legacy_finalize_export_payload_requires_four_typed_values():
+    assert parse_legacy_finalize_export(("out", "input.xlsx", 2, 3)) == FinalizeExportRequest(
+        output_dir="out",
+        input_path="input.xlsx",
+        processed_count=2,
+        total_items=3,
+    )
+
+    with pytest.raises(ValueError, match="requires output"):
+        parse_legacy_finalize_export(("out",))
+
+    with pytest.raises(TypeError, match="counts must be integers"):
+        parse_legacy_finalize_export(("out", "input.xlsx", "2", 3))
 
 
 def test_process_legacy_message_queue_preserves_empty_log_fallback():
