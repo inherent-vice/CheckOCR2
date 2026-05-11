@@ -26,7 +26,8 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   image-processing, runtime-state, work-controller, theme manager, run-report,
   queue-dispatch, shortcut/about dialogs, overlay windows, preset controller,
   OCR-start validation, and file/coordinates/timing/options/preset/grid/log
-  panel seams plus the menu bar and top toolbar now have test coverage.
+  panel seams plus the menu bar, top toolbar, and main-window layout now have
+  test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -40,16 +41,18 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   before reaching the GUI boundary, with tests for corrupt workbooks, Excel
   writer failures, and OCR reader failures.
 - Package smoke verifies build metadata, OCR-ready startup, package size,
-  startup budget, and absence of forbidden GUI/contrib OpenCV metadata.
+  startup budget, isolated settings-file load, and absence of forbidden
+  GUI/contrib OpenCV metadata.
 - PyInstaller no longer broadly collects all Torch submodules; targeted Torch
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 168 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 181 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
-run-comparison tooling. Latest package gate remains the 2026-05-08 clean
-PyInstaller release build plus real package smoke at about `596.35 MB` with
-startup `1.141` seconds.
+run-comparison tooling. Latest package gate uses the 2026-05-11 clean
+PyInstaller release build for the latest package-affecting app code plus real
+package smoke at about `596.373 MB` with startup `1.156` seconds and
+settings-file verification under isolated `APPDATA`.
 
 ## Commands To Re-Run Before Release
 
@@ -62,7 +65,7 @@ python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowli
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
 Before OCR tuning or release decisions that depend on OCR accuracy, also run

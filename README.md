@@ -48,7 +48,7 @@ python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
 Before OCR tuning or release decisions that depend on OCR accuracy, also run
@@ -91,9 +91,11 @@ build date, Python version, direct dependency versions, and dependency hash.
 The package smoke script reports startup elapsed time, package size, and this
 metadata when present. Release smoke should enforce the current size/startup
 budgets with `--max-package-size-mb` and `--max-startup-seconds`. With
-`--require-ocr-ready`, use `--ocr-ready-mode fast` for quick startup smoke that
-bypasses model loading, or `--ocr-ready-mode real` to verify the packaged
-EasyOCR reader initializes and the GUI reaches `Ready`.
+`--require-ocr-ready`, use `--require-settings-file --isolated-appdata` to
+assert settings load without touching the operator profile, `--ocr-ready-mode
+fast` for quick startup smoke that bypasses model loading, or
+`--ocr-ready-mode real` to verify the packaged EasyOCR reader initializes and
+the GUI reaches `Ready`.
 
 Use `scripts\benchmark_ocr_matrix.py` after fixture creation to sweep OCR
 upscale factors, interpolation methods, and EasyOCR detail modes against the

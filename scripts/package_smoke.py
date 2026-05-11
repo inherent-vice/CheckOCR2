@@ -11,6 +11,7 @@ import argparse
 import ctypes
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -45,17 +46,13 @@ class WindowInfo:
 class SmokeProcess(Protocol):
     pid: int
 
-    def poll(self) -> int | None:
-        ...
+    def poll(self) -> int | None: ...
 
-    def terminate(self) -> None:
-        ...
+    def terminate(self) -> None: ...
 
-    def kill(self) -> None:
-        ...
+    def kill(self) -> None: ...
 
-    def wait(self, timeout: float | None = None) -> int:
-        ...
+    def wait(self, timeout: float | None = None) -> int: ...
 
 
 WindowLister = Callable[[], Iterable[WindowInfo]]
@@ -106,6 +103,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Run in explicit package-smoke OCR mode and wait for GUI Ready state",
     )
     parser.add_argument(
+        "--require-settings-file",
+        action="store_true",
+        help="Fail unless OCR-ready status reports an existing settings file. Requires --require-ocr-ready.",
+    )
+    parser.add_argument(
+        "--isolated-appdata",
+        action="store_true",
+        help="Run the packaged app with a temporary APPDATA directory and remove it after smoke.",
+    )
+    parser.add_argument(
+        "--appdata-dir",
+        type=Path,
+        help="Run the packaged app with this APPDATA directory for smoke verification.",
+    )
+    parser.add_argument(
         "--ocr-ready-timeout",
         type=positive_float,
         default=DEFAULT_OCR_READY_TIMEOUT_SECONDS,
@@ -142,7 +154,9 @@ def iter_window_titles() -> list[WindowInfo]:
     from ctypes import wintypes
 
     user32 = ctypes.windll.user32
-    enum_windows_proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    enum_windows_proc = ctypes.WINFUNCTYPE(
+        wintypes.BOOL, wintypes.HWND, wintypes.LPARAM
+    )
 
     user32.EnumWindows.argtypes = [enum_windows_proc, wintypes.LPARAM]
     user32.EnumWindows.restype = wintypes.BOOL
@@ -152,7 +166,10 @@ def iter_window_titles() -> list[WindowInfo]:
     user32.GetWindowTextLengthW.restype = ctypes.c_int
     user32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
     user32.GetWindowTextW.restype = ctypes.c_int
-    user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user32.GetWindowThreadProcessId.argtypes = [
+        wintypes.HWND,
+        ctypes.POINTER(wintypes.DWORD),
+    ]
     user32.GetWindowThreadProcessId.restype = wintypes.DWORD
 
     titles: list[WindowInfo] = []
@@ -174,7 +191,9 @@ def iter_window_titles() -> list[WindowInfo]:
 
         process_id = wintypes.DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(process_id))
-        titles.append(WindowInfo(hwnd=int(hwnd), pid=int(process_id.value), title=title))
+        titles.append(
+            WindowInfo(hwnd=int(hwnd), pid=int(process_id.value), title=title)
+        )
         return 1
 
     user32.EnumWindows(collect_window, 0)
@@ -188,7 +207,10 @@ def find_matching_window(
 ) -> WindowInfo | None:
     title_fragment_normalized = title_fragment.casefold()
     for window in list_windows():
-        if window.pid == process_id and title_fragment_normalized in window.title.casefold():
+        if (
+            window.pid == process_id
+            and title_fragment_normalized in window.title.casefold()
+        ):
             return window
     return None
 
@@ -235,7 +257,11 @@ def wait_for_ocr_ready(
                 last_status = json.loads(status_path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 last_status = None
-            if last_status and last_status.get("runtime_state") == "Ready" and last_status.get("ocr_ready") is True:
+            if (
+                last_status
+                and last_status.get("runtime_state") == "Ready"
+                and last_status.get("ocr_ready") is True
+            ):
                 return "ok", last_status, None
 
         return_code = process.poll()
@@ -321,6 +347,10 @@ def run_package_smoke(
     list_windows: WindowLister = iter_window_titles,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
+    *,
+    require_settings_file: bool = False,
+    isolated_appdata: bool = False,
+    appdata_dir: Path | None = None,
 ) -> tuple[int, SmokeReport]:
     exe_path = exe_path.expanduser()
     if not exe_path.exists():
@@ -341,8 +371,27 @@ def run_package_smoke(
             f"EXE path is not a file: {exe_path}",
         )
         return 2, report
+    if require_settings_file and not require_ocr_ready:
+        report = build_error_report(
+            exe_path,
+            title_fragment,
+            timeout_seconds,
+            "settings_file_requires_ocr_ready",
+            "--require-settings-file requires --require-ocr-ready",
+        )
+        return 2, report
+    if isolated_appdata and appdata_dir is not None:
+        report = build_error_report(
+            exe_path,
+            title_fragment,
+            timeout_seconds,
+            "appdata_conflict",
+            "--isolated-appdata and --appdata-dir cannot be used together",
+        )
+        return 2, report
 
     process: SmokeProcess | None = None
+    cleanup_appdata_dir: Path | None = None
     start = clock()
     exit_code = 1
     report: SmokeReport = {
@@ -350,11 +399,16 @@ def run_package_smoke(
         "exe_path": str(exe_path),
         "title_fragment": title_fragment,
         "timeout_seconds": timeout_seconds,
-        "package_size_mb": round(directory_size_bytes(exe_path.parent) / (1024 * 1024), 3),
+        "package_size_mb": round(
+            directory_size_bytes(exe_path.parent) / (1024 * 1024), 3
+        ),
         "max_package_size_mb": max_package_size_mb,
         "max_startup_seconds": max_startup_seconds,
         "ocr_ready_required": require_ocr_ready,
         "ocr_ready_mode": ocr_ready_mode if require_ocr_ready else None,
+        "settings_file_required": require_settings_file,
+        "isolated_appdata": isolated_appdata,
+        "appdata_dir": str(appdata_dir) if appdata_dir is not None else None,
     }
     status_path: Path | None = None
 
@@ -362,7 +416,13 @@ def run_package_smoke(
         with TemporarySmokeEnvironment(
             require_ocr_ready=require_ocr_ready,
             ocr_ready_mode=ocr_ready_mode,
+            isolated_appdata=isolated_appdata,
+            appdata_dir=appdata_dir,
         ) as status_path:
+            if appdata_dir is not None or isolated_appdata:
+                report["appdata_dir"] = os.environ.get("APPDATA")
+            if isolated_appdata and report.get("appdata_dir"):
+                cleanup_appdata_dir = Path(str(report["appdata_dir"]))
             process = process_launcher(exe_path)
         report["pid"] = process.pid
         wait_status, window, process_return_code = wait_for_window(
@@ -453,6 +513,26 @@ def run_package_smoke(
                 report["ocr_ready_status"] = smoke_status
                 if ready_status == "ok" and smoke_status is not None:
                     report["ocr_ready"] = True
+                    if require_settings_file:
+                        expected_appdata_dir = (
+                            Path(str(report["appdata_dir"]))
+                            if report.get("appdata_dir")
+                            else None
+                        )
+                        settings_error = validate_smoke_settings_file(
+                            smoke_status,
+                            expected_appdata_dir=expected_appdata_dir,
+                        )
+                        if settings_error:
+                            report.update(
+                                {
+                                    "status": "settings_file_missing",
+                                    "error": settings_error,
+                                }
+                            )
+                            exit_code = 1
+                        else:
+                            report["settings_file"] = smoke_status["settings_file"]
                 elif ready_status == "process_exited":
                     report.update(
                         {
@@ -498,7 +578,9 @@ def run_package_smoke(
     finally:
         if process is not None:
             try:
-                report["termination"] = terminate_process(process, terminate_timeout_seconds)
+                report["termination"] = terminate_process(
+                    process, terminate_timeout_seconds
+                )
             except OSError as exc:
                 report["termination"] = {
                     "terminated": False,
@@ -509,8 +591,52 @@ def run_package_smoke(
                 if exit_code == 0:
                     report["status"] = "termination_failed"
                     exit_code = 1
+        if cleanup_appdata_dir is not None:
+            cleanup_report = remove_appdata_dir(cleanup_appdata_dir)
+            report["appdata_cleanup"] = cleanup_report
+            if not cleanup_report["removed"] and exit_code == 0:
+                report["status"] = "appdata_cleanup_failed"
+                report["error"] = cleanup_report.get("error")
+                exit_code = 1
 
     return exit_code, report
+
+
+def remove_appdata_dir(appdata_dir: Path) -> dict[str, bool | str]:
+    report: dict[str, bool | str] = {
+        "path": str(appdata_dir),
+        "required": True,
+        "removed": False,
+    }
+    try:
+        if appdata_dir.exists():
+            shutil.rmtree(appdata_dir)
+        report["removed"] = not appdata_dir.exists()
+    except OSError as exc:
+        report["error"] = str(exc)
+    return report
+
+
+def validate_smoke_settings_file(
+    smoke_status: dict[str, Any],
+    *,
+    expected_appdata_dir: Path | None = None,
+) -> str | None:
+    settings_file = smoke_status.get("settings_file")
+    if not settings_file:
+        return "OCR Ready status did not report settings_file"
+    settings_path = Path(str(settings_file))
+    if not settings_path.is_file():
+        return f"Reported settings_file does not exist: {settings_file}"
+    if expected_appdata_dir is not None:
+        try:
+            settings_path.resolve().relative_to(expected_appdata_dir.resolve())
+        except ValueError:
+            return (
+                "Reported settings_file is outside the smoke APPDATA directory: "
+                f"{settings_file}"
+            )
+    return None
 
 
 def read_packaged_metadata(exe_path: Path) -> dict[str, object] | None:
@@ -551,8 +677,12 @@ def package_distributions(package_root: Path) -> dict[str, str]:
     for dist_info_dir in sorted(package_root.glob("*.dist-info")):
         if not dist_info_dir.is_dir():
             continue
-        distribution_name, distribution_version = read_distribution_metadata(dist_info_dir)
-        distributions[normalize_distribution_name(distribution_name)] = distribution_version
+        distribution_name, distribution_version = read_distribution_metadata(
+            dist_info_dir
+        )
+        distributions[normalize_distribution_name(distribution_name)] = (
+            distribution_version
+        )
     return distributions
 
 
@@ -561,7 +691,9 @@ def read_distribution_metadata(dist_info_dir: Path) -> tuple[str, str]:
     distribution_name: str | None = None
     distribution_version: str | None = None
     try:
-        for line in metadata_path.read_text(encoding="utf-8", errors="replace").splitlines():
+        for line in metadata_path.read_text(
+            encoding="utf-8", errors="replace"
+        ).splitlines():
             key, separator, value = line.partition(":")
             if not separator:
                 continue
@@ -629,26 +761,45 @@ def directory_size_bytes(path: Path) -> int:
 
 
 def smoke_status_path() -> Path:
-    return Path(tempfile.gettempdir()) / f"checkocr2-package-smoke-{uuid.uuid4().hex}.json"
+    return (
+        Path(tempfile.gettempdir()) / f"checkocr2-package-smoke-{uuid.uuid4().hex}.json"
+    )
 
 
 class TemporarySmokeEnvironment:
-    def __init__(self, *, require_ocr_ready: bool, ocr_ready_mode: str = DEFAULT_OCR_READY_MODE):
+    def __init__(
+        self,
+        *,
+        require_ocr_ready: bool,
+        ocr_ready_mode: str = DEFAULT_OCR_READY_MODE,
+        isolated_appdata: bool = False,
+        appdata_dir: Path | None = None,
+    ):
         self.require_ocr_ready = require_ocr_ready
         self.ocr_ready_mode = ocr_ready_mode
+        self.isolated_appdata = isolated_appdata
+        self.appdata_dir = appdata_dir
         self.status_path = smoke_status_path() if require_ocr_ready else None
+        self.temporary_appdata_dir: Path | None = None
         self.previous: dict[str, str | None] = {}
 
     def __enter__(self) -> Path | None:
-        if not self.require_ocr_ready or self.status_path is None:
-            return None
-        updates = {
-            PACKAGE_SMOKE_STATUS_FILE_ENV: str(self.status_path),
-        }
-        if self.ocr_ready_mode == "fast":
-            updates[PACKAGE_SMOKE_FAST_OCR_ENV] = "1"
-        else:
-            updates[PACKAGE_SMOKE_FAST_OCR_ENV] = None
+        updates: dict[str, str | None] = {}
+        if self.require_ocr_ready and self.status_path is not None:
+            updates[PACKAGE_SMOKE_STATUS_FILE_ENV] = str(self.status_path)
+            if self.ocr_ready_mode == "fast":
+                updates[PACKAGE_SMOKE_FAST_OCR_ENV] = "1"
+            else:
+                updates[PACKAGE_SMOKE_FAST_OCR_ENV] = None
+        if self.isolated_appdata:
+            self.temporary_appdata_dir = Path(
+                tempfile.mkdtemp(prefix="checkocr2-package-smoke-appdata-")
+            )
+            updates["APPDATA"] = str(self.temporary_appdata_dir)
+        elif self.appdata_dir is not None:
+            self.appdata_dir = self.appdata_dir.expanduser().resolve()
+            self.appdata_dir.mkdir(parents=True, exist_ok=True)
+            updates["APPDATA"] = str(self.appdata_dir)
         for key, value in updates.items():
             self.previous[key] = os.environ.get(key)
             if value is None:
@@ -679,6 +830,9 @@ def main(argv: list[str] | None = None) -> int:
         ocr_ready_mode=args.ocr_ready_mode,
         max_package_size_mb=args.max_package_size_mb,
         max_startup_seconds=args.max_startup_seconds,
+        require_settings_file=args.require_settings_file,
+        isolated_appdata=args.isolated_appdata,
+        appdata_dir=args.appdata_dir,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code
