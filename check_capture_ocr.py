@@ -149,6 +149,9 @@ from checkocr2.ui.settings_actions import (
 from checkocr2.ui.settings_actions import (
     quick_save_settings as quick_save_settings_action,
 )
+from checkocr2.ui.settings_actions import (
+    reset_advanced_settings_and_ui as reset_advanced_settings_action,
+)
 from checkocr2.ui.settings_binding import (
     apply_ui_settings,
     collect_ui_settings,
@@ -834,11 +837,7 @@ class CheckCaptureOCRApp(tk.Tk):
         save_advanced_settings(self)
 
     def reset_advanced_settings_and_ui(self):
-        if messagebox.askyesno("확인", "모든 고급 설정을 기본값으로 되돌리시겠습니까?"):
-            self.settings_manager.reset_advanced_settings()
-            self.skip_kbp_var.set(self.settings_manager.get_advanced('skip_kbp_code', True))
-            messagebox.showinfo("완료", "고급 설정이 초기화되었습니다.")
-            self.logger.info("고급 설정이 기본값으로 초기화되었습니다.")
+        reset_advanced_settings_action(self)
 
     def browse_input_excel(self):
         browse_input_excel_action(self)

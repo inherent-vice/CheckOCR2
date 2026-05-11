@@ -97,7 +97,7 @@ working.
   shell.
 - `checkocr2/ui/settings_actions.py`: current settings load/save controller
   actions, including saved-path restoration, advanced defaults, preset refresh,
-  theme restore, and quick-save error reporting.
+  theme restore, advanced reset, and quick-save error reporting.
 - `checkocr2/ui/settings_binding.py`: settings-to-Tk-variable mapping for
   current settings, preset application, and advanced option persistence.
 - `checkocr2/ui/start_validation.py`: OCR-start validation messages for empty

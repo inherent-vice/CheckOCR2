@@ -62,11 +62,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 285 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 287 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
 PyInstaller release build after settings-action extraction plus real
-package smoke at about `596.386 MB` with startup `1.203` seconds and settings-file
+package smoke at about `596.387 MB` with startup `3.219` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -127,9 +127,9 @@ slice.
 
 The latest settings-action slice moved current-settings load/save controller
 glue into `checkocr2/ui/settings_actions.py`; focused tests pass for saved-path
-restore, missing-settings defaults, preset/theme refresh, quick-save success,
-error messagebox behavior, and legacy wrapper compatibility. Source GUI smoke
-and real package smoke both pass for this slice.
+restore, missing-settings defaults, preset/theme refresh, advanced reset,
+quick-save success, error messagebox behavior, and legacy wrapper compatibility.
+Source GUI smoke and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

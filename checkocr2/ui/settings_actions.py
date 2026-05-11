@@ -48,3 +48,21 @@ def quick_save_settings(
         if show_error is None:
             show_error = messagebox.showerror
         show_error("오류", f"설정 저장 중 오류가 발생했습니다: {exc}")
+
+
+def reset_advanced_settings_and_ui(
+    app: Any,
+    *,
+    ask_confirm: Callable[[str, str], bool] | None = None,
+    show_info: Callable[[str, str], object] | None = None,
+) -> None:
+    if ask_confirm is None:
+        ask_confirm = messagebox.askyesno
+    if show_info is None:
+        show_info = messagebox.showinfo
+
+    if ask_confirm("확인", "모든 고급 설정을 기본값으로 되돌리시겠습니까?"):
+        app.settings_manager.reset_advanced_settings()
+        app.skip_kbp_var.set(app.settings_manager.get_advanced("skip_kbp_code", True))
+        show_info("완료", "고급 설정이 초기화되었습니다.")
+        app.logger.info("고급 설정이 기본값으로 초기화되었습니다.")

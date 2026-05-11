@@ -24,6 +24,8 @@ class FakeSettingsManager:
         self.save_error = None
         self.default_advanced = {"ui_theme": "modern_blue", "skip_kbp_code": True}
         self.advanced_theme = "modern_dark"
+        self.advanced_skip_value = True
+        self.reset_called = False
 
     def get_current_settings(self):
         if self.get_error:
@@ -41,7 +43,12 @@ class FakeSettingsManager:
     def get_advanced(self, key, default=None):
         if key == "ui_theme":
             return self.advanced_theme
+        if key == "skip_kbp_code":
+            return self.advanced_skip_value
         return self.data["advanced"].get(key, default)
+
+    def reset_advanced_settings(self):
+        self.reset_called = True
 
 
 class FakeLogger:
@@ -71,6 +78,7 @@ def make_app(current_settings=None):
         settings_manager=FakeSettingsManager(current_settings=current_settings),
         logger=FakeLogger(),
         theme_manager=FakeThemeManager(),
+        skip_kbp_var=FakeVar(False),
         applied_settings=[],
         preset_updates=0,
         advanced_saves=0,
@@ -178,6 +186,60 @@ def test_quick_save_settings_reports_save_errors(monkeypatch):
     assert messagebox_errors == [("오류", "설정 저장 중 오류가 발생했습니다: locked")]
 
 
+def test_reset_advanced_settings_and_ui_resets_when_confirmed(monkeypatch):
+    app = make_app()
+    events = []
+
+    def askyesno(title, message):
+        events.append(("askyesno", title, message))
+        return True
+
+    def reset_advanced_settings():
+        events.append(("reset_advanced_settings",))
+        app.settings_manager.reset_called = True
+
+    def get_advanced(key, default=None):
+        events.append(("get_advanced", key, default))
+        return False
+
+    monkeypatch.setattr(settings_actions.messagebox, "askyesno", askyesno)
+    monkeypatch.setattr(
+        app.settings_manager, "reset_advanced_settings", reset_advanced_settings
+    )
+    monkeypatch.setattr(app.settings_manager, "get_advanced", get_advanced)
+    monkeypatch.setattr(
+        settings_actions.messagebox,
+        "showinfo",
+        lambda title, message: events.append(("showinfo", title, message)),
+    )
+    app.logger.info = lambda message: events.append(("log", message))
+
+    settings_actions.reset_advanced_settings_and_ui(app)
+
+    assert app.settings_manager.reset_called is True
+    assert app.skip_kbp_var.get() is False
+    assert events == [
+        ("askyesno", "확인", "모든 고급 설정을 기본값으로 되돌리시겠습니까?"),
+        ("reset_advanced_settings",),
+        ("get_advanced", "skip_kbp_code", True),
+        ("showinfo", "완료", "고급 설정이 초기화되었습니다."),
+        ("log", "고급 설정이 기본값으로 초기화되었습니다."),
+    ]
+
+
+def test_reset_advanced_settings_and_ui_does_nothing_when_cancelled(monkeypatch):
+    app = make_app()
+    monkeypatch.setattr(
+        settings_actions.messagebox, "askyesno", lambda title, message: False
+    )
+
+    settings_actions.reset_advanced_settings_and_ui(app)
+
+    assert app.settings_manager.reset_called is False
+    assert app.skip_kbp_var.get() is False
+    assert app.logger.infos == []
+
+
 def test_legacy_app_settings_actions_delegate_to_extracted_helpers(
     ocr_module, monkeypatch
 ):
@@ -194,8 +256,14 @@ def test_legacy_app_settings_actions_delegate_to_extracted_helpers(
         "quick_save_settings_action",
         lambda received_app: calls.append(("save", received_app)),
     )
+    monkeypatch.setattr(
+        ocr_module,
+        "reset_advanced_settings_action",
+        lambda received_app: calls.append(("reset", received_app)),
+    )
 
     app.load_last_settings()
     app.quick_save_settings()
+    app.reset_advanced_settings_and_ui()
 
-    assert calls == [("load", app), ("save", app)]
+    assert calls == [("load", app), ("save", app), ("reset", app)]
