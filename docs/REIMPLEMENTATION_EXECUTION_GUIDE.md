@@ -74,16 +74,16 @@ python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .an
 ```
 
 Accept a candidate only when normalized date/rate accuracy does not regress,
-blank fields do not increase, false positives do not increase, failure rows do
-not increase, and either benchmark `p95_latency_ms` or same-input live P95 row
-timing improves by at least 10%. For package-driven OCR/backend changes,
-package smoke may satisfy the improvement requirement only when `package_size_mb`
-drops by a predeclared threshold or at least 25 MB. The result must hold across
-three consecutive fixture runs. Review benchmark `results` grouped by `field`
-so a date regression cannot be hidden by a rate improvement, or add a tested
-per-field summary before using the candidate as a default. Accuracy-only
-candidates can be recorded for manual review, but should not become defaults
-without explicit approval.
+blank-on-expected-nonempty errors do not increase, false positives do not
+increase, failure rows do not increase, and either benchmark `p95_latency_ms` or
+same-input live P95 row timing improves by at least 10%. For package-driven
+OCR/backend changes, package smoke may satisfy the improvement requirement only
+when `package_size_mb` drops by a predeclared threshold or at least 25 MB. The
+result must hold across three consecutive fixture runs. Review
+`field_summaries`, matrix `field_comparisons`, and `coverage_unchanged` so a
+date regression or missing field coverage cannot be hidden by a rate
+improvement. Accuracy-only candidates can be recorded for manual review, but
+should not become defaults without explicit approval.
 
 ## GUI Parity Protocol
 

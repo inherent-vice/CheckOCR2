@@ -90,26 +90,98 @@ def summarize_report(report: dict[str, Any]) -> dict[str, Any]:
         "settings": report.get("settings", {}),
         "total_cases": report.get("total_cases", 0),
         "evaluated_cases": report.get("evaluated_cases", 0),
+        "missing_cases": report.get("missing_cases", 0),
+        "invalid_path_cases": report.get("invalid_path_cases", 0),
         "exact_accuracy": report.get("exact_accuracy"),
         "blank_count": report.get("blank_count"),
+        "blank_on_expected_nonempty_count": report.get("blank_on_expected_nonempty_count"),
         "false_positive_count": report.get("false_positive_count"),
         "p95_latency_ms": report.get("p95_latency_ms"),
+        "field_summaries": report.get("field_summaries", {}),
     }
 
 
-def compare_to_baseline(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[str, bool | None]:
+def candidate_blank_error_count(summary: dict[str, Any]) -> int:
+    value = summary.get("blank_on_expected_nonempty_count")
+    return summary.get("blank_count", 0) if value is None else value
+
+
+def compare_field_summaries(
+    candidate_fields: dict[str, dict[str, Any]],
+    baseline_fields: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, bool | None]]:
+    comparisons: dict[str, dict[str, bool | None]] = {}
+    for field in sorted(set(candidate_fields) | set(baseline_fields)):
+        candidate = candidate_fields.get(field)
+        baseline = baseline_fields.get(field)
+        if not candidate or not baseline:
+            comparisons[field] = {
+                "coverage_unchanged": None,
+                "accuracy_not_regressed": None,
+                "blank_not_increased": None,
+                "false_positive_not_increased": None,
+                "p95_latency_not_increased": None,
+            }
+            continue
+        coverage_unchanged = (
+            candidate.get("evaluated_cases") == baseline.get("evaluated_cases")
+            and candidate.get("missing_cases", 0) == baseline.get("missing_cases", 0)
+            and candidate.get("invalid_path_cases", 0) == baseline.get("invalid_path_cases", 0)
+        )
+        if not coverage_unchanged or not candidate.get("evaluated_cases"):
+            comparisons[field] = {
+                "coverage_unchanged": coverage_unchanged,
+                "accuracy_not_regressed": None,
+                "blank_not_increased": None,
+                "false_positive_not_increased": None,
+                "p95_latency_not_increased": None,
+            }
+            continue
+        comparisons[field] = {
+            "coverage_unchanged": True,
+            "accuracy_not_regressed": candidate["exact_accuracy"] >= baseline["exact_accuracy"],
+            "blank_not_increased": candidate_blank_error_count(candidate) <= candidate_blank_error_count(baseline),
+            "false_positive_not_increased": candidate["false_positive_count"] <= baseline["false_positive_count"],
+            "p95_latency_not_increased": candidate["p95_latency_ms"] <= baseline["p95_latency_ms"],
+        }
+    return comparisons
+
+
+def compare_to_baseline(candidate: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
     if candidate.get("status") != "ok" or baseline.get("status") != "ok":
         return {
             "accuracy_not_regressed": None,
             "blank_not_increased": None,
             "false_positive_not_increased": None,
             "p95_latency_not_increased": None,
+            "coverage_unchanged": None,
+            "field_comparisons": None,
+        }
+    coverage_unchanged = (
+        candidate.get("evaluated_cases") == baseline.get("evaluated_cases")
+        and candidate.get("missing_cases", 0) == baseline.get("missing_cases", 0)
+        and candidate.get("invalid_path_cases", 0) == baseline.get("invalid_path_cases", 0)
+    )
+    field_comparisons = compare_field_summaries(
+        candidate.get("field_summaries", {}),
+        baseline.get("field_summaries", {}),
+    )
+    if not coverage_unchanged or not candidate.get("evaluated_cases"):
+        return {
+            "coverage_unchanged": coverage_unchanged,
+            "accuracy_not_regressed": None,
+            "blank_not_increased": None,
+            "false_positive_not_increased": None,
+            "p95_latency_not_increased": None,
+            "field_comparisons": field_comparisons,
         }
     return {
+        "coverage_unchanged": coverage_unchanged,
         "accuracy_not_regressed": candidate["exact_accuracy"] >= baseline["exact_accuracy"],
-        "blank_not_increased": candidate["blank_count"] <= baseline["blank_count"],
+        "blank_not_increased": candidate_blank_error_count(candidate) <= candidate_blank_error_count(baseline),
         "false_positive_not_increased": candidate["false_positive_count"] <= baseline["false_positive_count"],
         "p95_latency_not_increased": candidate["p95_latency_ms"] <= baseline["p95_latency_ms"],
+        "field_comparisons": field_comparisons,
     }
 
 

@@ -45,10 +45,35 @@ def test_run_matrix_summarizes_baseline_comparisons(monkeypatch, tmp_path):
             },
             "total_cases": 2,
             "evaluated_cases": 2,
+            "missing_cases": 0,
+            "invalid_path_cases": 0,
             "exact_accuracy": 0.5 if is_baseline else (1.0 if is_improved else 0.5),
             "blank_count": 1 if is_baseline else (0 if is_improved else 1),
+            "blank_on_expected_nonempty_count": 1 if is_baseline else (0 if is_improved else 1),
             "false_positive_count": 0,
             "p95_latency_ms": 10.0 if is_baseline else (8.0 if is_improved else 12.0),
+            "field_summaries": {
+                "date": {
+                    "evaluated_cases": 1,
+                    "missing_cases": 0,
+                    "invalid_path_cases": 0,
+                    "exact_accuracy": 0.0 if is_baseline else (1.0 if is_improved else 0.0),
+                    "blank_count": 1 if is_baseline else (0 if is_improved else 1),
+                    "blank_on_expected_nonempty_count": 1 if is_baseline else (0 if is_improved else 1),
+                    "false_positive_count": 0,
+                    "p95_latency_ms": 10.0 if is_baseline else (8.0 if is_improved else 12.0),
+                },
+                "rate": {
+                    "evaluated_cases": 1,
+                    "missing_cases": 0,
+                    "invalid_path_cases": 0,
+                    "exact_accuracy": 1.0,
+                    "blank_count": 0,
+                    "blank_on_expected_nonempty_count": 0,
+                    "false_positive_count": 0,
+                    "p95_latency_ms": 10.0 if is_baseline else (8.0 if is_improved else 12.0),
+                },
+            },
         }
 
     monkeypatch.setattr(benchmark_ocr_matrix, "run_benchmark", fake_run_benchmark)
@@ -70,10 +95,27 @@ def test_run_matrix_summarizes_baseline_comparisons(monkeypatch, tmp_path):
     assert report["total_candidates"] == 16
     assert report["baseline"]["key"] == "detail=0;factor=1.0;method=BILINEAR;allowlist=none"
     assert report["comparisons"][0]["against_baseline"] == {
+        "coverage_unchanged": True,
         "accuracy_not_regressed": True,
         "blank_not_increased": True,
         "false_positive_not_increased": True,
         "p95_latency_not_increased": True,
+        "field_comparisons": {
+            "date": {
+                "coverage_unchanged": True,
+                "accuracy_not_regressed": True,
+                "blank_not_increased": True,
+                "false_positive_not_increased": True,
+                "p95_latency_not_increased": True,
+            },
+            "rate": {
+                "coverage_unchanged": True,
+                "accuracy_not_regressed": True,
+                "blank_not_increased": True,
+                "false_positive_not_increased": True,
+                "p95_latency_not_increased": True,
+            },
+        },
     }
     improved = next(
         comparison
@@ -81,10 +123,27 @@ def test_run_matrix_summarizes_baseline_comparisons(monkeypatch, tmp_path):
         if comparison["key"] == "detail=1;factor=2.0;method=LANCZOS;allowlist=field"
     )
     assert improved["against_baseline"] == {
+        "coverage_unchanged": True,
         "accuracy_not_regressed": True,
         "blank_not_increased": True,
         "false_positive_not_increased": True,
         "p95_latency_not_increased": True,
+        "field_comparisons": {
+            "date": {
+                "coverage_unchanged": True,
+                "accuracy_not_regressed": True,
+                "blank_not_increased": True,
+                "false_positive_not_increased": True,
+                "p95_latency_not_increased": True,
+            },
+            "rate": {
+                "coverage_unchanged": True,
+                "accuracy_not_regressed": True,
+                "blank_not_increased": True,
+                "false_positive_not_increased": True,
+                "p95_latency_not_increased": True,
+            },
+        },
     }
 
 
@@ -117,3 +176,99 @@ def test_matrix_cli_dry_run_writes_report_for_empty_fixture(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert output_json.exists()
+
+
+def test_compare_to_baseline_gates_aggregate_metrics_when_coverage_changes():
+    baseline = {
+        "status": "ok",
+        "evaluated_cases": 2,
+        "missing_cases": 0,
+        "invalid_path_cases": 0,
+        "exact_accuracy": 0.5,
+        "blank_count": 1,
+        "blank_on_expected_nonempty_count": 1,
+        "false_positive_count": 0,
+        "p95_latency_ms": 10.0,
+        "field_summaries": {
+            "date": {
+                "evaluated_cases": 2,
+                "missing_cases": 0,
+                "invalid_path_cases": 0,
+                "exact_accuracy": 0.5,
+                "blank_count": 1,
+                "blank_on_expected_nonempty_count": 1,
+                "false_positive_count": 0,
+                "p95_latency_ms": 10.0,
+            }
+        },
+    }
+    candidate = {
+        "status": "ok",
+        "evaluated_cases": 1,
+        "missing_cases": 1,
+        "invalid_path_cases": 0,
+        "exact_accuracy": 1.0,
+        "blank_count": 0,
+        "blank_on_expected_nonempty_count": 0,
+        "false_positive_count": 0,
+        "p95_latency_ms": 8.0,
+        "field_summaries": {
+            "date": {
+                "evaluated_cases": 1,
+                "missing_cases": 1,
+                "invalid_path_cases": 0,
+                "exact_accuracy": 1.0,
+                "blank_count": 0,
+                "blank_on_expected_nonempty_count": 0,
+                "false_positive_count": 0,
+                "p95_latency_ms": 8.0,
+            }
+        },
+    }
+
+    comparison = benchmark_ocr_matrix.compare_to_baseline(candidate, baseline)
+
+    assert comparison["coverage_unchanged"] is False
+    assert comparison["accuracy_not_regressed"] is None
+    assert comparison["blank_not_increased"] is None
+    assert comparison["false_positive_not_increased"] is None
+    assert comparison["p95_latency_not_increased"] is None
+    assert comparison["field_comparisons"]["date"] == {
+        "coverage_unchanged": False,
+        "accuracy_not_regressed": None,
+        "blank_not_increased": None,
+        "false_positive_not_increased": None,
+        "p95_latency_not_increased": None,
+    }
+
+
+def test_compare_to_baseline_uses_blank_error_metric_not_total_blank_count():
+    baseline = {
+        "status": "ok",
+        "evaluated_cases": 2,
+        "missing_cases": 0,
+        "invalid_path_cases": 0,
+        "exact_accuracy": 0.5,
+        "blank_count": 0,
+        "blank_on_expected_nonempty_count": 1,
+        "false_positive_count": 1,
+        "p95_latency_ms": 10.0,
+        "field_summaries": {},
+    }
+    candidate = {
+        "status": "ok",
+        "evaluated_cases": 2,
+        "missing_cases": 0,
+        "invalid_path_cases": 0,
+        "exact_accuracy": 1.0,
+        "blank_count": 1,
+        "blank_on_expected_nonempty_count": 0,
+        "false_positive_count": 0,
+        "p95_latency_ms": 8.0,
+        "field_summaries": {},
+    }
+
+    comparison = benchmark_ocr_matrix.compare_to_baseline(candidate, baseline)
+
+    assert comparison["coverage_unchanged"] is True
+    assert comparison["blank_not_increased"] is True

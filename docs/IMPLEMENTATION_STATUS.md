@@ -100,6 +100,9 @@ Date: 2026-05-08
   event order and finalization counts.
 - Added benchmark report coverage for exact accuracy, blank count,
   false-positive count, P95 latency, and confidence fields using fake OCR.
+- Added field-level benchmark summaries and matrix comparisons so date and rate
+  regressions, blank-on-expected-nonempty errors, and missing fixture coverage
+  are visible separately from combined accuracy.
 - Added `scripts/audit_ocr_fixtures.py` to fail loudly until ignored OCR crop
   fixtures are readable, normalized, deduplicated, and large enough for a real
   baseline.

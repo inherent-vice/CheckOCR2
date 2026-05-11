@@ -69,11 +69,17 @@ Pass `--allowlist-modes none,field` to include field-specific EasyOCR
 character allowlists for date and rate crops. It compares every candidate
 against the first combination as the baseline, so use the default ordering to
 keep `detail=0`, factor `1.0`, method `BILINEAR`, and allowlist `none` as the
-reference.
+reference. Matrix summaries include `field_comparisons` under each baseline
+comparison; treat any date or rate field regression as a failed candidate even
+when combined accuracy is unchanged.
 
 Reports include raw OCR text and crop paths, so write them under
 `.analysis_tmp/`. The script rejects other repository-local output paths unless
-`--allow-repo-output` is supplied intentionally.
+`--allow-repo-output` is supplied intentionally. Baseline reports also include
+`field_summaries` for date and rate crops so one field's regression cannot be
+hidden by another field's improvement. Use
+`blank_on_expected_nonempty_count` as the blank-error metric; plain
+`blank_count` also includes correctly blank expected-empty crops.
 
 ## Live Run Comparison
 
@@ -86,13 +92,15 @@ python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .an
 
 The comparator checks that the input workbook path and row identities match,
 date/rate outputs are unchanged, blank fields do not increase, failure rows do
-not increase, and timing values are parseable. Use `--allow-output-changes`
-only for a manual review run where changed OCR output is expected and will be
-checked against source data.
+not increase, and timing values are parseable. Matrix comparisons also include
+`coverage_unchanged`, so candidates with missing or invalid fixture coverage are
+not treated as normal field comparisons. Use `--allow-output-changes` only for a
+manual review run where changed OCR output is expected and will be checked
+against source data.
 
 ## Acceptance Gate
 
 Adopt a candidate only when exact normalized date/rate accuracy does not
-regress, blank fields do not increase, false positives do not increase, and P95
-latency improves or packaging size materially drops across three consecutive
-fixture runs.
+regress, fixture coverage is unchanged, `blank_on_expected_nonempty_count` does
+not increase, false positives do not increase, and P95 latency improves or
+packaging size materially drops across three consecutive fixture runs.

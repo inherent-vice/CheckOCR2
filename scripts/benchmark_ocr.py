@@ -129,6 +129,38 @@ def p95(values: list[float]) -> float:
     return statistics.quantiles(values, n=20, method="inclusive")[18]
 
 
+def empty_field_stats() -> dict[str, Any]:
+    return {
+        "total_cases": 0,
+        "evaluated_cases": 0,
+        "missing_cases": 0,
+        "invalid_path_cases": 0,
+        "exact_matches": 0,
+        "blank_count": 0,
+        "blank_on_expected_nonempty_count": 0,
+        "false_positive_count": 0,
+        "latencies_ms": [],
+    }
+
+
+def summarize_field_stats(field_stats: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    summaries: dict[str, dict[str, Any]] = {}
+    for field, stats in sorted(field_stats.items()):
+        evaluated = stats["evaluated_cases"]
+        summaries[field] = {
+            "total_cases": stats["total_cases"],
+            "evaluated_cases": evaluated,
+            "missing_cases": stats["missing_cases"],
+            "invalid_path_cases": stats["invalid_path_cases"],
+            "exact_accuracy": (stats["exact_matches"] / evaluated) if evaluated else 0.0,
+            "blank_count": stats["blank_count"],
+            "blank_on_expected_nonempty_count": stats["blank_on_expected_nonempty_count"],
+            "false_positive_count": stats["false_positive_count"],
+            "p95_latency_ms": round(p95(stats["latencies_ms"]), 2),
+        }
+    return summaries
+
+
 def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
     cases = load_cases(args.fixture_csv, args.limit, allow_empty=args.allow_empty_fixture)
     allowlist_mode = getattr(args, "allowlist_mode", "none")
@@ -144,6 +176,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         },
         "dry_run": args.dry_run,
         "results": [],
+        "field_summaries": {},
     }
 
     if args.dry_run or not cases:
@@ -159,21 +192,42 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
     reader = easyocr.Reader(["en"], gpu=args.gpu)
     fixture_dir = args.fixture_csv.parent
     latencies_ms: list[float] = []
-    exact = blank = false_positive = missing = invalid_path = 0
+    field_stats: dict[str, dict[str, Any]] = {}
+    exact = blank = blank_on_expected_nonempty = false_positive = missing = invalid_path = 0
 
     for case in cases:
         field = case.get("field", "")
+        field_key = field.lower() or "unknown"
+        stats = field_stats.setdefault(field_key, empty_field_stats())
+        stats["total_cases"] += 1
         expected = normalize(field, case.get("expected_text", ""))
         crop_path_value = case.get("crop_path", "")
         try:
             crop_path = resolve_crop_path(fixture_dir, crop_path_value)
         except ValueError as exc:
             invalid_path += 1
-            report["results"].append({"crop_path": crop_path_value, "status": "invalid_path", "error": str(exc)})
+            stats["invalid_path_cases"] += 1
+            report["results"].append(
+                {
+                    "crop_path": crop_path_value,
+                    "field": field,
+                    "expected": expected,
+                    "status": "invalid_path",
+                    "error": str(exc),
+                }
+            )
             continue
         if not crop_path.exists():
             missing += 1
-            report["results"].append({"crop_path": str(crop_path), "status": "missing"})
+            stats["missing_cases"] += 1
+            report["results"].append(
+                {
+                    "crop_path": str(crop_path),
+                    "field": field,
+                    "expected": expected,
+                    "status": "missing",
+                }
+            )
             continue
 
         start = time.perf_counter()
@@ -197,7 +251,14 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         matched = normalized == expected
         exact += int(matched)
         blank += int(not normalized)
+        blank_on_expected_nonempty += int(bool(expected) and not normalized)
         false_positive += int(not expected and bool(normalized))
+        stats["evaluated_cases"] += 1
+        stats["exact_matches"] += int(matched)
+        stats["blank_count"] += int(not normalized)
+        stats["blank_on_expected_nonempty_count"] += int(bool(expected) and not normalized)
+        stats["false_positive_count"] += int(not expected and bool(normalized))
+        stats["latencies_ms"].append(latency)
         report["results"].append(
             {
                 "crop_path": str(crop_path),
@@ -221,8 +282,10 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             "invalid_path_cases": invalid_path,
             "exact_accuracy": (exact / evaluated) if evaluated else 0.0,
             "blank_count": blank,
+            "blank_on_expected_nonempty_count": blank_on_expected_nonempty,
             "false_positive_count": false_positive,
             "p95_latency_ms": round(p95(latencies_ms), 2),
+            "field_summaries": summarize_field_stats(field_stats),
         }
     )
     return report

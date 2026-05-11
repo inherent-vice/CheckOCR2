@@ -94,6 +94,8 @@ upscale factors, interpolation methods, and EasyOCR detail modes against the
 same ground-truth set. The matrix report compares every candidate with the
 first combination as the baseline. Add `--allowlist-modes none,field` when
 testing field-specific EasyOCR character allowlists for date and rate crops.
+Review `field_summaries` and `field_comparisons` so date and rate regressions
+are evaluated separately.
 
 Use `scripts\audit_ocr_fixtures.py` before recording an OCR baseline. It checks
 the ignored `tests/fixtures/ocr_crops/ground_truth.csv`, crop paths, image

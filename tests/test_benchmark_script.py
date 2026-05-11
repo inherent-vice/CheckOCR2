@@ -104,14 +104,15 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
 ):
     fixture_dir = tmp_path / "fixtures"
     fixture_dir.mkdir()
-    for name in ("date.png", "blank_rate.png", "false_positive_rate.png"):
+    for name in ("date.png", "blank_rate.png", "false_positive_rate.png", "expected_empty_blank_rate.png"):
         Image.new("RGB", (8, 8), "white").save(fixture_dir / name)
     fixture_csv = fixture_dir / "ground_truth.csv"
     fixture_csv.write_text(
         "crop_path,field,expected_text\n"
         "date.png,date,2026/05/08\n"
         "blank_rate.png,rate,3.500\n"
-        "false_positive_rate.png,rate,\n",
+        "false_positive_rate.png,rate,\n"
+        "expected_empty_blank_rate.png,rate,\n",
         encoding="utf-8",
     )
     outputs = iter(
@@ -119,6 +120,7 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
             [(None, "2026-05-08", 0.9)],
             [],
             [(None, "7.25", 0.5)],
+            [],
         ]
     )
 
@@ -147,11 +149,21 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
     )
 
     assert report["status"] == "ok"
-    assert report["evaluated_cases"] == 3
-    assert report["exact_accuracy"] == pytest.approx(1 / 3)
-    assert report["blank_count"] == 1
+    assert report["evaluated_cases"] == 4
+    assert report["exact_accuracy"] == pytest.approx(2 / 4)
+    assert report["blank_count"] == 2
+    assert report["blank_on_expected_nonempty_count"] == 1
     assert report["false_positive_count"] == 1
     assert report["p95_latency_ms"] >= 0
+    assert report["field_summaries"]["date"]["evaluated_cases"] == 1
+    assert report["field_summaries"]["date"]["exact_accuracy"] == pytest.approx(1.0)
+    assert report["field_summaries"]["date"]["blank_count"] == 0
+    assert report["field_summaries"]["date"]["blank_on_expected_nonempty_count"] == 0
+    assert report["field_summaries"]["rate"]["evaluated_cases"] == 3
+    assert report["field_summaries"]["rate"]["exact_accuracy"] == pytest.approx(1 / 3)
+    assert report["field_summaries"]["rate"]["blank_count"] == 2
+    assert report["field_summaries"]["rate"]["blank_on_expected_nonempty_count"] == 1
+    assert report["field_summaries"]["rate"]["false_positive_count"] == 1
     assert report["results"][0]["confidence"] == pytest.approx(0.9)
     assert report["results"][1]["confidence"] is None
     assert report["results"][2]["confidence"] == pytest.approx(0.5)
