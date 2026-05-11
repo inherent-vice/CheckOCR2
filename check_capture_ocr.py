@@ -19,7 +19,6 @@ from checkocr2.events import parse_legacy_grid_update
 from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
 from checkocr2.logging_config import TkinterLogHandler, setup_logging
-from checkocr2.models import STATUS_COL, STATUS_DONE
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
     create_easyocr_reader,
@@ -48,9 +47,10 @@ from checkocr2.table_model import (
     apply_grid_update,
     format_grid_progress_text,
     format_grid_status_text,
+    grid_row_tags,
+    grid_row_values,
     rates_for_copy,
     rows_for_copy,
-    status_is_error,
     summarize_grid_rows,
 )
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
@@ -1423,16 +1423,13 @@ class CheckCaptureOCRApp(tk.Tk):
         for item in self.grid_tree.get_children(): self.grid_tree.delete(item)
         
         for i, row in enumerate(self.data_manager.excel_data):
-            tags = []
-            status = row[STATUS_COL]
-            if status == STATUS_DONE:
-                tags.append('completed')
-            elif status_is_error(status):
-                tags.append('error')
-            elif i == self.data_manager.current_processing_index and self.work_controller.is_running:
-                tags.append('processing')
-
-            self.grid_tree.insert('', 'end', values=(row['종목코드'], row['종목명'], row['날짜'], row['금리'], row['상태']), tags=tags)
+            tags = grid_row_tags(
+                row,
+                row_index=i,
+                current_processing_index=self.data_manager.current_processing_index,
+                is_running=self.work_controller.is_running,
+            )
+            self.grid_tree.insert('', 'end', values=grid_row_values(row), tags=tags)
         self.update_grid_status_labels()
 
     def update_grid_status_labels(self):

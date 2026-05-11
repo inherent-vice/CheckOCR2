@@ -70,10 +70,11 @@ test or a manual verification note.
   `checkocr2/paths.py` instead of the workflow manager.
 - Partially mitigated: queue events, rows, and settings have typed seams, but
   legacy tuple dispatch remains at the Tk controller edge. OCR-start validation
-  messages, grid status label summaries, and grid clipboard text generation are
-  now isolated behind tested helpers; legacy `grid_update` row mutation is also
-  parsed through `events.py` and tested in `table_model.py`, and final-export
-  queue payload validation is typed in `events.py`.
+  messages, grid status label summaries, grid render value/tag decisions, and
+  grid clipboard text generation are now isolated behind tested helpers; legacy
+  `grid_update` row mutation is also parsed through `events.py` and tested in
+  `table_model.py`, and final-export queue payload validation is typed in
+  `events.py`.
 - Partially mitigated: broad exception handlers have been narrowed around GUI,
   file, OCR, and export boundaries; remaining broad catches are adapter and
   top-level workflow safety boundaries.

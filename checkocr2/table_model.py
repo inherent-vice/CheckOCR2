@@ -50,6 +50,9 @@ class GridUpdateResult:
     should_scroll: bool = False
 
 
+GRID_RENDER_COLUMNS = (CODE_COL, NAME_COL, DATE_COL, RATE_COL, STATUS_COL)
+
+
 def empty_row() -> dict[str, str]:
     return {CODE_COL: "", NAME_COL: "", DATE_COL: "", RATE_COL: "", STATUS_COL: STATUS_WAITING}
 
@@ -121,6 +124,33 @@ def apply_grid_update(rows: list[dict[str, Any]], update: GridUpdate) -> GridUpd
 
 def status_is_error(status: str) -> bool:
     return status in ERROR_STATUS_VALUES or any(keyword in status for keyword in ERROR_STATUS_KEYWORDS)
+
+
+def grid_row_values(row: dict[str, str]) -> tuple[str, str, str, str, str]:
+    return (
+        row[CODE_COL],
+        row[NAME_COL],
+        row[DATE_COL],
+        row[RATE_COL],
+        row[STATUS_COL],
+    )
+
+
+def grid_row_tags(
+    row: dict[str, str],
+    *,
+    row_index: int,
+    current_processing_index: int,
+    is_running: bool,
+) -> tuple[str, ...]:
+    status = row.get(STATUS_COL, "")
+    if status == STATUS_DONE:
+        return ("completed",)
+    if status_is_error(status):
+        return ("error",)
+    if row_index == current_processing_index and is_running:
+        return ("processing",)
+    return ()
 
 
 def summarize_grid_rows(rows: list[dict[str, str]]) -> GridStatusSummary:

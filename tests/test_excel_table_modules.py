@@ -27,6 +27,8 @@ from checkocr2.table_model import (
     delete_rows,
     format_grid_progress_text,
     format_grid_status_text,
+    grid_row_tags,
+    grid_row_values,
     rates_for_copy,
     row_for_copy,
     rows_for_copy,
@@ -81,6 +83,29 @@ def test_grid_status_summary_and_labels_preserve_gui_text():
     assert format_grid_status_text(summary) == "총 5행 | 완료: 1 | 대기: 1 | 오류: 3"
     assert format_grid_progress_text(summary) == "진행률: 20.0%"
     assert status_is_error("정상") is False
+
+
+def test_grid_row_values_and_tags_preserve_treeview_contract():
+    row = {
+        CODE_COL: "A001",
+        NAME_COL: "Alpha",
+        DATE_COL: "2026/05/11",
+        RATE_COL: "3.500",
+        STATUS_COL: STATUS_WAITING,
+    }
+
+    assert grid_row_values(row) == ("A001", "Alpha", "2026/05/11", "3.500", STATUS_WAITING)
+    assert grid_row_tags(row, row_index=0, current_processing_index=0, is_running=True) == ("processing",)
+    assert grid_row_tags({STATUS_COL: STATUS_DONE}, row_index=0, current_processing_index=0, is_running=True) == (
+        "completed",
+    )
+    assert grid_row_tags({STATUS_COL: "금리 없음"}, row_index=0, current_processing_index=0, is_running=True) == (
+        "error",
+    )
+    assert grid_row_tags(row, row_index=1, current_processing_index=0, is_running=True) == ()
+
+    with pytest.raises(KeyError):
+        grid_row_values({STATUS_COL: STATUS_WAITING})
 
 
 def test_apply_grid_update_preserves_legacy_tuple_behavior():

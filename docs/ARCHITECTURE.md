@@ -27,8 +27,8 @@ working.
 - `checkocr2/data_manager.py`: legacy grid data manager for Excel load/export,
   clipboard paste, row deletion, and queue events.
 - `checkocr2/table_model.py`: row CRUD, legacy grid-update row mutation,
-  clipboard selection text, grid status summaries, and final status
-  normalization.
+  clipboard selection text, grid render values/tags, grid status summaries, and
+  final status normalization.
 - `checkocr2/ocr_text.py`: OCR date/rate text normalization.
 - `checkocr2/image_processing.py`: crop validation and upscaling.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
