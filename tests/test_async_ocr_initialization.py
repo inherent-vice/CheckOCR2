@@ -4,7 +4,7 @@ import logging
 import queue
 from types import SimpleNamespace
 
-from checkocr2.runtime_state import RuntimeState
+from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 
 
 class FakeButton:
@@ -65,7 +65,9 @@ def test_async_ocr_initialization_enables_start_after_ready(ocr_module, monkeypa
     assert app.stop_btn.last_config == {"state": "disabled"}
 
 
-def test_async_ocr_initialization_keeps_start_disabled_after_failure(ocr_module, monkeypatch):
+def test_async_ocr_initialization_keeps_start_disabled_after_failure(
+    ocr_module, monkeypatch
+):
     monkeypatch.setattr(ocr_module.threading, "Thread", ImmediateThread)
     app = make_app(ocr_module, ready=False)
 
@@ -94,7 +96,29 @@ def test_runtime_state_updates_run_and_stop_buttons(ocr_module):
     assert app.stop_btn.last_config == {"state": "disabled"}
 
 
-def test_run_ocr_process_is_blocked_while_ocr_is_loading(ocr_module, monkeypatch, tmp_path):
+def test_runtime_state_update_without_smoke_env_does_not_require_workflow_manager(
+    ocr_module, monkeypatch
+):
+    monkeypatch.delenv("CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE", raising=False)
+    app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
+    app.runtime_state = RuntimeState.STARTING
+    app.run_btn = FakeButton()
+    app.stop_btn = FakeButton()
+
+    app._set_runtime_state(RuntimeState.READY)
+
+    ready_ui = runtime_state_ui(RuntimeState.READY)
+    assert app.runtime_state is RuntimeState.READY
+    assert app.run_btn.last_config == {
+        "state": ready_ui.run_button_state,
+        "text": ready_ui.run_button_text,
+    }
+    assert app.stop_btn.last_config == {"state": ready_ui.stop_button_state}
+
+
+def test_run_ocr_process_is_blocked_while_ocr_is_loading(
+    ocr_module, monkeypatch, tmp_path
+):
     warnings = []
     app = make_app(ocr_module, ready=False)
     app.ocr_initializing = True

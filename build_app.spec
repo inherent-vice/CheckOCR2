@@ -167,6 +167,12 @@ a = Analysis(
         'PySide2',
         'PySide6',
         'wx',
+
+        # Optional ML stacks not used by this EasyOCR app. Keep them out of
+        # the bundled package if they are present in the build environment.
+        'tensorflow',
+        'keras',
+        'tensorboard',
         
         # 개발/테스트 프레임워크만 제외
         'pytest',

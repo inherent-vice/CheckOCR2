@@ -1,5 +1,4 @@
 import copy
-import json
 import os
 import platform  # OS 정보 확인용
 import queue
@@ -7,7 +6,6 @@ import subprocess
 import threading
 import tkinter as tk
 from datetime import datetime
-from pathlib import Path
 from time import perf_counter
 from tkinter import filedialog, messagebox
 
@@ -31,6 +29,11 @@ from checkocr2.ocr_text import (
     clean_rate_text,
     is_valid_date_format,
     is_valid_rate_format,
+)
+from checkocr2.package_smoke_status import (
+    PACKAGE_SMOKE_STATUS_FILE_ENV,
+    package_smoke_fast_ocr_enabled,
+    write_package_smoke_status,
 )
 from checkocr2.paths import clean_folder_path, sanitize_filename, updated_workbook_path
 from checkocr2.run_report import (
@@ -100,9 +103,6 @@ from checkocr2.workflow import (
 from checkocr2.workflow import (
     finalize_processing_states as finalize_workflow_processing_states,
 )
-
-PACKAGE_SMOKE_FAST_OCR_ENV = "CHECKOCR2_PACKAGE_SMOKE_FAST_OCR"
-PACKAGE_SMOKE_STATUS_FILE_ENV = "CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE"
 
 
 ############################################
@@ -755,7 +755,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self.ocr_initializing = True
         self._set_runtime_state(RuntimeState.OCR_LOADING)
 
-        if os.environ.get(PACKAGE_SMOKE_FAST_OCR_ENV) == "1":
+        if package_smoke_fast_ocr_enabled():
             self.ocr_workflow_manager.ocr_reader = object()
             self.message_queue.put(("ocr_ready", True))
             return
@@ -790,15 +790,16 @@ class CheckCaptureOCRApp(tk.Tk):
             return
 
         try:
-            payload = {
-                "runtime_state": self.runtime_state.value,
-                "ocr_ready": bool(self.ocr_workflow_manager.ocr_reader),
-                "settings_file": getattr(self.settings_manager, "settings_file", None),
-                "written_at": datetime.now().isoformat(),
-            }
-            path = Path(status_file)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+            write_package_smoke_status(
+                status_file,
+                runtime_state=self.runtime_state,
+                ocr_ready=bool(self.ocr_workflow_manager.ocr_reader),
+                settings_file=getattr(
+                    getattr(self, "settings_manager", None),
+                    "settings_file",
+                    None,
+                ),
+            )
         except OSError as exc:
             if hasattr(self, "logger"):
                 self.logger.debug("Package smoke status write failed: %s", exc)

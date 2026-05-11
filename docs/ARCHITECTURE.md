@@ -90,7 +90,8 @@ model loading is slow.
 Package smoke tests set `CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE=<path>` and wait
 for `Ready`. Fast startup smoke also sets `CHECKOCR2_PACKAGE_SMOKE_FAST_OCR=1`
 to bypass model loading; real package smoke omits that flag so packaged
-EasyOCR initialization is exercised. These environment variables are for smoke
+EasyOCR initialization is exercised. The app writes that payload through
+`checkocr2/package_smoke_status.py`. These environment variables are for smoke
 automation only and are not part of the normal operator workflow.
 
 ## UI Runtime States

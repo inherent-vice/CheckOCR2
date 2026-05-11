@@ -32,6 +32,9 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
   field-specific allowlists.
+- Package-smoke runtime status payload writing is isolated in
+  `checkocr2/package_smoke_status.py`, while the Tk shell only delegates status
+  reporting.
 - Fixture audit and live run comparison scripts now gate real OCR evidence
   before OCR-default or wait-time changes.
 - Legacy broad exception handling has been reduced to typed catches in
@@ -45,13 +48,15 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   GUI/contrib OpenCV metadata.
 - PyInstaller no longer broadly collects all Torch submodules; targeted Torch
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
-  startup smoke, and real packaged EasyOCR initialization smoke.
+  startup smoke, and real packaged EasyOCR initialization smoke. Optional
+  TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
+  bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 181 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 186 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate uses the 2026-05-11 clean
 PyInstaller release build for the latest package-affecting app code plus real
-package smoke at about `596.373 MB` with startup `1.156` seconds and
+package smoke at about `596.372 MB` with startup `4.343` seconds and
 settings-file verification under isolated `APPDATA`.
 
 ## Commands To Re-Run Before Release
