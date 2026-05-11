@@ -44,6 +44,9 @@ from checkocr2.runtime_state import RuntimeState
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.ui.completion_actions import (
+    build_ocr_summary as build_ocr_summary_action,
+)
+from checkocr2.ui.completion_actions import (
     complete_stopped_work as complete_stopped_work_action,
 )
 from checkocr2.ui.completion_actions import (
@@ -546,20 +549,7 @@ class OCRWorkflowManager:
         return clean_rate_text(text)
 
     def _generate_ocr_summary_internal(self, processed_count, total_items):
-        date_success = sum(1 for row in self.data_manager.excel_data if row.get('날짜','').strip() and row['상태'] == '완료')
-        rate_success = sum(1 for row in self.data_manager.excel_data if row.get('금리','').strip() and row['상태'] == '완료')
-        actual_processed_for_stats = sum(1 for row in self.data_manager.excel_data if row['상태'] == '완료')
-        date_accuracy = (date_success / actual_processed_for_stats * 100) if actual_processed_for_stats > 0 else 0
-        rate_accuracy = (rate_success / actual_processed_for_stats * 100) if actual_processed_for_stats > 0 else 0
-        summary = f"""📊 OCR 처리 완료!
-        ------------------------------------
-        총 시도 항목: {total_items}개
-        성공적으로 처리된 항목: {actual_processed_for_stats}개
-        ------------------------------------
-        📁 결과는 그리드 및 Excel 파일로 저장되었습니다.
-        📝 상세 로그는 ocr_app.log 파일에서 확인 가능합니다.
-        """
-        return summary
+        return build_ocr_summary_action(self.data_manager.excel_data, total_items)
 
     def _finalize_processing_states(self):
         """처리 완료 후 모든 항목의 상태를 최종화"""
@@ -1085,20 +1075,7 @@ class CheckCaptureOCRApp(tk.Tk):
         messagebox.showinfo("처리 완료", summary_message)
 
     def _generate_ocr_summary_internal(self, processed_count, total_items):
-        date_success = sum(1 for row in self.data_manager.excel_data if row.get('날짜','').strip() and row['상태'] == '완료')
-        rate_success = sum(1 for row in self.data_manager.excel_data if row.get('금리','').strip() and row['상태'] == '완료')
-        actual_processed_for_stats = sum(1 for row in self.data_manager.excel_data if row['상태'] == '완료')
-        date_accuracy = (date_success / actual_processed_for_stats * 100) if actual_processed_for_stats > 0 else 0
-        rate_accuracy = (rate_success / actual_processed_for_stats * 100) if actual_processed_for_stats > 0 else 0
-        summary = f"""📊 OCR 처리 완료!
-        ------------------------------------
-        총 시도 항목: {total_items}개
-        성공적으로 처리된 항목: {actual_processed_for_stats}개
-        ------------------------------------
-        📁 결과는 그리드 및 Excel 파일로 저장되었습니다.
-        📝 상세 로그는 ocr_app.log 파일에서 확인 가능합니다.
-        """
-        return summary
+        return build_ocr_summary_action(self.data_manager.excel_data, total_items)
 
     # 작업 중단 시 호출되는 함수 (Main Thread에서 호출)
     def _on_work_stopped(self):

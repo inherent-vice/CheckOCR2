@@ -31,9 +31,9 @@ the Korean parallel-agent plan and workstream split, use
   coordinate capture/preview actions, grid/context-menu actions, grid-update
   actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
   runtime-status actions, settings load/save actions, log text actions, OCR
-  run/stop/input-validation actions, options actions, work-completion actions,
-  application icons, OCR-start validation, file/coordinates/timing/options,
-  preset, grid, and log panel seams, the menu bar, top toolbar, and
+  run/stop/input-validation actions, options actions, work-completion/summary
+  actions, application icons, OCR-start validation, file, coordinates, timing,
+  options, preset, grid, and log panel seams, the menu bar, top toolbar, and
   main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
@@ -62,11 +62,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 300 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 303 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-11 clean PyInstaller
-release build after options-action extraction plus real package smoke at about
-`596.387 MB` with startup `2.703` seconds and settings-file verification under
+release build after summary-helper extraction plus real package smoke at about
+`596.387 MB` with startup `1.188` seconds and settings-file verification under
 isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -153,6 +153,12 @@ The latest options-action slice moved OCR upscaling detail show/hide behavior
 into `checkocr2/ui/options_actions.py`; focused tests pass for enabled,
 disabled, missing-frame, and legacy wrapper delegation paths. Source GUI smoke
 and real package smoke both pass for this slice.
+
+The latest completion-summary slice moved OCR completion summary text creation
+into `checkocr2/ui/completion_actions.py`; focused tests pin the exact
+user-visible multiline summary text and verify both legacy app and workflow
+manager wrappers delegate to the shared helper. Source GUI fast-OCR smoke and
+real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

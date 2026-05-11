@@ -45,8 +45,8 @@ working.
   event ownership.
 - `checkocr2/ui/completion_actions.py`: main-thread work completion and
   stopped-work UI finalization, including controller reset, runtime-state
-  restore, grid refresh, settings save, stopped-state finalization, and stopped
-  dialog display.
+  restore, grid refresh, settings save, OCR completion summary text creation,
+  stopped-state finalization, and stopped dialog display.
 - `checkocr2/ui/coordinate_actions.py`: click-point relocation, rectangle-area
   relocation, and current-area preview creation for the legacy coordinate
   controls.
