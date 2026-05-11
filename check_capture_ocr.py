@@ -52,12 +52,18 @@ from checkocr2.table_model import (
     format_grid_status_text,
     grid_row_tags,
     grid_row_values,
-    rates_for_copy,
-    rows_for_copy,
     summarize_grid_rows,
 )
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
 from checkocr2.ui.file_dialogs import output_folder_for_input_file, output_folder_initial_dir
+from checkocr2.ui.grid_actions import (
+    add_empty_row,
+    clear_all_data,
+    copy_selected_rates,
+    copy_selected_rows,
+    delete_selected_rows,
+    paste_from_clipboard,
+)
 from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.main_window import (
     build_main_window,
@@ -1210,76 +1216,22 @@ class CheckCaptureOCRApp(tk.Tk):
             self.refresh_grid_ui()
 
     def add_empty_row_ui(self):
-        self.data_manager.add_empty_row_data()
-        self.refresh_grid_ui()
-        if self.grid_tree:
-            children = self.grid_tree.get_children()
-            if children:
-                self.grid_tree.see(children[-1])
+        add_empty_row(self)
 
     def paste_from_clipboard_ui(self):
-        try:
-            clipboard_content = self.clipboard_get()
-            added_count = self.data_manager.paste_from_clipboard_data(clipboard_content)
-            if added_count > 0:
-                self.refresh_grid_ui()
-                messagebox.showinfo("성공", f"{added_count}행을 추가했습니다.", parent=self)
-                if self.grid_tree:
-                    children = self.grid_tree.get_children()
-                    if children:
-                        self.grid_tree.see(children[-1])
-            else:
-                messagebox.showwarning("경고", "붙여넣을 유효한 데이터가 없습니다 (탭으로 구분된 데이터 필요).", parent=self)
-        except tk.TclError:
-            messagebox.showerror("오류", "클립보드에 텍스트 데이터가 없습니다.", parent=self)
+        paste_from_clipboard(self)
 
     def delete_selected_rows_ui(self):
-        if not self.grid_tree: return
-        selected_items = self.grid_tree.selection()
-        if not selected_items:
-            messagebox.showwarning("경고", "삭제할 행을 선택해주세요.", parent=self)
-            return
-        if not messagebox.askyesno("확인", f"{len(selected_items)}개의 행을 삭제하시겠습니까?", parent=self):
-            return
-        
-        indices_to_delete = [self.grid_tree.index(item) for item in selected_items]
-        self.data_manager.delete_rows_data(indices_to_delete)
-        self.refresh_grid_ui()
+        delete_selected_rows(self)
 
     def clear_all_data_ui(self):
-        if self.data_manager.excel_data and \
-           not messagebox.askyesno("확인", "모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.", parent=self):
-            return
-        self.data_manager.clear_all_data_internal()
-        self.refresh_grid_ui()
+        clear_all_data(self)
 
     def copy_selected_rows_ui(self):
-        if not self.grid_tree: return
-        selected_items = self.grid_tree.selection()
-        if not selected_items: return
-
-        selected_indices = [self.grid_tree.index(item) for item in selected_items]
-        selection = rows_for_copy(self.data_manager.excel_data, selected_indices)
-        if selection.has_items:
-            self.clipboard_clear()
-            self.clipboard_append(selection.text)
-            self.logger.info(f"{selection.count}개 행이 클립보드에 복사되었습니다.")
+        copy_selected_rows(self)
 
     def copy_selected_rates_ui(self):
-        if not self.grid_tree: return
-        selected_items = self.grid_tree.selection()
-        if not selected_items:
-            messagebox.showwarning("경고", "복사할 행을 선택해주세요.", parent=self)
-            return
-
-        selected_indices = [self.grid_tree.index(item) for item in selected_items]
-        selection = rates_for_copy(self.data_manager.excel_data, selected_indices)
-        if selection.has_items:
-            self.clipboard_clear()
-            self.clipboard_append(selection.text)
-            self.logger.info(f"선택된 {selection.count}개 행의 금리가 클립보드에 복사되었습니다.")
-        else:
-             self.logger.info("선택된 행에 금리 데이터가 없습니다.")
+        copy_selected_rates(self)
 
     def refresh_grid_ui(self):
         if not self.grid_tree: return

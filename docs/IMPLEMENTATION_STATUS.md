@@ -95,6 +95,10 @@ Date: 2026-05-11
 - Moved selected-row and selected-rate clipboard text generation into
   `checkocr2/table_model.py`, leaving the Tk controller to handle selection
   indices and clipboard writes only.
+- Extracted grid button and clipboard action glue into
+  `checkocr2/ui/grid_actions.py`, preserving add-row scrolling, paste
+  reporting, selected-row deletion confirmation, clear-all confirmation, and
+  row/rate clipboard copy messages.
 - Routed output-folder cleanup through `checkocr2/paths.py`, so the Tk app no
   longer reaches through `OCRWorkflowManager` for path cleanup.
 - Moved legacy `grid_update` tuple row mutation into `checkocr2/table_model.py`,
@@ -194,7 +198,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-file-dialogs-doc`: 195 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-grid-actions-fix`: 204 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -210,6 +214,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_data_manager.py tests\test_excel_table_modules.py tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-review-fixes-pytest`: 26 passed for corrupt workbook, Excel writer, and OCR reader failure regressions.
 - `python -m pytest tests\test_dialogs.py tests\test_menu.py tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-dialog-review-pytest`: 7 passed for dialog extraction, wrapper delegation, and help-menu wiring.
 - `python -m pytest tests\test_file_dialogs.py tests\test_file_panel.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-file-dialogs-final`: 7 passed for file-dialog path preparation, file-panel compatibility, and menu wiring.
+- `python -m pytest tests\test_grid_actions.py tests\test_grid_panel.py tests\test_excel_table_modules.py --basetemp $env:TEMP\checkocr2-grid-actions-fix`: 17 passed for grid action delegation, stable delete selection confirmation, grid-panel compatibility, and table-model clipboard behavior.
 - `python -m pytest tests\test_main_window.py tests\test_file_panel.py tests\test_grid_panel.py tests\test_log_panel.py tests\test_toolbar.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-main-window`: 8 passed for main-window layout assembly and existing panel/menu/toolbar builders.
 - `python -m pytest tests\test_icons.py --basetemp $env:TEMP\checkocr2-icons2`: 4 passed for icon candidate priority, ICO/PNG application, missing-icon handling, and legacy wrapper delegation.
 - `python -m pytest tests\test_package_smoke_script.py --basetemp $env:TEMP\checkocr2-package-smoke-settings`: 29 passed for package metadata, OCR-ready, isolated `APPDATA`, settings-file location, cleanup failure handling, relative `APPDATA` resolution, OpenCV distribution, size, startup, and process-handling smoke coverage.
@@ -238,6 +243,9 @@ Latest code verification on 2026-05-11:
 - Source GUI fast-OCR smoke after file-dialog path extraction used isolated
   temporary `APPDATA`, wrote status with `runtime_state="Ready"`, and reached
   `ocr_ready=true`.
+- Source GUI fast-OCR smoke after grid-action extraction used isolated
+  temporary `APPDATA`, wrote status with `runtime_state="Ready"`, and reached
+  `ocr_ready=true`.
 
 Latest package verification on 2026-05-11:
 
@@ -251,10 +259,10 @@ Latest package verification on 2026-05-11:
 - Source GUI fast-OCR smoke passed after dialog extraction; the Tk app opened
   `📊 Check Capture OCR V6.1` and wrote `runtime_state="Ready"` with
   `ocr_ready=true`.
-- Clean release venv build for the latest package-affecting app code with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after file-dialog path extraction.
+- Clean release venv build for the latest package-affecting app code with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after grid-action extraction.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5`: real packaged EasyOCR initialization smoke passed with package size `596.374 MB`, startup time `3.797` seconds, metadata build date `2026-05-11T08:02:18+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5`: real packaged EasyOCR initialization smoke passed with package size `596.375 MB`, startup time `1.719` seconds, metadata build date `2026-05-11T08:22:29+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
 
 Known build warnings: PyInstaller still reports optional `tensorboard`
 collection failure for `torch.utils.tensorboard`; the clean release venv keeps
