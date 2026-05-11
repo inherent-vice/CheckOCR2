@@ -46,7 +46,6 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import (
-    apply_grid_update,
     format_grid_progress_text,
     format_grid_status_text,
     grid_row_tags,
@@ -87,6 +86,7 @@ from checkocr2.ui.grid_actions import (
     paste_from_clipboard,
     show_context_menu,
 )
+from checkocr2.ui.grid_update_actions import handle_grid_update
 from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.log_actions import append_log_text
 from checkocr2.ui.main_window import (
@@ -900,21 +900,7 @@ class CheckCaptureOCRApp(tk.Tk):
         complete_work_action(self, summary_message)
 
     def _handle_grid_update(self, data):
-        try:
-            result = apply_grid_update(self.data_manager.excel_data, parse_legacy_grid_update(data))
-            if result.should_scroll and self.grid_tree and result.row_index is not None:
-                children = self.grid_tree.get_children()
-                if result.row_index < len(children):
-                    self.grid_tree.see(children[result.row_index])
-            if result.should_refresh:
-                if result.row_index is not None:
-                    self.logger.debug(
-                        f"[_handle_grid_update] {result.row_index}번 항목 업데이트 후: "
-                        f"{self.data_manager.excel_data[result.row_index]}"
-                    )
-                self.refresh_grid_ui()
-        except (KeyError, tk.TclError, TypeError, ValueError) as e:
-            self.logger.error(f"그리드 업데이트 중 오류: {e}, 데이터: {data}")
+        handle_grid_update(self, data)
 
     def show_shortcuts(self):
         show_shortcuts_dialog(parent=self)
