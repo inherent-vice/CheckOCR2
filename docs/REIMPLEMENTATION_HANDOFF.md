@@ -11,6 +11,9 @@ operators should keep the same buttons, shortcuts, Korean labels, Excel flow,
 capture tools, presets, grid behavior, output naming, and stop/final-export
 behavior.
 
+For the current execution rules, next safe work slices, agent coordination, and
+commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
+
 ## Current Verified State
 
 - Canonical launchers remain available: `check_capture_ocr.py`,
@@ -20,7 +23,8 @@ behavior.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, table, settings, paths, image-processing, runtime-state,
-  run-report, queue-dispatch, shortcut/about dialogs, OCR-start validation, and
+  work-controller, run-report, queue-dispatch, shortcut/about dialogs,
+  OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar
   and top toolbar now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
@@ -55,6 +59,8 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
+python -m venv .analysis_tmp\package_venv
+$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```

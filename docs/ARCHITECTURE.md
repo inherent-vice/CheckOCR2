@@ -37,6 +37,8 @@ working.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/runtime_state.py`: explicit GUI runtime state to button-state map.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
+- `checkocr2/work_controller.py`: processing run/stop/skip state and stop
+  event ownership.
 - `checkocr2/ui/menu.py`: menu bar command wiring for files, settings,
   previews, run controls, and help.
 - `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and

@@ -82,9 +82,14 @@ Date: 2026-05-08
   tuple transport knowledge out of `table_model.py`.
 - Added a typed final-export request parser in `checkocr2/events.py`, keeping
   finalization payload validation out of the queue dispatcher.
+- Moved `WorkController` into `checkocr2/work_controller.py`, keeping
+  run/stop/skip state out of the legacy Tk source file.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
+- Added `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md` as the current execution
+  guide for safe work slices, OCR evidence gates, GUI parity checks, parallel
+  agent coordination, and commit discipline.
 - Added pytest coverage for settings migration, path helpers, Excel I/O, table
   behavior, OCR text parsing, async OCR init, runtime state, OCR engine adapter,
   screen automation, worker helper, workflow behavior, queue dispatch, run
@@ -160,6 +165,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_start_validation.py tests\test_async_ocr_initialization.py --basetemp $env:TEMP\checkocr2-start-validation-pytest`: 10 passed for OCR-start validation and loading-state behavior.
 - `python -m pytest tests\test_excel_table_modules.py tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-grid-update-green`: 16 passed for legacy grid-update row mutation, queue dispatch, clipboard selection text, grid status summary text, and shared workflow error-status constants.
 - `python -m pytest tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-finalize-parser-green`: 11 passed for final-export payload parsing and workflow event compatibility.
+- `python -m pytest tests\test_work_controller.py tests\test_async_ocr_initialization.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-work-controller-green`: 17 passed for package-level work controller behavior and OCR workflow compatibility.
 
 Latest package verification on 2026-05-08:
 

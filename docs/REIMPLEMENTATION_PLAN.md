@@ -15,6 +15,9 @@ implementation is concentrated in `check_capture_ocr.py`. The refactor must be
 incremental: freeze existing behavior with tests, split one boundary at a time,
 keep both launchers working, and verify the GUI after every meaningful step.
 
+For the latest execution order, verification gates, agent coordination rules,
+and commit checklist, use `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
+
 ## Non-Negotiable GUI Parity Contract
 
 The following behavior must remain available throughout the migration:
@@ -43,7 +46,8 @@ test or a manual verification note.
 ## Main Risks And Current Status
 
 - Still open: `check_capture_ocr.py` owns some GUI construction, worker
-  lifecycle, and release-compatible controller behavior. Low-risk panels,
+  lifecycle, and release-compatible controller behavior. WorkController state
+  has moved into `checkocr2/work_controller.py`; low-risk panels,
   menu/toolbar, shortcut/about dialogs, and legacy queue dispatch have been
   extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
