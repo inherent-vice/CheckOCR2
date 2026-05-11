@@ -23,8 +23,8 @@ document describes how to continue safely from the current state.
 - Workflow, settings, paths, Excel I/O, OCR engine access, screen automation,
   table behavior, run reports, runtime state, worker helpers, queue dispatch,
   start validation, menu/toolbar, dialogs, file-dialog path preparation,
-  grid actions, OCR run/stop actions, several panels, and work-control state
-  now have package-level seams and tests.
+  grid actions, OCR run/stop actions, work-completion actions, several panels,
+  and work-control state now have package-level seams and tests.
 - `check_capture_ocr.py` still owns the remaining Tk shell, some controller
   glue, and release-compatible behavior.
 

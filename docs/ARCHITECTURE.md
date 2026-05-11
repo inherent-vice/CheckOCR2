@@ -41,6 +41,10 @@ working.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
 - `checkocr2/work_controller.py`: processing run/stop/skip state and stop
   event ownership.
+- `checkocr2/ui/completion_actions.py`: main-thread work completion and
+  stopped-work UI finalization, including controller reset, runtime-state
+  restore, grid refresh, settings save, stopped-state finalization, and stopped
+  dialog display.
 - `checkocr2/ui/theme.py`: Tk/ttk theme catalog, widget registration, and
   theme application for the legacy GUI.
 - `checkocr2/ui/overlays.py`: full-screen capture and area-preview overlay

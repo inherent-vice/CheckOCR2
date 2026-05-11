@@ -4,7 +4,7 @@
 
 CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR processing, and Excel import/export. `check_capture_ocr.py` is the canonical GUI app and PyInstaller source; `Check_Capture_Excel_V6.1_배포.py` is the compatibility launcher. Reusable logic is being extracted under `checkocr2/` (`settings.py`, `excel_io.py`, `table_model.py`, `ocr_text.py`, `ocr_engine.py`, `screen_automation.py`). Tests live under `tests/`, benchmark tooling under `scripts/`, historical variants under `legacy/`, and icon utilities under `tools/`.
 
-`checkocr2/ui/` contains extracted Tk helpers for panels, dialogs, icons, file-dialog path preparation, grid actions, and OCR run/stop actions.
+`checkocr2/ui/` contains extracted Tk helpers for panels, dialogs, icons, file-dialog path preparation, grid actions, OCR run/stop actions, and work completion actions.
 
 ## Build, Test, and Development Commands
 

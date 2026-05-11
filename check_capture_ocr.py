@@ -54,6 +54,12 @@ from checkocr2.table_model import (
     grid_row_values,
     summarize_grid_rows,
 )
+from checkocr2.ui.completion_actions import (
+    complete_stopped_work as complete_stopped_work_action,
+)
+from checkocr2.ui.completion_actions import (
+    complete_work as complete_work_action,
+)
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
 from checkocr2.ui.file_dialogs import output_folder_for_input_file, output_folder_initial_dir
 from checkocr2.ui.grid_actions import (
@@ -1136,13 +1142,7 @@ class CheckCaptureOCRApp(tk.Tk):
         stop_processing_action(self)
 
     def _on_work_complete_ui_only(self, summary_message):
-        self.logger.info("[_on_work_complete_ui_only] 함수 호출됨 (Main Thread)")
-        self.work_controller.reset()
-        self.data_manager.current_processing_index = -1
-        self._set_runtime_state(self._ready_or_error_state())
-        self.refresh_grid_ui()
-        # 메시지 박스 표시는 finalize_export_and_complete에서 수행
-        self.quick_save_settings() # 완료 시 설정 저장
+        complete_work_action(self, summary_message)
 
     def _handle_grid_update(self, data):
         try:
@@ -1500,14 +1500,7 @@ class CheckCaptureOCRApp(tk.Tk):
 
     # 작업 중단 시 호출되는 함수 (Main Thread에서 호출)
     def _on_work_stopped(self):
-        self.logger.info("[_on_work_stopped] 함수 호출됨 (Main Thread)")
-        self.work_controller.reset() # WorkController 상태 리셋
-        self.data_manager.current_processing_index = -1
-        self._set_runtime_state(self._ready_or_error_state())
-        # 중단 시에도 최종 상태 정리 후 UI 새로고침하여 '중단됨' 상태 표시
-        self._finalize_processing_states() # 중단된 항목들 상태 최종화
-        self.refresh_grid_ui() # 최종 UI 새로고침
-        messagebox.showinfo("중단됨", "작업이 사용자에 의해 중단되었습니다.")
+        complete_stopped_work_action(self)
 
     def on_upscaling_toggle(self):
         """업스케일링 옵션 토글 시 세부 설정 표시/숨김"""
