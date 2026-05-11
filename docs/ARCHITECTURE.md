@@ -41,6 +41,8 @@ working.
   event ownership.
 - `checkocr2/ui/theme.py`: Tk/ttk theme catalog, widget registration, and
   theme application for the legacy GUI.
+- `checkocr2/ui/overlays.py`: full-screen capture and area-preview overlay
+  windows for click point and rectangle selection.
 - `checkocr2/ui/menu.py`: menu bar command wiring for files, settings,
   previews, run controls, and help.
 - `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and

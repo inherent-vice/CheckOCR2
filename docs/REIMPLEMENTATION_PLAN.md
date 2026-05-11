@@ -48,7 +48,8 @@ test or a manual verification note.
 - Still open: `check_capture_ocr.py` owns some GUI construction, worker
   lifecycle, and release-compatible controller behavior. WorkController state
   has moved into `checkocr2/work_controller.py`; theme management has moved
-  into `checkocr2/ui/theme.py`; low-risk panels, menu/toolbar, shortcut/about
+  into `checkocr2/ui/theme.py`; overlay windows have moved into
+  `checkocr2/ui/overlays.py`; low-risk panels, menu/toolbar, shortcut/about
   dialogs, and legacy queue dispatch have been extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.

@@ -24,7 +24,7 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   app reaches `Ready`.
 - Workflow, OCR, Excel, table, settings, paths, image-processing, runtime-state,
   work-controller, theme manager, run-report, queue-dispatch, shortcut/about
-  dialogs, OCR-start validation, and
+  dialogs, overlay windows, OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar
   and top toolbar now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export

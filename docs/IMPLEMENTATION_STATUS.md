@@ -86,6 +86,9 @@ Date: 2026-05-08
   run/stop/skip state out of the legacy Tk source file.
 - Moved `ThemeManager` into `checkocr2/ui/theme.py`, keeping theme catalog and
   Tk/ttk style application out of the legacy Tk source file.
+- Moved capture and area-preview overlay windows into
+  `checkocr2/ui/overlays.py`, keeping full-screen coordinate selection outside
+  the legacy Tk source file.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -175,6 +178,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_work_controller.py tests\test_async_ocr_initialization.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-work-controller-green`: 17 passed for package-level work controller behavior and OCR workflow compatibility.
 - `python -m pytest tests\test_theme_manager.py tests\test_toolbar.py tests\test_coordinates_panel.py --basetemp $env:TEMP\checkocr2-theme-extract2`: 4 passed for package-level theme manager behavior and UI consumers.
 - Source GUI fast-OCR smoke after theme extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `theme_module="checkocr2.ui.theme"`.
+- Source GUI fast-OCR smoke after overlay extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `PointCaptureOverlay.__module__="checkocr2.ui.overlays"`.
 
 Latest package verification on 2026-05-08:
 
