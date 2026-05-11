@@ -40,6 +40,7 @@ def test_path_helpers_preserve_windows_unc_behavior():
     assert clean_folder_path("//server/share/folder", platform_name="Windows") == r"\\server\share\folder"
     local_path = clean_folder_path(r"C:\Temp\CheckOCR2", platform_name="Windows").replace("\\", "/")
     assert local_path.endswith("C:/Temp/CheckOCR2")
+    assert clean_folder_path(None, default="fallback") == "fallback"
     assert sanitize_filename('A/B:C*D?"E<>|') == "A_B_C_D__E___"
     assert updated_workbook_path("out", r"C:\input\source.xlsx").as_posix() == "out/source_updated.xlsx"
 

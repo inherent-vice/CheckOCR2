@@ -58,6 +58,8 @@ test or a manual verification note.
   allowlists.
 - Mitigated: tracked `settings.json` was replaced by `settings.example.json`,
   with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
+- Mitigated: output folder cleanup and UNC normalization now use
+  `checkocr2/paths.py` instead of the workflow manager.
 - Partially mitigated: queue events, rows, and settings have typed seams, but
   legacy tuple dispatch remains at the Tk controller edge. OCR-start validation
   messages, grid status label summaries, and grid clipboard text generation are

@@ -74,6 +74,8 @@ Date: 2026-05-08
 - Moved selected-row and selected-rate clipboard text generation into
   `checkocr2/table_model.py`, leaving the Tk controller to handle selection
   indices and clipboard writes only.
+- Routed output-folder cleanup through `checkocr2/paths.py`, so the Tk app no
+  longer reaches through `OCRWorkflowManager` for path cleanup.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.

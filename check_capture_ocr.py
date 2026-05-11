@@ -32,8 +32,7 @@ from checkocr2.ocr_text import (
     is_valid_date_format,
     is_valid_rate_format,
 )
-from checkocr2.paths import clean_folder_path as normalize_folder_path
-from checkocr2.paths import sanitize_filename, updated_workbook_path
+from checkocr2.paths import clean_folder_path, sanitize_filename, updated_workbook_path
 from checkocr2.run_report import (
     create_run_report,
     finalize_run_report,
@@ -957,10 +956,6 @@ class OCRWorkflowManager:
             self.message_queue.put(("log", f"상태 최종화 중 오류: {e}", "ERROR"))
             self.logger.exception("처리 상태 최종화 중 예외 발생")
 
-    def _clean_folder_path(self, path: str | None) -> str:
-        default_dir = self.settings_manager.get_advanced('default_output_dir', ".")
-        return normalize_folder_path(path, default=default_dir, logger=self.logger)
-
     # 엑셀 내보내기 및 최종 완료 처리를 담당하는 함수 (메인 스레드에서 호출됨)
     def _finalize_export_and_complete(self, output_dir_str, input_excel_path_str, summary_message):
         self.logger.info("[_finalize_export_and_complete] 함수 호출됨 (Main Thread)")
@@ -1437,10 +1432,17 @@ class CheckCaptureOCRApp(tk.Tk):
             # Excel 파일의 디렉토리를 항상 출력 폴더로 설정
             base_path = os.path.dirname(file_path)
             # 경로 정리 및 UNC 정규화 적용
-            cleaned_base_path = self.ocr_workflow_manager._clean_folder_path(base_path)
+            cleaned_base_path = self._clean_output_folder_path(base_path)
             self.output_folder_path.set(cleaned_base_path)
             self.logger.info(f"Excel 파일 선택됨: {file_path}")
             self.logger.info(f"출력 폴더 자동 설정됨: {cleaned_base_path}")
+
+    def _clean_output_folder_path(self, path: str | None) -> str:
+        return clean_folder_path(
+            path,
+            default=self.settings_manager.get_advanced("default_output_dir", "."),
+            logger=self.logger,
+        )
 
     def browse_output_folder(self):
         try:
@@ -1475,7 +1477,7 @@ class CheckCaptureOCRApp(tk.Tk):
             
             if folder_path: 
                 # 경로 정리 및 UNC 정규화
-                cleaned_path = self.ocr_workflow_manager._clean_folder_path(folder_path)
+                cleaned_path = self._clean_output_folder_path(folder_path)
                 self.output_folder_path.set(cleaned_path)
                 self.logger.info(f"출력 폴더 선택됨: {cleaned_path}")
                 
@@ -1793,7 +1795,7 @@ class CheckCaptureOCRApp(tk.Tk):
         if loaded_rows > 0:
             # Excel 파일 로드 성공 시 출력 폴더도 자동 설정
             base_path = os.path.dirname(file_path)
-            cleaned_base_path = self.ocr_workflow_manager._clean_folder_path(base_path)
+            cleaned_base_path = self._clean_output_folder_path(base_path)
             self.output_folder_path.set(cleaned_base_path)
             self.logger.info(f"Excel 파일 로드 완료: {loaded_rows}행")
             self.logger.info(f"출력 폴더 자동 설정됨: {cleaned_base_path}")
