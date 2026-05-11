@@ -57,6 +57,7 @@ from checkocr2.table_model import (
     summarize_grid_rows,
 )
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
+from checkocr2.ui.file_dialogs import output_folder_for_input_file, output_folder_initial_dir
 from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.main_window import (
     build_main_window,
@@ -905,10 +906,10 @@ class CheckCaptureOCRApp(tk.Tk):
         file_path = filedialog.askopenfilename(title="엑셀 파일 선택", filetypes=[("Excel files", "*.xlsx;*.xls")])
         if file_path:
             self.input_excel_path.set(file_path)
-            # Excel 파일의 디렉토리를 항상 출력 폴더로 설정
-            base_path = os.path.dirname(file_path)
-            # 경로 정리 및 UNC 정규화 적용
-            cleaned_base_path = self._clean_output_folder_path(base_path)
+            cleaned_base_path = output_folder_for_input_file(
+                file_path,
+                clean_folder=self._clean_output_folder_path,
+            )
             self.output_folder_path.set(cleaned_base_path)
             self.logger.info(f"Excel 파일 선택됨: {file_path}")
             self.logger.info(f"출력 폴더 자동 설정됨: {cleaned_base_path}")
@@ -922,29 +923,7 @@ class CheckCaptureOCRApp(tk.Tk):
 
     def browse_output_folder(self):
         try:
-            # 현재 설정된 경로를 초기 디렉토리로 사용
-            current_path = self.output_folder_path.get().strip()
-            initial_dir = None
-            
-            if current_path:
-                # UNC 경로 정규화
-                if current_path.startswith('\\') and not current_path.startswith('\\\\'):
-                    current_path = '\\' + current_path
-                
-                # 경로 존재 여부 확인
-                if os.path.exists(current_path):
-                    initial_dir = current_path
-                else:
-                    # UNC 경로인 경우 상위 디렉토리 확인
-                    if current_path.startswith('\\\\'):
-                        path_parts = current_path.split('\\')
-                        if len(path_parts) >= 4:
-                            # 서버\공유 레벨까지 확인
-                            server_share = '\\\\' + path_parts[2] + '\\' + path_parts[3]
-                            if os.path.exists(server_share):
-                                initial_dir = server_share
-            
-            # 폴더 선택 대화상자 열기
+            initial_dir = output_folder_initial_dir(self.output_folder_path.get())
             folder_path = filedialog.askdirectory(
                 title="출력 폴더 선택", 
                 initialdir=initial_dir,

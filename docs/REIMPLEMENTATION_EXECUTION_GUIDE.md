@@ -22,10 +22,11 @@ document describes how to continue safely from the current state.
   blocked until the app reaches `Ready`.
 - Workflow, settings, paths, Excel I/O, OCR engine access, screen automation,
   table behavior, run reports, runtime state, worker helpers, queue dispatch,
-  start validation, menu/toolbar, dialogs, several panels, and work-control
-  state now have package-level seams and tests.
+  start validation, menu/toolbar, dialogs, file-dialog path preparation,
+  several panels, and work-control state now have package-level seams and
+  tests.
 - `check_capture_ocr.py` still owns the remaining Tk shell, some controller
-  glue, overlays, and release-compatible behavior.
+  glue, and release-compatible behavior.
 
 ## Implementation Rules
 
@@ -59,8 +60,8 @@ document describes how to continue safely from the current state.
 6. Continue package-size cleanup one measured PyInstaller/dependency change at
    a time, followed by a clean build and package smoke.
 7. Continue small controller extractions that do not alter UI layout. Good
-   targets are overlay helpers, remaining status/update helpers, and final
-   controller-only branches that can be tested with fakes.
+   targets are remaining status/update helpers and final controller-only
+   branches that can be tested with fakes.
 
 ## OCR Accuracy And Speed Gate
 

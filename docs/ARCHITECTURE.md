@@ -53,6 +53,9 @@ working.
   theme selection.
 - `checkocr2/ui/dialogs.py`: keyboard-shortcut and about dialogs, including
   build metadata text.
+- `checkocr2/ui/file_dialogs.py`: file/open-folder dialog path preparation,
+  including input-file parent output defaults and UNC initial-directory
+  fallback behavior.
 - `checkocr2/ui/icons.py`: application icon candidate selection and Tk icon
   application.
 - `checkocr2/ui/main_window.py`: top-level Tk window layout assembly for the
