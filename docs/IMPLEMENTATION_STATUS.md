@@ -69,6 +69,8 @@ Date: 2026-05-08
 - Extracted OCR-start input validation messages into
   `checkocr2/ui/start_validation.py` with unit coverage for empty-grid,
   output-folder, OCR-loading, OCR-failed, and ready states.
+- Moved grid status summary and progress label formatting into
+  `checkocr2/table_model.py`, preserving the existing GUI text.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -130,7 +132,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 120 passed after OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, and typed exception-boundary coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 121 passed after grid status extraction, OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, and typed exception-boundary coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -145,6 +147,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_data_manager.py tests\test_excel_table_modules.py tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-review-fixes-pytest`: 26 passed for corrupt workbook, Excel writer, and OCR reader failure regressions.
 - `python -m pytest tests\test_dialogs.py tests\test_menu.py tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-dialog-review-pytest`: 7 passed for dialog extraction, wrapper delegation, and help-menu wiring.
 - `python -m pytest tests\test_start_validation.py tests\test_async_ocr_initialization.py --basetemp $env:TEMP\checkocr2-start-validation-pytest`: 10 passed for OCR-start validation and loading-state behavior.
+- `python -m pytest tests\test_excel_table_modules.py tests\test_grid_panel.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-grid-summary-pytest`: 12 passed for grid status summary text, grid panel parity, and shared workflow error-status constants.
 
 Latest package verification on 2026-05-08:
 

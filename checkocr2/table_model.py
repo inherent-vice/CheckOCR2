@@ -2,15 +2,32 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from .models import (
     CODE_COL,
     DATE_COL,
+    ERROR_STATUS_KEYWORDS,
+    ERROR_STATUS_VALUES,
     NAME_COL,
     RATE_COL,
     STATUS_COL,
+    STATUS_DONE,
     STATUS_STOPPED,
     STATUS_WAITING,
 )
+
+
+@dataclass(frozen=True)
+class GridStatusSummary:
+    total: int
+    completed: int
+    waiting: int
+    errors: int
+
+    @property
+    def progress_percent(self) -> float:
+        return (self.completed / self.total * 100) if self.total else 0.0
 
 
 def empty_row() -> dict[str, str]:
@@ -45,6 +62,30 @@ def row_for_copy(row: dict[str, str]) -> str:
             row.get(STATUS_COL, ""),
         ]
     )
+
+
+def status_is_error(status: str) -> bool:
+    return status in ERROR_STATUS_VALUES or any(keyword in status for keyword in ERROR_STATUS_KEYWORDS)
+
+
+def summarize_grid_rows(rows: list[dict[str, str]]) -> GridStatusSummary:
+    return GridStatusSummary(
+        total=len(rows),
+        completed=sum(1 for row in rows if row.get(STATUS_COL, "") == STATUS_DONE),
+        waiting=sum(1 for row in rows if row.get(STATUS_COL, "") == STATUS_WAITING),
+        errors=sum(1 for row in rows if status_is_error(row.get(STATUS_COL, ""))),
+    )
+
+
+def format_grid_status_text(summary: GridStatusSummary) -> str:
+    return (
+        f"총 {summary.total}행 | 완료: {summary.completed} | "
+        f"대기: {summary.waiting} | 오류: {summary.errors}"
+    )
+
+
+def format_grid_progress_text(summary: GridStatusSummary) -> str:
+    return f"진행률: {summary.progress_percent:.1f}%"
 
 
 def rows_for_export(rows: list[dict[str, str]]) -> list[dict[str, str]]:

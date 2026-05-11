@@ -60,7 +60,8 @@ test or a manual verification note.
   with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
 - Partially mitigated: queue events, rows, and settings have typed seams, but
   legacy tuple dispatch remains at the Tk controller edge. OCR-start validation
-  messages are now isolated behind a tested helper.
+  messages and grid status label summaries are now isolated behind tested
+  helpers.
 - Partially mitigated: broad exception handlers have been narrowed around GUI,
   file, OCR, and export boundaries; remaining broad catches are adapter and
   top-level workflow safety boundaries.

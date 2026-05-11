@@ -18,6 +18,7 @@ from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
 from checkocr2.logging_config import TkinterLogHandler, setup_logging
+from checkocr2.models import STATUS_COL, STATUS_DONE
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
     create_easyocr_reader,
@@ -43,7 +44,16 @@ from checkocr2.run_report import (
 from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
-from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.table_model import (
+    delete_rows,
+    empty_row,
+    format_grid_progress_text,
+    format_grid_status_text,
+    row_for_copy,
+    rows_from_clipboard,
+    status_is_error,
+    summarize_grid_rows,
+)
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
 from checkocr2.ui.menu import create_menu
 from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
@@ -1883,13 +1893,11 @@ class CheckCaptureOCRApp(tk.Tk):
         
         for i, row in enumerate(self.data_manager.excel_data):
             tags = []
-            # 상태가 '완료'인 항목에 'completed' 태그 적용 (녹색) - 최우선 순위
-            if row['상태'] == '완료':
+            status = row[STATUS_COL]
+            if status == STATUS_DONE:
                 tags.append('completed')
-            # 상태가 오류/실패/없음/건너뜀 인 경우 'error' 태그 적용
-            elif any(err_keyword in row['상태'] for err_keyword in ['오류', '실패', '없음', '건너']):
+            elif status_is_error(status):
                 tags.append('error')
-            # 그 외의 경우 중 현재 처리 중인 항목에 'processing' 태그 적용 (주황색)
             elif i == self.data_manager.current_processing_index and self.work_controller.is_running:
                 tags.append('processing')
 
@@ -1898,14 +1906,10 @@ class CheckCaptureOCRApp(tk.Tk):
 
     def update_grid_status_labels(self):
         if not hasattr(self, 'grid_status_label'): return
-        total = len(self.data_manager.excel_data)
-        completed = sum(1 for row in self.data_manager.excel_data if row['상태'] == '완료')
-        waiting = sum(1 for row in self.data_manager.excel_data if row['상태'] == '대기 중')
-        errors = sum(1 for row in self.data_manager.excel_data if any(err_keyword in row['상태'] for err_keyword in ['오류', '실패', '없음', '건너']))
-        
-        self.grid_status_label.config(text=f"총 {total}행 | 완료: {completed} | 대기: {waiting} | 오류: {errors}")
-        progress = (completed / total * 100) if total > 0 else 0
-        if hasattr(self, 'grid_progress_label'): self.grid_progress_label.config(text=f"진행률: {progress:.1f}%")
+        summary = summarize_grid_rows(self.data_manager.excel_data)
+        self.grid_status_label.config(text=format_grid_status_text(summary))
+        if hasattr(self, 'grid_progress_label'):
+            self.grid_progress_label.config(text=format_grid_progress_text(summary))
 
     def on_cell_double_click_ui(self, event):
         if not self.grid_tree: return

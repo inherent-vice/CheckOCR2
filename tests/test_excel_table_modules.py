@@ -5,8 +5,29 @@ import pytest
 
 from checkocr2.excel_io import export_grid_rows, load_grid_rows, resolve_columns
 from checkocr2.exceptions import ExcelIOError
-from checkocr2.models import CODE_COL, DATE_COL, NAME_COL, RATE_COL, STATUS_COL, STATUS_STOPPED
-from checkocr2.table_model import delete_rows, row_for_copy, rows_for_export, rows_from_clipboard
+from checkocr2.models import (
+    CODE_COL,
+    DATE_COL,
+    NAME_COL,
+    RATE_COL,
+    STATUS_COL,
+    STATUS_DONE,
+    STATUS_ERROR_PROCESSING,
+    STATUS_ERROR_SKIPPED,
+    STATUS_STOPPED,
+    STATUS_WAITING,
+)
+from checkocr2.table_model import (
+    GridStatusSummary,
+    delete_rows,
+    format_grid_progress_text,
+    format_grid_status_text,
+    row_for_copy,
+    rows_for_export,
+    rows_from_clipboard,
+    status_is_error,
+    summarize_grid_rows,
+)
 
 
 def test_resolve_columns_accepts_korean_and_english_aliases():
@@ -28,6 +49,24 @@ def test_table_model_clipboard_delete_copy_and_export_status():
 
     delete_rows(rows, [0])
     assert rows[0][CODE_COL] == "B002"
+
+
+def test_grid_status_summary_and_labels_preserve_gui_text():
+    rows = [
+        {STATUS_COL: STATUS_DONE},
+        {STATUS_COL: STATUS_WAITING},
+        {STATUS_COL: STATUS_ERROR_PROCESSING},
+        {STATUS_COL: "금리 없음"},
+        {STATUS_COL: STATUS_ERROR_SKIPPED},
+    ]
+
+    summary = summarize_grid_rows(rows)
+
+    assert summary == GridStatusSummary(total=5, completed=1, waiting=1, errors=3)
+    assert summary.progress_percent == 20.0
+    assert format_grid_status_text(summary) == "총 5행 | 완료: 1 | 대기: 1 | 오류: 3"
+    assert format_grid_progress_text(summary) == "진행률: 20.0%"
+    assert status_is_error("정상") is False
 
 
 def test_excel_io_loads_and_exports_grid_rows(tmp_path):
