@@ -18,7 +18,7 @@ from checkocr2.data_manager import DataManager
 from checkocr2.events import parse_legacy_grid_update
 from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
-from checkocr2.logging_config import TkinterLogHandler, setup_logging
+from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
     create_easyocr_reader,
@@ -54,15 +54,20 @@ from checkocr2.table_model import (
     summarize_grid_rows,
 )
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
-from checkocr2.ui.menu import create_menu
+from checkocr2.ui.main_window import (
+    build_main_window,
+    create_center_excel_grid,
+    create_coordinates_section,
+    create_file_section,
+    create_left_panel_content,
+    create_menu_bar,
+    create_options_section,
+    create_preset_section,
+    create_right_panel_content,
+    create_timing_section,
+    create_toolbar,
+)
 from checkocr2.ui.overlays import AreaVisualizationOverlay, DragCaptureOverlay, PointCaptureOverlay
-from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
-from checkocr2.ui.panels.file_panel import create_file_panel
-from checkocr2.ui.panels.grid_panel import create_grid_panel
-from checkocr2.ui.panels.log_panel import create_log_panel
-from checkocr2.ui.panels.options_panel import create_options_panel
-from checkocr2.ui.panels.preset_panel import create_preset_panel
-from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.presets import (
     apply_selected_preset as apply_selected_preset_action,
 )
@@ -84,7 +89,6 @@ from checkocr2.ui.settings_binding import (
 )
 from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.ui.theme import ThemeManager
-from checkocr2.ui.toolbar import create_simple_toolbar
 from checkocr2.work_controller import WorkController
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
@@ -892,82 +896,37 @@ class CheckCaptureOCRApp(tk.Tk):
             self.log_text_widget.config(state='disabled')
 
     def _build_ui(self):
-        self.configure(bg=self.theme_manager.get_color('surface'))
-        self._create_menu()
-        self._create_simple_toolbar()
-
-        self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-        main_container = tk.Frame(self)
-        self.theme_manager.register_widget(main_container, {'bg': 'surface'})
-        main_container.grid(row=1, column=0, sticky='nsew', padx=0, pady=0)
-
-        main_container.grid_rowconfigure(0, weight=1)
-
-        main_container.grid_columnconfigure(0, weight=0, minsize=280) # 좌측 패널 너비 고정 (필요시 조정)
-        main_container.grid_columnconfigure(1, weight=6) # 중앙 패널 확장 비율 더 증가
-        main_container.grid_columnconfigure(2, weight=1, minsize=200) # 우측 로그 패널 weight 유지 및 minsize 더 축소
-
-        left_panel = tk.Frame(main_container)
-        self.theme_manager.register_widget(left_panel, {'bg': 'surface'})
-        left_panel.grid(row=0, column=0, sticky='nsew', padx=(5, 2), pady=5)
-
-        center_panel = tk.Frame(main_container)
-        self.theme_manager.register_widget(center_panel, {'bg': 'surface'})
-        center_panel.grid(row=0, column=1, sticky='nsew', padx=3, pady=5)
-
-        right_panel = tk.Frame(main_container)
-        self.theme_manager.register_widget(right_panel, {'bg': 'surface'})
-        right_panel.grid(row=0, column=2, sticky='nsew', padx=(2, 5), pady=5)
-
-        self._create_left_panel_content(left_panel)
-        self._create_center_excel_grid(center_panel)
-        self._create_right_panel_content(right_panel)
-
-        if self.log_text_widget:
-            tkinter_handler = TkinterLogHandler(self.log_text_widget, self.message_queue)
-            self.logger.addHandler(tkinter_handler)
+        build_main_window(self)
 
     def _create_menu(self):
-        create_menu(self)
-
+        create_menu_bar(self)
 
     def _create_simple_toolbar(self):
-        create_simple_toolbar(self)
+        create_toolbar(self)
 
     def _create_left_panel_content(self, parent):
-        scrollable_frame = tk.Frame(parent)
-        self.theme_manager.register_widget(scrollable_frame, {'bg': 'surface'})
-        scrollable_frame.pack(fill="both", expand=True, padx=0, pady=0) # left_panel에 이미 패딩이 있으므로 0으로 설정
-
-        self._create_file_section(scrollable_frame)
-        self._create_coordinates_section(scrollable_frame)
-        self._create_timing_section(scrollable_frame)
-        self._create_options_section(scrollable_frame)
-        self._create_preset_section(scrollable_frame) # fill_parent=True 인자 유지
+        create_left_panel_content(self, parent)
 
     def _create_right_panel_content(self, parent):
-        self.log_text_widget = create_log_panel(self, parent)
+        create_right_panel_content(self, parent)
 
     def _create_file_section(self, parent):
-        create_file_panel(self, parent)
+        create_file_section(self, parent)
 
     def _create_coordinates_section(self, parent):
-        create_coordinates_panel(self, parent)
+        create_coordinates_section(self, parent)
 
     def _create_timing_section(self, parent):
-        create_timing_panel(self, parent)
+        create_timing_section(self, parent)
 
     def _create_options_section(self, parent):
-        create_options_panel(self, parent)
+        create_options_section(self, parent)
 
     def _create_preset_section(self, parent):
-        create_preset_panel(self, parent)
+        create_preset_section(self, parent)
 
     def _create_center_excel_grid(self, parent):
-        create_grid_panel(self, parent)
+        create_center_excel_grid(self, parent)
 
     def refresh_grid_tags(self):
         if not self.grid_tree: return

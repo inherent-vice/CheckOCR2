@@ -66,6 +66,9 @@ Date: 2026-05-11
 - Extracted keyboard-shortcut and about dialogs into
   `checkocr2/ui/dialogs.py` with unit coverage for title/text/messagebox
   behavior.
+- Extracted top-level main-window layout assembly into
+  `checkocr2/ui/main_window.py` with unit coverage for menu/toolbar dispatch,
+  three-panel layout, left-panel section order, and log handler wiring.
 - Extracted OCR-start input validation messages into
   `checkocr2/ui/start_validation.py` with unit coverage for empty-grid,
   output-folder, OCR-loading, OCR-failed, and ready states.
@@ -178,7 +181,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 168 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 171 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, main-window layout extraction, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -193,6 +196,7 @@ Latest code verification on 2026-05-11:
   `rg -n "except Exception|except BaseException|except:" check_capture_ocr.py checkocr2 scripts tests`.
 - `python -m pytest tests\test_data_manager.py tests\test_excel_table_modules.py tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-review-fixes-pytest`: 26 passed for corrupt workbook, Excel writer, and OCR reader failure regressions.
 - `python -m pytest tests\test_dialogs.py tests\test_menu.py tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-dialog-review-pytest`: 7 passed for dialog extraction, wrapper delegation, and help-menu wiring.
+- `python -m pytest tests\test_main_window.py tests\test_file_panel.py tests\test_grid_panel.py tests\test_log_panel.py tests\test_toolbar.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-main-window`: 8 passed for main-window layout assembly and existing panel/menu/toolbar builders.
 - `python -m pytest tests\test_start_validation.py tests\test_async_ocr_initialization.py --basetemp $env:TEMP\checkocr2-start-validation-pytest`: 10 passed for OCR-start validation and loading-state behavior.
 - `python -m pytest tests\test_excel_table_modules.py tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-grid-update-green`: 16 passed for legacy grid-update row mutation, queue dispatch, clipboard selection text, grid status summary text, and shared workflow error-status constants.
 - `python -m pytest tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-finalize-parser-green`: 11 passed for final-export payload parsing and workflow event compatibility.
@@ -204,6 +208,9 @@ Latest code verification on 2026-05-11:
 - Source GUI fast-OCR smoke after settings-binding extraction used isolated temporary `APPDATA`, opened `📊 Check Capture OCR V6.1`, and reached `Ready` with `ocr_ready=true`.
 - Source GUI fast-OCR smoke after grid-render helper extraction used isolated temporary `APPDATA`, opened `📊 Check Capture OCR V6.1`, and reached `Ready` with `ocr_ready=true`.
 - Source GUI fast-OCR smoke after preset-controller extraction used isolated temporary `APPDATA`, opened `📊 Check Capture OCR V6.1`, and reached `Ready` with `ocr_ready=true`.
+- Source GUI fast-OCR smoke after main-window layout extraction used isolated
+  temporary `APPDATA`, wrote package-smoke status, and reached `Ready` with
+  `ocr_ready=true`.
 
 Latest package verification on 2026-05-08:
 
