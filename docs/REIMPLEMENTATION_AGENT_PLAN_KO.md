@@ -16,7 +16,7 @@
 - `checkocr2/`에는 설정, 경로, Excel I/O, OCR 텍스트 정규화, OCR 엔진
   어댑터, 화면 자동화, 캡처 어댑터, 워크플로, 런 리포트, 테이블 모델,
   런타임 상태, 작업 컨트롤러, 주요 UI action/helper가 분리되어 있다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 279개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 285개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 패키지 크기는 약 `596.386 MB`, package smoke startup은

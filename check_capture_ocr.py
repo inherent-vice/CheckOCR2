@@ -143,9 +143,14 @@ from checkocr2.ui.runtime_status_actions import (
 from checkocr2.ui.runtime_status_actions import (
     write_package_smoke_status_for_app as write_package_smoke_status_action,
 )
+from checkocr2.ui.settings_actions import (
+    load_last_settings as load_last_settings_action,
+)
+from checkocr2.ui.settings_actions import (
+    quick_save_settings as quick_save_settings_action,
+)
 from checkocr2.ui.settings_binding import (
     apply_ui_settings,
-    build_current_settings,
     collect_ui_settings,
     save_advanced_settings,
 )
@@ -984,31 +989,11 @@ class CheckCaptureOCRApp(tk.Tk):
             self.destroy()
 
     def load_last_settings(self):
-        try:
-            settings = self.settings_manager.get_current_settings()
-            if settings:
-                self.apply_settings_to_ui(settings)
-                self.input_excel_path.set(settings.get('input_excel_path', ''))
-                self.output_folder_path.set(settings.get('output_folder_path', ''))
-                self.logger.info("마지막 설정이 성공적으로 불러와졌습니다.")
-            else:
-                self.logger.info("저장된 현재 설정이 없습니다. 기본값을 사용합니다.")
-                self.settings_manager.data['advanced'] = self.settings_manager._get_default_advanced_settings()
-            self.update_preset_combo()
-            self.theme_manager.change_theme(self.settings_manager.get_advanced('ui_theme', 'modern_blue'))
-        except (OSError, SettingsError, tk.TclError, TypeError, ValueError) as e:
-            self.logger.error(f"설정 불러오기 실패: {e}")
+        load_last_settings_action(self)
 
     def quick_save_settings(self):
         """현재 UI 설정을 빠르게 저장"""
-        try:
-            current_settings = build_current_settings(self)
-            self.settings_manager.save_current_settings(current_settings)
-            self.save_advanced_ui_to_settings()  # 고급 설정도 함께 저장
-            self.logger.info("현재 설정이 저장되었습니다.")
-        except (OSError, SettingsError, tk.TclError, TypeError, ValueError) as e:
-            self.logger.error(f"설정 저장 실패: {e}")
-            messagebox.showerror("오류", f"설정 저장 중 오류가 발생했습니다: {e}")
+        quick_save_settings_action(self)
 
     def _create_section_frame_styled(self, parent, title, fill_parent=False):
         """스타일이 적용된 섹션 프레임을 생성하고 반환합니다."""

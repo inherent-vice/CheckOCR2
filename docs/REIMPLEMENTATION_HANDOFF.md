@@ -30,10 +30,11 @@ the Korean parallel-agent plan and workstream split, use
   preset controller, file-dialog path preparation, Excel/output-folder actions,
   coordinate capture/preview actions, grid/context-menu actions, grid-update
   actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
-  runtime-status actions, log text actions, OCR run/stop actions,
-  work-completion actions, application icons, OCR-start validation, and
-  file/coordinates/timing/options/preset/grid/log panel seams plus the menu
-  bar, top toolbar, and main-window layout now have test coverage.
+  runtime-status actions, settings load/save actions, log text actions, OCR
+  run/stop actions, work-completion actions, application icons, OCR-start
+  validation, and file/coordinates/timing/options/preset/grid/log panel seams
+  plus the menu bar, top toolbar, and main-window layout now have test
+  coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -61,11 +62,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 279 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 285 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
-PyInstaller release build after runtime-status action extraction plus real
-package smoke at about `596.386 MB` with startup `3.219` seconds and settings-file
+PyInstaller release build after settings-action extraction plus real
+package smoke at about `596.386 MB` with startup `1.203` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -123,6 +124,12 @@ OCR-ready/error mapping, and package-smoke status writing into
 handling, no-workflow no-op behavior, write failure logging, and legacy wrapper
 compatibility. Source GUI smoke and real package smoke both pass for this
 slice.
+
+The latest settings-action slice moved current-settings load/save controller
+glue into `checkocr2/ui/settings_actions.py`; focused tests pass for saved-path
+restore, missing-settings defaults, preset/theme refresh, quick-save success,
+error messagebox behavior, and legacy wrapper compatibility. Source GUI smoke
+and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 
