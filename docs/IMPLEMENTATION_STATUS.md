@@ -63,6 +63,9 @@ Date: 2026-05-08
   OCR start/stop buttons and theme selection.
 - Extracted the menu bar into `checkocr2/ui/menu.py` with coverage for command
   labels, accelerators, and callback wiring.
+- Extracted keyboard-shortcut and about dialogs into
+  `checkocr2/ui/dialogs.py` with unit coverage for title/text/messagebox
+  behavior.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -124,7 +127,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 111 passed after fixture-audit, live-comparison, and typed exception-boundary coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 114 passed after dialog extraction, fixture-audit, live-comparison, and typed exception-boundary coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -137,6 +140,7 @@ Latest code verification on 2026-05-11:
   workflow adapter boundaries:
   `rg -n "except Exception|except BaseException|except:" check_capture_ocr.py checkocr2 scripts tests`.
 - `python -m pytest tests\test_data_manager.py tests\test_excel_table_modules.py tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-review-fixes-pytest`: 26 passed for corrupt workbook, Excel writer, and OCR reader failure regressions.
+- `python -m pytest tests\test_dialogs.py tests\test_menu.py tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-dialog-review-pytest`: 7 passed for dialog extraction, wrapper delegation, and help-menu wiring.
 
 Latest package verification on 2026-05-08:
 
@@ -147,6 +151,9 @@ Latest package verification on 2026-05-08:
 - Source GUI fast-OCR smoke passed after menu extraction; the Tk
   app opened `📊 Check Capture OCR V6.1` and wrote
   `runtime_state="Ready"` with `ocr_ready=true`.
+- Source GUI fast-OCR smoke passed after dialog extraction; the Tk app opened
+  `📊 Check Capture OCR V6.1` and wrote `runtime_state="Ready"` with
+  `ocr_ready=true`.
 - Clean release venv build with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after PyInstaller hidden-import cleanup.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
@@ -166,5 +173,5 @@ that warning non-blocking while package smoke remains green.
 - Benchmark candidate engines only after fixture baselines exist.
 - Continue package-size cleanup only one measured PyInstaller/dependency change
   at a time, with clean build and package smoke after each removal.
-- Continue extracting UI panels only while the GUI parity checklist and tests
-  stay green.
+- Continue extracting UI panels/dialogs only while the GUI parity checklist and
+  tests stay green.

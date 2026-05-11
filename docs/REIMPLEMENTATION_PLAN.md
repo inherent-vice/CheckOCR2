@@ -42,9 +42,10 @@ test or a manual verification note.
 
 ## Main Risks And Current Status
 
-- Still open: `check_capture_ocr.py` owns most GUI construction, worker
-  lifecycle, dialogs, and release-compatible controller behavior. Low-risk
-  panels and legacy queue dispatch are being extracted incrementally.
+- Still open: `check_capture_ocr.py` owns some GUI construction, worker
+  lifecycle, and release-compatible controller behavior. Low-risk panels,
+  menu/toolbar, shortcut/about dialogs, and legacy queue dispatch have been
+  extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
 - Still open: OCR workflow is sequential and uses fixed wait times. Current
@@ -59,8 +60,9 @@ test or a manual verification note.
   with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
 - Partially mitigated: queue events, rows, and settings have typed seams, but
   legacy tuple dispatch remains at the Tk controller edge.
-- Still open: broad exception handlers remain around GUI, file, OCR, and export
-  boundaries.
+- Partially mitigated: broad exception handlers have been narrowed around GUI,
+  file, OCR, and export boundaries; remaining broad catches are adapter and
+  top-level workflow safety boundaries.
 - Partially mitigated: dependency files and build metadata are split, and the
   direct GUI OpenCV dependency was replaced by EasyOCR's required headless
   OpenCV pin. Release-build preflight rejects contaminated GUI/contrib OpenCV

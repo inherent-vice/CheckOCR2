@@ -20,8 +20,9 @@ behavior.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, table, settings, paths, image-processing, runtime-state,
-  run-report, queue-dispatch, and file/coordinates/timing/options/preset/grid/log
-  panel seams plus the menu bar and top toolbar now have test coverage.
+  run-report, queue-dispatch, shortcut/about dialogs, and
+  file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar
+  and top toolbar now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -40,7 +41,7 @@ behavior.
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 111 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 114 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate remains the 2026-05-08 clean
 PyInstaller release build plus real package smoke at about `596.35 MB` with

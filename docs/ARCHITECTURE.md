@@ -37,6 +37,8 @@ working.
   previews, run controls, and help.
 - `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and
   theme selection.
+- `checkocr2/ui/dialogs.py`: keyboard-shortcut and about dialogs, including
+  build metadata text.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
 - `checkocr2/ui/panels/file_panel.py`: left-side Excel input and output-folder

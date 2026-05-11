@@ -14,7 +14,6 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import numpy as np
 from PIL import Image
 
-from checkocr2.build_metadata import format_build_metadata, load_build_metadata
 from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
@@ -45,6 +44,7 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import delete_rows, empty_row, row_for_copy, rows_from_clipboard
+from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
 from checkocr2.ui.menu import create_menu
 from checkocr2.ui.panels.coordinates_panel import create_coordinates_panel
 from checkocr2.ui.panels.file_panel import create_file_panel
@@ -1737,22 +1737,10 @@ class CheckCaptureOCRApp(tk.Tk):
             self.logger.error(f"그리드 업데이트 중 오류: {e}, 데이터: {data}")
 
     def show_shortcuts(self):
-        shortcuts = """🎹 키보드 단축키:
-• F5: OCR 처리 실행/중단
-• Escape: 처리 중단
-• F1: 단축키 도움말 (이 창)
-• Ctrl+S: 모든 설정 저장
-• Ctrl+L: 마지막 설정 불러오기
-• Ctrl+O: Excel 파일 로드 (그리드)"""
-        messagebox.showinfo("키보드 단축키", shortcuts, parent=self)
+        show_shortcuts_dialog(parent=self)
 
     def show_about(self):
-        build_summary = format_build_metadata(load_build_metadata())
-        about_text = f"""📋 Check Capture OCR - V6
-OCR 자동화 애플리케이션 (EasyOCR 기반)
-
-{build_summary}"""
-        messagebox.showinfo("프로그램 정보", about_text, parent=self)
+        show_about_dialog(parent=self)
 
     def run_ocr_process(self):
         if self.work_controller.is_running:
