@@ -73,6 +73,8 @@ working.
   preserving Tk messagebox, menu, and clipboard behavior.
 - `checkocr2/ui/icons.py`: application icon candidate selection and Tk icon
   application.
+- `checkocr2/ui/log_actions.py`: log text-widget state, tag fallback, insert,
+  scroll, and disabled-state restoration behavior.
 - `checkocr2/ui/main_window.py`: top-level Tk window layout assembly for the
   menu, toolbar, three-panel grid, and log handler wiring.
 - `checkocr2/ui/ocr_actions.py`: OCR run/stop button orchestration, including

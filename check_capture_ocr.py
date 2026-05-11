@@ -88,6 +88,7 @@ from checkocr2.ui.grid_actions import (
     show_context_menu,
 )
 from checkocr2.ui.icons import apply_application_icon
+from checkocr2.ui.log_actions import append_log_text
 from checkocr2.ui.main_window import (
     build_main_window,
     create_center_excel_grid,
@@ -794,14 +795,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self.after(check_interval, self.check_queue)
 
     def _update_log_text_widget(self, message, level_name="INFO"):
-        if self.log_text_widget and self.log_text_widget.winfo_exists():
-            self.log_text_widget.config(state='normal')
-            tag = level_name.upper()
-            if tag not in self.log_text_widget.tag_names():
-                tag = "INFO" 
-            self.log_text_widget.insert(tk.END, f"{message}\n", tag)
-            self.log_text_widget.see(tk.END)
-            self.log_text_widget.config(state='disabled')
+        append_log_text(self, message, level_name)
 
     def _build_ui(self):
         build_main_window(self)
