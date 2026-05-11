@@ -4,7 +4,9 @@ import json
 import subprocess
 import sys
 
-from scripts.compare_run_reports import compare_reports
+import pytest
+
+from scripts.compare_run_reports import compare_reports, parse_args
 
 
 def make_report(rows, *, input_excel_path="source.xlsx"):
@@ -53,6 +55,104 @@ def test_compare_reports_accepts_same_outputs_with_no_blank_regression():
     assert report["gates"]["blank_not_increased"] is True
     assert report["gates"]["failure_not_increased"] is True
     assert report["timing"]["p95_row_total_improved"] is True
+    assert report["timing"]["p95_row_total_delta_ms"] > 0
+    assert report["timing"]["p95_row_total_improvement_percent"] > 10.0
+    assert report["timing"]["p95_row_total_improved_by_threshold"] is True
+
+
+def test_compare_reports_can_require_p95_improvement_threshold():
+    baseline = make_report([make_row(i, f"A{i:03d}", row_total_ms=1000 + i) for i in range(10)])
+    candidate = make_report([make_row(i, f"A{i:03d}", row_total_ms=950 + i) for i in range(10)])
+
+    report = compare_reports(
+        baseline,
+        candidate,
+        min_rows=10,
+        require_p95_improvement=True,
+        min_p95_improvement_percent=10.0,
+    )
+
+    assert report["status"] == "regression"
+    assert report["accepted"] is False
+    assert report["gates"]["p95_improvement_met"] is False
+    assert report["timing"]["p95_row_total_improved"] is True
+    assert report["timing"]["p95_row_total_improved_by_threshold"] is False
+
+
+def test_compare_reports_required_p95_gate_rejects_missing_timing():
+    baseline = make_report([make_row(i, f"A{i:03d}", row_total_ms=1000 + i) for i in range(10)])
+    candidate_rows = [make_row(i, f"A{i:03d}", row_total_ms=800 + i) for i in range(10)]
+    candidate_rows[4].pop("timing_ms")
+    candidate = make_report(candidate_rows)
+
+    report = compare_reports(
+        baseline,
+        candidate,
+        min_rows=10,
+        require_p95_improvement=True,
+        min_p95_improvement_percent=10.0,
+    )
+
+    assert report["status"] == "regression"
+    assert report["accepted"] is False
+    assert report["gates"]["timing_values_valid"] is False
+    assert report["gates"]["p95_improvement_met"] is False
+    assert "candidate row 4 is missing row_total_ms" in report["errors"]
+
+
+@pytest.mark.parametrize("bad_value", [0.0, -1.0, "nan", "inf"])
+def test_compare_reports_required_p95_gate_rejects_invalid_duration_values(bad_value):
+    baseline = make_report([make_row(i, f"A{i:03d}", row_total_ms=1000 + i) for i in range(10)])
+    candidate = make_report([make_row(i, f"A{i:03d}", row_total_ms=bad_value) for i in range(10)])
+
+    report = compare_reports(
+        baseline,
+        candidate,
+        min_rows=10,
+        require_p95_improvement=True,
+        min_p95_improvement_percent=10.0,
+    )
+
+    assert report["status"] == "regression"
+    assert report["accepted"] is False
+    assert report["gates"]["timing_values_valid"] is False
+    assert report["gates"]["p95_improvement_met"] is False
+    assert f"candidate row 0 has non-positive row_total_ms: {bad_value}" in report["errors"]
+
+
+def test_compare_reports_exact_required_p95_threshold_passes_only_when_faster():
+    baseline = make_report([make_row(i, f"A{i:03d}", row_total_ms=1000.0) for i in range(10)])
+    candidate = make_report([make_row(i, f"A{i:03d}", row_total_ms=900.0) for i in range(10)])
+
+    report = compare_reports(
+        baseline,
+        candidate,
+        min_rows=10,
+        require_p95_improvement=True,
+        min_p95_improvement_percent=10.0,
+    )
+
+    assert report["status"] == "ok"
+    assert report["gates"]["p95_improvement_met"] is True
+    assert report["timing"]["p95_row_total_improved_by_threshold"] is True
+
+
+def test_compare_reports_rejects_non_positive_p95_threshold():
+    baseline = make_report([make_row(i, f"A{i:03d}", row_total_ms=1000.0) for i in range(10)])
+    candidate = make_report([make_row(i, f"A{i:03d}", row_total_ms=1000.0) for i in range(10)])
+
+    with pytest.raises(ValueError, match="greater than 0"):
+        compare_reports(baseline, candidate, min_p95_improvement_percent=0)
+
+    with pytest.raises(SystemExit):
+        parse_args(
+            [
+                "baseline.json",
+                "candidate.json",
+                "--min-p95-improvement-percent",
+                "0",
+            ]
+        )
 
 
 def test_compare_reports_rejects_output_changes_and_blank_regressions():

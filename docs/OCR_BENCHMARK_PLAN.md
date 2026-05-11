@@ -87,12 +87,13 @@ Before reducing fixed waits or changing OCR defaults, run the same 10 or more
 rows twice and compare the generated run reports:
 
 ```powershell
-python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json
+python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp/live_ocr_compare.json
 ```
 
 The comparator checks that the input workbook path and row identities match,
 date/rate outputs are unchanged, blank fields do not increase, failure rows do
-not increase, and timing values are parseable. Matrix comparisons also include
+not increase, timing values are parseable, and, when requested, P95 row-total
+time improves by the configured percentage. Matrix comparisons also include
 `coverage_unchanged`, so candidates with missing or invalid fixture coverage are
 not treated as normal field comparisons. Use `--allow-output-changes` only for a
 manual review run where changed OCR output is expected and will be checked

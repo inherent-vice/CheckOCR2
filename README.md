@@ -102,7 +102,8 @@ the ignored `tests/fixtures/ocr_crops/ground_truth.csv`, crop paths, image
 readability, date/rate counts, duplicate paths, and normalized expected text.
 Use `scripts\compare_run_reports.py` for same-input live runs; by default it
 requires at least 10 matching rows, unchanged date/rate outputs, and no blank
-or failure increase.
+or failure increase. Add `--require-p95-improvement --min-p95-improvement-percent
+10` when validating speed or wait-time changes.
 
 ## Current Evidence Gates
 

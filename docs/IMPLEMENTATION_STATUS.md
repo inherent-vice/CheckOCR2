@@ -109,6 +109,8 @@ Date: 2026-05-08
 - Added `scripts/compare_run_reports.py` to compare same-input live run reports
   before wait-time or OCR-default changes, including input-workbook matching,
   row identity checks, blank/failure regression checks, and timing validation.
+- Added optional live-comparison P95 row-total improvement gating with a
+  configurable percentage threshold for speed and wait-time changes.
 - Narrowed broad exception handlers in the legacy Tk app for icon setup, Excel
   load/export, clipboard parsing, run-report flushing, OCR image processing,
   folder opening, settings save/load, and status finalization. Remaining broad

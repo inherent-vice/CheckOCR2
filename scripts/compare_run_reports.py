@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 from pathlib import Path
@@ -18,6 +19,13 @@ from scripts.benchmark_ocr import p95, validate_output_path  # noqa: E402
 
 DEFAULT_MIN_ROWS = 10
 SUCCESS_STATUSES = {STATUS_DONE, "done", "complete", "completed"}
+
+
+def positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("value must be greater than 0")
+    return parsed
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -37,6 +45,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Skip row identity checks; not recommended for wait/default tuning",
     )
+    parser.add_argument(
+        "--min-p95-improvement-percent",
+        type=positive_float,
+        default=10.0,
+        help="Minimum P95 row-total improvement used when --require-p95-improvement is set",
+    )
+    parser.add_argument(
+        "--require-p95-improvement",
+        action="store_true",
+        help="Fail the comparison unless candidate P95 row-total timing improves by the configured threshold",
+    )
     return parser.parse_args(argv)
 
 
@@ -51,7 +70,12 @@ def compare_reports(
     min_rows: int = DEFAULT_MIN_ROWS,
     allow_output_changes: bool = False,
     require_same_input: bool = True,
+    min_p95_improvement_percent: float = 10.0,
+    require_p95_improvement: bool = False,
 ) -> dict[str, Any]:
+    if min_p95_improvement_percent <= 0:
+        raise ValueError("min_p95_improvement_percent must be greater than 0")
+
     baseline_rows = list(baseline.get("rows", []))
     candidate_rows = list(candidate.get("rows", []))
     errors: list[str] = []
@@ -75,6 +99,13 @@ def compare_reports(
     blank_not_increased = candidate_metrics["blank_total"] <= baseline_metrics["blank_total"]
     failure_not_increased = candidate_metrics["failure_count"] <= baseline_metrics["failure_count"]
     outputs_unchanged = not output_changes
+    baseline_p95 = baseline_metrics["p95_row_total_ms"]
+    candidate_p95 = candidate_metrics["p95_row_total_ms"]
+    p95_improvement = p95_improvement_summary(
+        baseline_p95,
+        candidate_p95,
+        min_p95_improvement_percent,
+    )
 
     gates = {
         "same_input": same_input,
@@ -83,17 +114,11 @@ def compare_reports(
         "failure_not_increased": failure_not_increased,
         "timing_values_valid": not timing_errors,
     }
+    if require_p95_improvement:
+        gates["p95_improvement_met"] = (
+            not timing_errors and p95_improvement["p95_row_total_improved_by_threshold"] is True
+        )
     accepted = all(gates.values())
-
-    baseline_p95 = baseline_metrics["p95_row_total_ms"]
-    candidate_p95 = candidate_metrics["p95_row_total_ms"]
-    timing = {
-        "baseline_p95_row_total_ms": baseline_p95,
-        "candidate_p95_row_total_ms": candidate_p95,
-        "p95_row_total_improved": (
-            candidate_p95 < baseline_p95 if baseline_p95 is not None and candidate_p95 is not None else None
-        ),
-    }
 
     return {
         "status": "ok" if accepted else "regression",
@@ -104,9 +129,35 @@ def compare_reports(
         "baseline": baseline_metrics,
         "candidate": candidate_metrics,
         "gates": gates,
-        "timing": timing,
+        "timing": p95_improvement,
         "output_changes": output_changes,
         "errors": errors,
+    }
+
+
+def p95_improvement_summary(
+    baseline_p95: float | None,
+    candidate_p95: float | None,
+    min_improvement_percent: float,
+) -> dict[str, Any]:
+    improvement_percent: float | None = None
+    delta_ms: float | None = None
+    improved: bool | None = None
+    improved_by_threshold: bool | None = None
+    if baseline_p95 is not None and candidate_p95 is not None:
+        delta_ms = round(baseline_p95 - candidate_p95, 3)
+        improved = candidate_p95 < baseline_p95
+        if baseline_p95 > 0:
+            improvement_percent = round((delta_ms / baseline_p95) * 100, 3)
+            improved_by_threshold = improved and improvement_percent >= min_improvement_percent
+    return {
+        "baseline_p95_row_total_ms": baseline_p95,
+        "candidate_p95_row_total_ms": candidate_p95,
+        "p95_row_total_delta_ms": delta_ms,
+        "p95_row_total_improvement_percent": improvement_percent,
+        "min_p95_improvement_percent": min_improvement_percent,
+        "p95_row_total_improved": improved,
+        "p95_row_total_improved_by_threshold": improved_by_threshold,
     }
 
 
@@ -185,13 +236,21 @@ def summarize_report(
     for position, row in enumerate(rows):
         timing = row.get("timing_ms")
         if not isinstance(timing, dict) or timing.get("row_total_ms") is None:
+            row_index = row.get("index", position)
+            timing_errors.append(f"{label} row {row_index} is missing row_total_ms")
             continue
         raw_value = timing["row_total_ms"]
         try:
-            row_total_values.append(float(raw_value))
+            row_total_ms = float(raw_value)
         except (TypeError, ValueError):
             row_index = row.get("index", position)
             timing_errors.append(f"{label} row {row_index} has non-numeric row_total_ms: {raw_value}")
+            continue
+        if not math.isfinite(row_total_ms) or row_total_ms <= 0:
+            row_index = row.get("index", position)
+            timing_errors.append(f"{label} row {row_index} has non-positive row_total_ms: {raw_value}")
+            continue
+        row_total_values.append(row_total_ms)
     blank_date_count = sum(1 for row in rows if not str(row.get("date", "") or "").strip())
     blank_rate_count = sum(1 for row in rows if not str(row.get("rate", "") or "").strip())
     failure_count = sum(1 for row in rows if is_failure_row(row))
@@ -202,6 +261,7 @@ def summarize_report(
         "blank_rate_count": blank_rate_count,
         "blank_total": blank_date_count + blank_rate_count,
         "failure_count": failure_count,
+        "timed_row_count": len(row_total_values),
         "p95_row_total_ms": round(p95(row_total_values), 3) if row_total_values else None,
     }
 
@@ -241,6 +301,8 @@ def main(argv: list[str] | None = None) -> int:
         min_rows=args.min_rows,
         allow_output_changes=args.allow_output_changes,
         require_same_input=not args.allow_different_input,
+        min_p95_improvement_percent=args.min_p95_improvement_percent,
+        require_p95_improvement=args.require_p95_improvement,
     )
     write_or_print_report(report, args.output_json)
     return 0 if report["accepted"] else 2

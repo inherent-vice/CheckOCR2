@@ -64,13 +64,20 @@ document describes how to continue safely from the current state.
 
 ## OCR Accuracy And Speed Gate
 
-Before adopting any OCR or timing change, produce all of the following:
+Before adopting any OCR or timing change, produce the fixture and benchmark
+evidence first:
 
 ```powershell
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
-python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp\live_ocr_compare.json
+```
+
+For wait-time or live-speed candidates, also require the same-input live P95
+threshold:
+
+```powershell
+python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
 ```
 
 Accept a candidate only when normalized date/rate accuracy does not regress,
