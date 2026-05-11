@@ -122,6 +122,9 @@ from checkocr2.ui.ocr_actions import (
 from checkocr2.ui.ocr_actions import (
     validate_inputs_for_ocr as validate_inputs_for_ocr_action,
 )
+from checkocr2.ui.options_actions import (
+    toggle_upscaling_details as toggle_upscaling_details_action,
+)
 from checkocr2.ui.overlays import (  # noqa: F401
     AreaVisualizationOverlay,
     DragCaptureOverlay,
@@ -1102,20 +1105,7 @@ class CheckCaptureOCRApp(tk.Tk):
         complete_stopped_work_action(self)
 
     def on_upscaling_toggle(self):
-        """업스케일링 옵션 토글 시 세부 설정 표시/숨김"""
-        if self.enable_upscaling.get():
-            # 업스케일링 활성화 시 세부 설정 표시
-            if hasattr(self, 'upscaling_details_frame'):
-                for child in self.upscaling_details_frame.winfo_children():
-                    child.pack_configure()
-        else:
-            # 업스케일링 비활성화 시 세부 설정 숨김  
-            if hasattr(self, 'upscaling_details_frame'):
-                for child in self.upscaling_details_frame.winfo_children():
-                    child.pack_forget()
-        
-        # 설정 저장
-        self.save_advanced_ui_to_settings()
+        toggle_upscaling_details_action(self)
 
 
 if __name__ == "__main__":

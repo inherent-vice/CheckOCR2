@@ -31,10 +31,10 @@ the Korean parallel-agent plan and workstream split, use
   coordinate capture/preview actions, grid/context-menu actions, grid-update
   actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
   runtime-status actions, settings load/save actions, log text actions, OCR
-  run/stop/input-validation actions, work-completion actions, application
-  icons, OCR-start validation, file/coordinates/timing/options/preset/grid/log
-  panel seams, the menu bar, top toolbar, and main-window layout now have test
-  coverage.
+  run/stop/input-validation actions, options actions, work-completion actions,
+  application icons, OCR-start validation, file/coordinates/timing/options,
+  preset, grid, and log panel seams, the menu bar, top toolbar, and
+  main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -62,13 +62,12 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 296 tests,
-`compileall` passed, benchmark dry-runs passed, `mypy --follow-imports=skip`
-passed for `checkocr2\ui\ocr_actions.py`, and source GUI smoke reached
-`Ready`. The latest package gate uses the 2026-05-11 clean PyInstaller release
-build after OCR input-validation action extraction plus real package smoke at
-about `596.387 MB` with startup `3.203` seconds and settings-file verification
-under isolated `APPDATA`.
+Latest code gate result: `ruff` passed, `pytest` passed with 300 tests,
+`compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
+reached `Ready`. The latest package gate uses the 2026-05-11 clean PyInstaller
+release build after options-action extraction plus real package smoke at about
+`596.387 MB` with startup `2.703` seconds and settings-file verification under
+isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
 into `checkocr2/ui/coordinate_actions.py` and Excel/output-folder action glue
@@ -149,6 +148,11 @@ glue into `checkocr2/ui/ocr_actions.py`; focused tests pass for output-folder
 trimming, warning/error dialog routing, OCR loading/ready checks, injected
 validator behavior, and legacy wrapper compatibility. Source GUI smoke and
 real package smoke both pass for this slice.
+
+The latest options-action slice moved OCR upscaling detail show/hide behavior
+into `checkocr2/ui/options_actions.py`; focused tests pass for enabled,
+disabled, missing-frame, and legacy wrapper delegation paths. Source GUI smoke
+and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

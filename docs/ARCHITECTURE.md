@@ -92,6 +92,8 @@ working.
   OCR-start input-validation UI dispatch, including validator handoff,
   warning/error messagebox selection, runtime-state transition, worker launch,
   and queued stop logging.
+- `checkocr2/ui/options_actions.py`: options-panel behavior for showing or
+  hiding OCR upscaling detail controls and persisting advanced settings.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
 - `checkocr2/ui/runtime_status_actions.py`: runtime-state button updates,

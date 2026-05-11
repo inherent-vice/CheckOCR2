@@ -56,8 +56,8 @@ test or a manual verification note.
   behavior has moved into `checkocr2/ui/presets.py`; low-risk panels, menu/toolbar,
   shortcut/about dialogs, Excel load/output-folder actions, coordinate
   capture/preview actions, grid refresh/tag actions, OCR run/stop and
-  input-validation actions, and legacy queue dispatch have been extracted
-  incrementally.
+  input-validation actions, options actions, and legacy queue dispatch have
+  been extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
 - Still open: OCR workflow is sequential and uses fixed wait times. Current
@@ -132,6 +132,7 @@ checkocr2/
     settings_binding.py
     presets.py
     ocr_actions.py                    # OCR start/stop and input validation glue
+    options_actions.py                # options-panel behavior glue
     panels/
       file_panel.py
       coordinates_panel.py
