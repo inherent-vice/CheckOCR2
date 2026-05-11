@@ -172,6 +172,9 @@ Date: 2026-05-11
   row identity checks, blank/failure regression checks, and timing validation.
 - Added optional live-comparison P95 row-total improvement gating with a
   configurable percentage threshold for speed and wait-time changes.
+- Added `scripts/source_gui_smoke.py` to run repeatable source launcher smokes
+  with window-title matching, fast OCR Ready status, isolated `APPDATA`,
+  settings-file verification, JSON evidence, and clean process termination.
 - Narrowed broad exception handlers in the legacy Tk app for icon setup, Excel
   load/export, clipboard parsing, run-report flushing, OCR image processing,
   folder opening, settings save/load, and status finalization. Remaining broad
@@ -214,7 +217,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-folder-actions`: 228 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, OCR run/stop action extraction, work-completion action extraction, coordinate capture/preview action extraction, Excel/output-folder action extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-source-smoke`: 235 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, OCR run/stop action extraction, work-completion action extraction, coordinate capture/preview action extraction, Excel/output-folder action extraction, source GUI smoke extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -231,6 +234,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_dialogs.py tests\test_menu.py tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-dialog-review-pytest`: 7 passed for dialog extraction, wrapper delegation, and help-menu wiring.
 - `python -m pytest tests\test_file_dialogs.py tests\test_file_panel.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-file-dialogs-final`: 7 passed for file-dialog path preparation, file-panel compatibility, and menu wiring.
 - `python -m pytest tests\test_folder_actions.py tests\test_file_dialogs.py tests\test_file_panel.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-folder-actions-green3`: 17 passed for Excel/output-folder action behavior, file-dialog path preparation, file-panel compatibility, and menu wiring.
+- `python -m pytest tests\test_source_gui_smoke_script.py tests\test_package_smoke_script.py --basetemp $env:TEMP\checkocr2-source-smoke-green4`: 36 passed for source GUI smoke and packaged EXE smoke script behavior, including malformed source-entrypoint JSON error reporting.
 - `python -m pytest tests\test_grid_actions.py tests\test_grid_panel.py tests\test_excel_table_modules.py --basetemp $env:TEMP\checkocr2-grid-actions-fix`: 17 passed for grid action delegation, stable delete selection confirmation, grid-panel compatibility, and table-model clipboard behavior.
 - `python -m pytest tests\test_ocr_actions.py tests\test_async_ocr_initialization.py tests\test_work_controller.py --basetemp $env:TEMP\checkocr2-ocr-actions-green2`: 11 passed for OCR run/stop action orchestration, legacy app wrapper delegation, async OCR initialization, and work-controller compatibility.
 - `python -m pytest tests\test_completion_actions.py tests\test_queue_dispatcher.py --basetemp $env:TEMP\checkocr2-completion-actions-green2`: 8 passed for work-completion action behavior, stopped-work finalization, legacy app wrapper delegation, and queue-dispatch compatibility.
@@ -278,6 +282,9 @@ Latest code verification on 2026-05-11:
 - Source GUI fast-OCR smoke after folder action extraction used isolated
   temporary `APPDATA`, wrote status with `runtime_state="Ready"`, and reached
   `ocr_ready=true`.
+- `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: passed with `window_title="📊 Check Capture OCR V6.1"`, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
+- `python scripts\source_gui_smoke.py --entrypoint "python Check_Capture_Excel_V6.1_배포.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: passed with `window_title="📊 Check Capture OCR V6.1"`, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
+- `python scripts\source_gui_smoke.py --entrypoint "python -m checkocr2.main" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: passed with `window_title="📊 Check Capture OCR V6.1"`, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 
 Latest package verification on 2026-05-11:
 
@@ -313,5 +320,5 @@ that warning non-blocking while package smoke remains green.
   at a time, with clean build and package smoke after each removal.
 - Continue extracting UI panels/dialogs/controller helpers only while targeted
   tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
-  remains a manual checklist until a repeatable source GUI parity-smoke helper
-  records dated evidence for each section.
+  remains broader than the automated source smoke; keep adding dated evidence
+  or granular tests before treating every checklist item as a green gate.

@@ -6,11 +6,12 @@ architecture.
 
 ## Evidence Status
 
-As of 2026-05-11, this checklist is still a manual parity checklist. Automated
-tests and source/package smoke cover launch, Ready state, settings-file load,
-and many extracted panel/action seams, but they do not yet record dated evidence
-for every item below. Add a repeatable source GUI parity-smoke helper before
-treating this checklist as an automated green gate.
+As of 2026-05-11, this checklist is still a manual parity checklist.
+`scripts/source_gui_smoke.py` records repeatable source-launch, Ready-state,
+and isolated settings-file evidence for all three Python entrypoints, and
+package smoke covers the built EXE. The remaining unchecked items below still
+need either manual evidence or more granular automated parity tests before the
+whole checklist can be treated as a green gate.
 
 ## Launch And Window
 

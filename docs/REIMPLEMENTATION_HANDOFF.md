@@ -39,6 +39,9 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   reporting.
 - Fixture audit and live run comparison scripts now gate real OCR evidence
   before OCR-default or wait-time changes.
+- `scripts/source_gui_smoke.py` now provides repeatable source-launch, Ready,
+  isolated `APPDATA`, and settings-file smoke evidence for each Python
+  entrypoint.
 - Legacy broad exception handling has been reduced to typed catches in
   file/settings/OCR/folder/icon/status paths; remaining broad catches are the
   top-level workflow and adapter safety boundaries.
@@ -54,7 +57,7 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 228 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 235 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
 PyInstaller release build after folder-action extraction plus real package
@@ -68,6 +71,11 @@ relocation, area relocation, preview payloads, folder selection/open behavior,
 legacy wrapper delegation, and a fast GUI Ready smoke. Real package smoke was
 rerun because `folder_actions.py` is packaged application code.
 
+The newest verification slice adds `scripts/source_gui_smoke.py`; it passed for
+`python check_capture_ocr.py`, `python Check_Capture_Excel_V6.1_배포.py`, and
+`python -m checkocr2.main` with isolated `APPDATA`, `require-ready`, and
+`require-settings-file`.
+
 ## Commands To Re-Run Before Release
 
 ```powershell
@@ -76,6 +84,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
@@ -102,8 +111,8 @@ installed outside the release environment.
   followed by a clean build and package smoke.
 - Continue GUI/dialog/worker/controller-helper extraction only while targeted
   tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
-  is still a manual checklist; add a repeatable source GUI parity-smoke helper
-  before treating the checklist itself as a green automated gate.
+  is still broader than the automated source smoke; keep adding dated evidence
+  or granular tests before treating every checklist item as a green gate.
 
 ## Recommended Next Order
 
@@ -114,5 +123,6 @@ installed outside the release environment.
    confidence thresholds, and field allowlists.
 5. Tune waits or OCR defaults only if accuracy does not regress.
 6. Reduce packaging size through one PyInstaller or dependency change at a time.
-7. Add a repeatable source GUI smoke helper and dated parity-checklist evidence.
+7. Add dated parity-checklist evidence for UI areas not covered by source
+   smoke.
 8. Extract the remaining GUI panels and dialogs in small parity-checked commits.

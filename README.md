@@ -45,6 +45,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
@@ -60,8 +61,8 @@ review-required `ground_truth_draft.csv`; only rename it to `ground_truth.csv`
 after manual verification. See `docs/OCR_FIXTURE_WORKFLOW.md` for the full
 fixture preparation, audit, and benchmark sequence.
 
-Run GUI smoke checks through all three Python entry points after touching
-startup, settings, threading, or Tkinter UI state.
+Run `scripts\source_gui_smoke.py` through all three Python entry points after
+touching startup, settings, threading, or Tkinter UI state.
 
 ## Repository Map
 

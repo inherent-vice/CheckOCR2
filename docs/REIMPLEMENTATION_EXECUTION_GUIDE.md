@@ -101,6 +101,14 @@ changes that touch startup, threading, Tk state, queue dispatch, packaging, or
 EasyOCR initialization, run a source GUI smoke and record the result in
 `docs/IMPLEMENTATION_STATUS.md`.
 
+Repeatable source smoke command shape:
+
+```powershell
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file
+python scripts\source_gui_smoke.py --entrypoint "python Check_Capture_Excel_V6.1_배포.py" --isolated-appdata --require-ready --require-settings-file
+python scripts\source_gui_smoke.py --entrypoint "python -m checkocr2.main" --isolated-appdata --require-ready --require-settings-file
+```
+
 Minimum source gate before pushing a structural change:
 
 ```powershell
@@ -109,6 +117,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file
 ```
 
 Package-affecting changes must also pass a clean PyInstaller build and
