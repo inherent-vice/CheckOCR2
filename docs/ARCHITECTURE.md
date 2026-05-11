@@ -45,6 +45,9 @@ working.
   stopped-work UI finalization, including controller reset, runtime-state
   restore, grid refresh, settings save, stopped-state finalization, and stopped
   dialog display.
+- `checkocr2/ui/coordinate_actions.py`: click-point relocation, rectangle-area
+  relocation, and current-area preview creation for the legacy coordinate
+  controls.
 - `checkocr2/ui/theme.py`: Tk/ttk theme catalog, widget registration, and
   theme application for the legacy GUI.
 - `checkocr2/ui/overlays.py`: full-screen capture and area-preview overlay

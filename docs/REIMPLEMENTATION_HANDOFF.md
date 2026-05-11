@@ -25,10 +25,11 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
   image-processing, runtime-state, work-controller, theme manager, run-report,
   queue-dispatch, shortcut/about dialogs, overlay windows, preset controller,
-  file-dialog path preparation, grid actions, OCR run/stop actions,
-  work-completion actions, application icons, OCR-start validation, and
-  file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar,
-  top toolbar, and main-window layout now have test coverage.
+  file-dialog path preparation, coordinate capture/preview actions, grid
+  actions, OCR run/stop actions, work-completion actions, application icons,
+  OCR-start validation, and file/coordinates/timing/options/preset/grid/log
+  panel seams plus the menu bar, top toolbar, and main-window layout now have
+  test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -53,12 +54,18 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 212 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 218 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
-run-comparison tooling. Latest package gate uses the 2026-05-11 clean
-PyInstaller release build for the latest package-affecting app code plus real
-package smoke at about `596.377 MB` with startup `3.235` seconds and
-settings-file verification under isolated `APPDATA`.
+run-comparison tooling. The latest package gate remains the prior 2026-05-11
+clean PyInstaller release build plus real package smoke at about `596.377 MB`
+with startup `3.235` seconds and settings-file verification under isolated
+`APPDATA`.
+
+The newest source-only slice extracts coordinate capture and preview action glue
+into `checkocr2/ui/coordinate_actions.py`. Source gates pass for click-point
+relocation, area relocation, preview payloads, legacy wrapper delegation, and a
+fast GUI Ready smoke. Package gate numbers above are still from the prior clean
+release build because this slice does not change package dependencies.
 
 ## Commands To Re-Run Before Release
 

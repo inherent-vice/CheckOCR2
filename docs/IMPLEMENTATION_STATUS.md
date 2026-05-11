@@ -106,6 +106,10 @@ Date: 2026-05-11
   `checkocr2/ui/completion_actions.py`, preserving controller reset,
   runtime-state restoration, grid refresh, quick settings save, stopped-state
   finalization, and stopped dialog text.
+- Extracted coordinate capture and preview action glue into
+  `checkocr2/ui/coordinate_actions.py`, preserving click-point relocation,
+  all/date/rate area relocation, preview payload construction, and legacy app
+  wrapper delegation.
 - Routed output-folder cleanup through `checkocr2/paths.py`, so the Tk app no
   longer reaches through `OCRWorkflowManager` for path cleanup.
 - Moved legacy `grid_update` tuple row mutation into `checkocr2/table_model.py`,
@@ -205,7 +209,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-completion-actions`: 212 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, OCR run/stop action extraction, work-completion action extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-coordinate-actions`: 218 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, OCR run/stop action extraction, work-completion action extraction, coordinate capture/preview action extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -224,6 +228,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_grid_actions.py tests\test_grid_panel.py tests\test_excel_table_modules.py --basetemp $env:TEMP\checkocr2-grid-actions-fix`: 17 passed for grid action delegation, stable delete selection confirmation, grid-panel compatibility, and table-model clipboard behavior.
 - `python -m pytest tests\test_ocr_actions.py tests\test_async_ocr_initialization.py tests\test_work_controller.py --basetemp $env:TEMP\checkocr2-ocr-actions-green2`: 11 passed for OCR run/stop action orchestration, legacy app wrapper delegation, async OCR initialization, and work-controller compatibility.
 - `python -m pytest tests\test_completion_actions.py tests\test_queue_dispatcher.py --basetemp $env:TEMP\checkocr2-completion-actions-green2`: 8 passed for work-completion action behavior, stopped-work finalization, legacy app wrapper delegation, and queue-dispatch compatibility.
+- `python -m pytest tests\test_coordinate_actions.py tests\test_coordinates_panel.py tests\test_overlays.py --basetemp $env:TEMP\checkocr2-coordinate-actions-green2`: 12 passed for coordinate action behavior, legacy app wrapper delegation, coordinates-panel compatibility, and overlay compatibility.
 - `python -m pytest tests\test_main_window.py tests\test_file_panel.py tests\test_grid_panel.py tests\test_log_panel.py tests\test_toolbar.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-main-window`: 8 passed for main-window layout assembly and existing panel/menu/toolbar builders.
 - `python -m pytest tests\test_icons.py --basetemp $env:TEMP\checkocr2-icons2`: 4 passed for icon candidate priority, ICO/PNG application, missing-icon handling, and legacy wrapper delegation.
 - `python -m pytest tests\test_package_smoke_script.py --basetemp $env:TEMP\checkocr2-package-smoke-settings`: 29 passed for package metadata, OCR-ready, isolated `APPDATA`, settings-file location, cleanup failure handling, relative `APPDATA` resolution, OpenCV distribution, size, startup, and process-handling smoke coverage.
@@ -261,6 +266,9 @@ Latest code verification on 2026-05-11:
 - Source GUI fast-OCR smoke after work-completion action extraction used
   isolated temporary `APPDATA`, wrote status with `runtime_state="Ready"`, and
   reached `ocr_ready=true`.
+- Source GUI fast-OCR smoke after coordinate action extraction used isolated
+  temporary `APPDATA`, wrote status with `runtime_state="Ready"`, and reached
+  `ocr_ready=true`.
 
 Latest package verification on 2026-05-11:
 

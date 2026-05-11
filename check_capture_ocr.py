@@ -60,6 +60,15 @@ from checkocr2.ui.completion_actions import (
 from checkocr2.ui.completion_actions import (
     complete_work as complete_work_action,
 )
+from checkocr2.ui.coordinate_actions import (
+    relocate_area as relocate_area_action,
+)
+from checkocr2.ui.coordinate_actions import (
+    relocate_clickpoint as relocate_clickpoint_action,
+)
+from checkocr2.ui.coordinate_actions import (
+    show_area_preview as show_area_preview_action,
+)
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
 from checkocr2.ui.file_dialogs import output_folder_for_input_file, output_folder_initial_dir
 from checkocr2.ui.grid_actions import (
@@ -90,7 +99,11 @@ from checkocr2.ui.ocr_actions import (
 from checkocr2.ui.ocr_actions import (
     stop_processing as stop_processing_action,
 )
-from checkocr2.ui.overlays import AreaVisualizationOverlay, DragCaptureOverlay, PointCaptureOverlay
+from checkocr2.ui.overlays import (  # noqa: F401
+    AreaVisualizationOverlay,
+    DragCaptureOverlay,
+    PointCaptureOverlay,
+)
 from checkocr2.ui.presets import (
     apply_selected_preset as apply_selected_preset_action,
 )
@@ -1101,17 +1114,10 @@ class CheckCaptureOCRApp(tk.Tk):
             self.logger.error(f"알 수 없는 오류 발생: {e} for {output_path}")
 
     def relocate_clickpoint(self):
-        overlay = PointCaptureOverlay(self, color_key="danger", theme_manager=self.theme_manager)
-        self.wait_window(overlay)
-        if overlay.click_x is not None:
-            self.click_x.set(overlay.click_x); self.click_y.set(overlay.click_y)
+        relocate_clickpoint_action(self)
 
     def _relocate_area_generic(self, x1_var, y1_var, x2_var, y2_var, color_key):
-        overlay = DragCaptureOverlay(self, color_key=color_key, theme_manager=self.theme_manager)
-        self.wait_window(overlay)
-        if overlay.x1 is not None:
-            x1_var.set(overlay.x1); y1_var.set(overlay.y1)
-            x2_var.set(overlay.x2); y2_var.set(overlay.y2)
+        relocate_area_action(self, x1_var, y1_var, x2_var, y2_var, color_key)
 
     def relocate_allarea(self): self._relocate_area_generic(self.allarea_x1, self.allarea_y1, self.allarea_x2, self.allarea_y2, "primary")
     def relocate_datearea(self): self._relocate_area_generic(self.datearea_x1, self.datearea_y1, self.datearea_x2, self.datearea_y2, "success")
@@ -1130,13 +1136,7 @@ class CheckCaptureOCRApp(tk.Tk):
         delete_selected_preset_action(self)
 
     def show_area_preview(self):
-        areas_info = {
-            "click_point": (self.click_x.get(), self.click_y.get()),
-            "all_area": (self.allarea_x1.get(), self.allarea_y1.get(), self.allarea_x2.get(), self.allarea_y2.get()),
-            "date_area": (self.datearea_x1.get(), self.datearea_y1.get(), self.datearea_x2.get(), self.datearea_y2.get()),
-            "rate_area": (self.ratearea_x1.get(), self.ratearea_y1.get(), self.ratearea_x2.get(), self.ratearea_y2.get())
-        }
-        AreaVisualizationOverlay(self, areas_info, self.theme_manager, auto_close=True)
+        show_area_preview_action(self)
 
     def stop_processing_ui_initiated(self):
         stop_processing_action(self)
