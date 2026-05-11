@@ -54,6 +54,7 @@ from checkocr2.ui.panels.options_panel import create_options_panel
 from checkocr2.ui.panels.preset_panel import create_preset_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
+from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.ui.toolbar import create_simple_toolbar
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
@@ -1764,17 +1765,15 @@ class CheckCaptureOCRApp(tk.Tk):
 
     def _validate_inputs_for_ocr(self):
         output_dir = self.output_folder_path.get().strip()
-        if not self.data_manager.excel_data:
-             messagebox.showwarning("경고", "처리할 데이터가 없습니다. Excel 파일을 로드하거나 데이터를 추가하세요.", parent=self)
-             return False
-        if not output_dir or not os.path.isdir(output_dir):
-            messagebox.showwarning("경고", "유효한 Output 폴더를 지정하세요.", parent=self)
-            return False
-        if self.ocr_initializing:
-            messagebox.showwarning("OCR 준비 중", "OCR 엔진을 초기화하고 있습니다. 잠시 후 다시 시작하세요.", parent=self)
-            return False
-        if not self.ocr_workflow_manager.ocr_reader:
-            messagebox.showerror("오류", "OCR 엔진이 초기화되지 않았습니다. 프로그램을 재시작하거나 설정을 확인하세요.", parent=self)
+        validation = validate_ocr_start(
+            rows=self.data_manager.excel_data,
+            output_dir_exists=lambda: bool(output_dir and os.path.isdir(output_dir)),
+            ocr_initializing=self.ocr_initializing,
+            ocr_ready=bool(self.ocr_workflow_manager.ocr_reader),
+        )
+        if not validation.is_valid:
+            show_message = messagebox.showerror if validation.severity == ERROR else messagebox.showwarning
+            show_message(validation.title, validation.message, parent=self)
             return False
         return True
 

@@ -59,7 +59,8 @@ test or a manual verification note.
 - Mitigated: tracked `settings.json` was replaced by `settings.example.json`,
   with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
 - Partially mitigated: queue events, rows, and settings have typed seams, but
-  legacy tuple dispatch remains at the Tk controller edge.
+  legacy tuple dispatch remains at the Tk controller edge. OCR-start validation
+  messages are now isolated behind a tested helper.
 - Partially mitigated: broad exception handlers have been narrowed around GUI,
   file, OCR, and export boundaries; remaining broad catches are adapter and
   top-level workflow safety boundaries.

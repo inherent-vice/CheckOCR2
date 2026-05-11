@@ -41,6 +41,8 @@ working.
   build metadata text.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
+- `checkocr2/ui/start_validation.py`: OCR-start validation messages for empty
+  grid, invalid output folder, OCR loading, and OCR initialization failure.
 - `checkocr2/ui/panels/file_panel.py`: left-side Excel input and output-folder
   panel builder.
 - `checkocr2/ui/panels/coordinates_panel.py`: capture coordinate and area

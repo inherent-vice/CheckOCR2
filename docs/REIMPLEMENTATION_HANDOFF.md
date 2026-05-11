@@ -20,7 +20,7 @@ behavior.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, table, settings, paths, image-processing, runtime-state,
-  run-report, queue-dispatch, shortcut/about dialogs, and
+  run-report, queue-dispatch, shortcut/about dialogs, OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar
   and top toolbar now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
@@ -41,7 +41,7 @@ behavior.
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 114 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 120 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate remains the 2026-05-08 clean
 PyInstaller release build plus real package smoke at about `596.35 MB` with
@@ -76,8 +76,8 @@ installed outside the release environment.
 - Benchmark alternate OCR engines only after the fixture baseline exists.
 - Continue trimming PyInstaller hidden imports only when each removal is
   followed by a clean build and package smoke.
-- Continue GUI/dialog/worker extraction only while `docs/GUI_PARITY_CHECKLIST.md`
-  and automated tests stay green.
+- Continue GUI/dialog/worker/controller-helper extraction only while
+  `docs/GUI_PARITY_CHECKLIST.md` and automated tests stay green.
 
 ## Recommended Next Order
 
