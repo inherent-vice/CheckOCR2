@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+from pathlib import Path
 
 from checkocr2.ui import folder_actions
 
@@ -35,15 +36,30 @@ class FakeSettingsManager:
         return default
 
 
+class FakeDataManager:
+    def __init__(self, loaded_rows=0):
+        self.loaded_rows = loaded_rows
+        self.loaded_paths = []
+
+    def load_excel_to_grid_data(self, file_path):
+        self.loaded_paths.append(file_path)
+        return self.loaded_rows
+
+
 class FakeApp:
-    def __init__(self, output_path=""):
-        self.input_excel_path = FakeVar("")
+    def __init__(self, output_path="", *, input_path="", loaded_rows=0):
+        self.input_excel_path = FakeVar(input_path)
         self.output_folder_path = FakeVar(output_path)
         self.logger = FakeLogger()
         self.settings_manager = FakeSettingsManager()
+        self.data_manager = FakeDataManager(loaded_rows=loaded_rows)
+        self.refresh_count = 0
 
     def _clean_output_folder_path(self, path):
         return str(path).replace("\\", "/")
+
+    def refresh_grid_ui(self):
+        self.refresh_count += 1
 
 
 def test_browse_input_excel_sets_input_output_and_logs_parent_folder():
@@ -211,6 +227,45 @@ def test_open_output_folder_reports_command_failure():
     assert "폴더 열기 명령어 실행 실패" in messages[0][1]
 
 
+def test_load_excel_to_grid_warns_when_input_missing():
+    app = FakeApp(input_path="")
+    messages = []
+
+    folder_actions.load_excel_to_grid(
+        app,
+        exists=lambda _path: False,
+        showerror=lambda *args, **kwargs: messages.append((args, kwargs)),
+    )
+
+    assert messages == [(("오류", "Excel 파일을 먼저 선택해주세요."), {"parent": app})]
+    assert app.data_manager.loaded_paths == []
+    assert app.refresh_count == 0
+
+
+def test_load_excel_to_grid_sets_output_folder_logs_and_refreshes_on_success():
+    workbook = str(Path("C:/input/source.xlsx"))
+    app = FakeApp(input_path=workbook, loaded_rows=3)
+
+    folder_actions.load_excel_to_grid(app, exists=lambda path: path == workbook)
+
+    assert app.data_manager.loaded_paths == [workbook]
+    assert app.output_folder_path.get() == "C:/input"
+    assert ("info", "Excel 파일 로드 완료: 3행") in app.logger.entries
+    assert ("info", "출력 폴더 자동 설정됨: C:/input") in app.logger.entries
+    assert app.refresh_count == 1
+
+
+def test_load_excel_to_grid_does_not_refresh_when_no_rows_loaded():
+    workbook = str(Path("C:/input/empty.xlsx"))
+    app = FakeApp(input_path=workbook, loaded_rows=0)
+
+    folder_actions.load_excel_to_grid(app, exists=lambda path: path == workbook)
+
+    assert app.data_manager.loaded_paths == [workbook]
+    assert app.output_folder_path.get() == ""
+    assert app.refresh_count == 0
+
+
 def test_legacy_app_folder_methods_delegate(ocr_module, monkeypatch):
     app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
     calls = []
@@ -230,13 +285,20 @@ def test_legacy_app_folder_methods_delegate(ocr_module, monkeypatch):
         "open_output_folder_action",
         lambda app_ref: calls.append(("open_output", app_ref)),
     )
+    monkeypatch.setattr(
+        ocr_module,
+        "load_excel_to_grid_action",
+        lambda app_ref: calls.append(("load_excel", app_ref)),
+    )
 
     app.browse_input_excel()
     app.browse_output_folder()
     app.open_output_folder()
+    app.load_excel_to_grid()
 
     assert calls == [
         ("input", app),
         ("browse_output", app),
         ("open_output", app),
+        ("load_excel", app),
     ]

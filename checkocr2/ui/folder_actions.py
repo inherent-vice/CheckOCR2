@@ -10,7 +10,10 @@ from collections.abc import Callable
 from tkinter import filedialog, messagebox
 from typing import Any
 
-from checkocr2.ui.file_dialogs import output_folder_for_input_file, output_folder_initial_dir
+from checkocr2.ui.file_dialogs import (
+    output_folder_for_input_file,
+    output_folder_initial_dir,
+)
 
 TK_TCL_ERROR = getattr(tk, "TclError", type("_TkTclError", (Exception,), {}))
 
@@ -79,6 +82,28 @@ def browse_output_folder(
         showerror("오류", f"폴더 선택 중 오류가 발생했습니다.\n\n{exc}")
 
 
+def load_excel_to_grid(
+    app: Any,
+    *,
+    exists: Callable[[str], bool] = os.path.exists,
+    dirname: Callable[[str], str] = os.path.dirname,
+    showerror: Callable[..., object] | None = None,
+) -> None:
+    showerror = showerror or messagebox.showerror
+    file_path = app.input_excel_path.get()
+    if not file_path or not exists(file_path):
+        showerror("오류", "Excel 파일을 먼저 선택해주세요.", parent=app)
+        return
+
+    loaded_rows = app.data_manager.load_excel_to_grid_data(file_path)
+    if loaded_rows > 0:
+        cleaned_base_path = app._clean_output_folder_path(dirname(file_path))
+        app.output_folder_path.set(cleaned_base_path)
+        app.logger.info(f"Excel 파일 로드 완료: {loaded_rows}행")
+        app.logger.info(f"출력 폴더 자동 설정됨: {cleaned_base_path}")
+        app.refresh_grid_ui()
+
+
 def open_output_folder(
     app: Any,
     *,
@@ -104,7 +129,9 @@ def open_output_folder(
         current_system = system()
         cleaned_path = str(output_path).strip()
 
-        app.logger.info(f"출력 폴더 열기 시도 - 시스템: {current_system}, 원본 경로: {cleaned_path}")
+        app.logger.info(
+            f"출력 폴더 열기 시도 - 시스템: {current_system}, 원본 경로: {cleaned_path}"
+        )
 
         if current_system == "Windows":
             _open_windows_output_folder(
@@ -135,7 +162,10 @@ def open_output_folder(
             )
 
     except FileNotFoundError:
-        showerror("오류", f"폴더 또는 파일을 찾을 수 없습니다.\n경로를 확인해주세요.\n\n경로: {output_path}")
+        showerror(
+            "오류",
+            f"폴더 또는 파일을 찾을 수 없습니다.\n경로를 확인해주세요.\n\n경로: {output_path}",
+        )
         app.logger.error(f"폴더 열기 실패: FileNotFoundError for {output_path}")
     except subprocess.CalledProcessError as exc:
         showerror("오류", f"폴더 열기 명령어 실행 실패: {exc}\n\n경로: {output_path}")
@@ -227,7 +257,9 @@ def _prepare_unc_output_folder(
                 makedirs(cleaned_path_windows, exist_ok=True)
                 app.logger.info(f"UNC 네트워크 폴더 생성됨: {cleaned_path_windows}")
             else:
-                app.logger.warning(f"네트워크 서버에 접근할 수 없습니다: {server_share}")
+                app.logger.warning(
+                    f"네트워크 서버에 접근할 수 없습니다: {server_share}"
+                )
                 showwarning(
                     "네트워크 오류",
                     f"네트워크 서버에 접근할 수 없습니다.\n\n"

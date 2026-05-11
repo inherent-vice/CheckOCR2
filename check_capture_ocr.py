@@ -66,6 +66,9 @@ from checkocr2.ui.folder_actions import (
     browse_output_folder as browse_output_folder_action,
 )
 from checkocr2.ui.folder_actions import (
+    load_excel_to_grid as load_excel_to_grid_action,
+)
+from checkocr2.ui.folder_actions import (
     open_output_folder as open_output_folder_action,
 )
 from checkocr2.ui.grid_actions import (
@@ -913,20 +916,7 @@ class CheckCaptureOCRApp(tk.Tk):
         return True
 
     def load_excel_to_grid(self):
-        file_path = self.input_excel_path.get()
-        if not file_path or not os.path.exists(file_path):
-            messagebox.showerror("오류", "Excel 파일을 먼저 선택해주세요.", parent=self)
-            return
-        
-        loaded_rows = self.data_manager.load_excel_to_grid_data(file_path)
-        if loaded_rows > 0:
-            # Excel 파일 로드 성공 시 출력 폴더도 자동 설정
-            base_path = os.path.dirname(file_path)
-            cleaned_base_path = self._clean_output_folder_path(base_path)
-            self.output_folder_path.set(cleaned_base_path)
-            self.logger.info(f"Excel 파일 로드 완료: {loaded_rows}행")
-            self.logger.info(f"출력 폴더 자동 설정됨: {cleaned_base_path}")
-            self.refresh_grid_ui()
+        load_excel_to_grid_action(self)
 
     def add_empty_row_ui(self):
         add_empty_row(self)

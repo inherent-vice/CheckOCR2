@@ -54,7 +54,7 @@ test or a manual verification note.
   `checkocr2/ui/settings_binding.py`; current settings load/save/reset actions
   have moved into `checkocr2/ui/settings_actions.py`; preset controller
   behavior has moved into `checkocr2/ui/presets.py`; low-risk panels, menu/toolbar,
-  shortcut/about dialogs, Excel/output-folder actions, coordinate
+  shortcut/about dialogs, Excel load/output-folder actions, coordinate
   capture/preview actions, grid refresh/tag actions, and legacy queue dispatch
   have been extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
