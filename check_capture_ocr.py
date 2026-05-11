@@ -64,6 +64,12 @@ from checkocr2.ui.panels.options_panel import create_options_panel
 from checkocr2.ui.panels.preset_panel import create_preset_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
+from checkocr2.ui.settings_binding import (
+    apply_ui_settings,
+    build_current_settings,
+    collect_ui_settings,
+    save_advanced_settings,
+)
 from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.ui.theme import ThemeManager
 from checkocr2.ui.toolbar import create_simple_toolbar
@@ -958,66 +964,13 @@ class CheckCaptureOCRApp(tk.Tk):
         self.grid_tree.tag_configure('error', background=self.theme_manager.get_color('danger', '#F8D7DA'), foreground=self.theme_manager.get_color('white', '#721C24'))
 
     def get_current_ui_settings(self):
-        return {
-            'click_point': (self.click_x.get(), self.click_y.get()),
-            'all_area': (self.allarea_x1.get(), self.allarea_y1.get(), self.allarea_x2.get(), self.allarea_y2.get()),
-            'date_area': (self.datearea_x1.get(), self.datearea_y1.get(), self.datearea_x2.get(), self.datearea_y2.get()),
-            'rate_area': (self.ratearea_x1.get(), self.ratearea_y1.get(), self.ratearea_x2.get(), self.ratearea_y2.get()),
-            'delays': {
-                'paste': self.paste_delay.get(),
-                'loading': self.loading_delay.get()
-            },
-            'save_detail_images': self.save_detail_images.get(),
-            'skip_kbp_code': self.skip_kbp_var.get(),
-            'upscaling': {
-                'enabled': self.enable_upscaling.get(),
-                'factor': self.upscaling_factor.get(),
-                'method': self.upscaling_method.get()
-            }
-        }
+        return collect_ui_settings(self)
 
     def apply_settings_to_ui(self, settings_dict):
-        if not settings_dict: return
-        cp = settings_dict.get('click_point', (0,0))
-        self.click_x.set(cp[0]); self.click_y.set(cp[1])
-        
-        areas = {'all_area': (self.allarea_x1, self.allarea_y1, self.allarea_x2, self.allarea_y2),
-                 'date_area': (self.datearea_x1, self.datearea_y1, self.datearea_x2, self.datearea_y2),
-                 'rate_area': (self.ratearea_x1, self.ratearea_y1, self.ratearea_x2, self.ratearea_y2)}
-        for key, tk_vars in areas.items():
-            coords = settings_dict.get(key)
-            if coords and len(coords) == 4:
-                tk_vars[0].set(coords[0]); tk_vars[1].set(coords[1])
-                tk_vars[2].set(coords[2]); tk_vars[3].set(coords[3])
-
-        delays = settings_dict.get('delays', {})
-        self.paste_delay.set(delays.get('paste', 0.5))
-        self.loading_delay.set(delays.get('loading', 2.5))
-        self.save_detail_images.set(settings_dict.get('save_detail_images', True))
-        self.skip_kbp_var.set(settings_dict.get('skip_kbp_code', True))
-
-        # 업스케일링 설정 적용
-        upscaling_settings = settings_dict.get('upscaling', {})
-        self.enable_upscaling.set(upscaling_settings.get('enabled', True))
-        self.upscaling_factor.set(upscaling_settings.get('factor', 2.0))
-        self.upscaling_method.set(upscaling_settings.get('method', 'LANCZOS'))
-
-        if 'advanced' in settings_dict:
-            self.settings_manager.data['advanced'].update(settings_dict['advanced'])
+        apply_ui_settings(self, settings_dict)
 
     def save_advanced_ui_to_settings(self):
-        try:
-            self.settings_manager.set_advanced('skip_kbp_code', self.skip_kbp_var.get())
-            
-            # 업스케일링 설정 저장
-            self.settings_manager.set_advanced('upscaling_enabled', self.enable_upscaling.get())
-            self.settings_manager.set_advanced('upscaling_factor', self.upscaling_factor.get())
-            self.settings_manager.set_advanced('upscaling_method', self.upscaling_method.get())
-            
-            self.settings_manager.save_settings()
-            self.logger.info("고급 설정이 저장되었습니다.")
-        except (OSError, SettingsError, TypeError, ValueError) as e:
-            self.logger.error(f"고급 설정 저장 실패: {e}")
+        save_advanced_settings(self)
 
     def reset_advanced_settings_and_ui(self):
         if messagebox.askyesno("확인", "모든 고급 설정을 기본값으로 되돌리시겠습니까?"):
@@ -1622,13 +1575,9 @@ class CheckCaptureOCRApp(tk.Tk):
     def quick_save_settings(self):
         """현재 UI 설정을 빠르게 저장"""
         try:
-            current_settings = self.get_current_ui_settings()
-            current_settings['input_excel_path'] = self.input_excel_path.get()
-            current_settings['output_folder_path'] = self.output_folder_path.get()
-            
+            current_settings = build_current_settings(self)
             self.settings_manager.save_current_settings(current_settings)
             self.save_advanced_ui_to_settings()  # 고급 설정도 함께 저장
-            
             self.logger.info("현재 설정이 저장되었습니다.")
         except (OSError, SettingsError, tk.TclError, TypeError, ValueError) as e:
             self.logger.error(f"설정 저장 실패: {e}")

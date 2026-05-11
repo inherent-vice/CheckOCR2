@@ -50,8 +50,10 @@ test or a manual verification note.
   has moved into `checkocr2/work_controller.py`; theme management has moved
   into `checkocr2/ui/theme.py`; overlay windows have moved into
   `checkocr2/ui/overlays.py`; grid data management has moved into
-  `checkocr2/data_manager.py`; low-risk panels, menu/toolbar, shortcut/about
-  dialogs, and legacy queue dispatch have been extracted incrementally.
+  `checkocr2/data_manager.py`; settings UI binding has moved into
+  `checkocr2/ui/settings_binding.py`; low-risk panels, menu/toolbar,
+  shortcut/about dialogs, and legacy queue dispatch have been extracted
+  incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
 - Still open: OCR workflow is sequential and uses fixed wait times. Current
@@ -116,6 +118,7 @@ checkocr2/
     theme.py
     overlays.py
     dialogs.py
+    settings_binding.py
     panels/
       file_panel.py
       coordinates_panel.py
