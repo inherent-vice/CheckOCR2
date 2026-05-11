@@ -24,9 +24,9 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   app reaches `Ready`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
   image-processing, runtime-state, work-controller, theme manager, run-report,
-  queue-dispatch, shortcut/about dialogs, overlay windows, OCR-start validation, and
-  file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar
-  and top toolbar now have test coverage.
+  queue-dispatch, shortcut/about dialogs, overlay windows, preset controller,
+  OCR-start validation, and file/coordinates/timing/options/preset/grid/log
+  panel seams plus the menu bar and top toolbar now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -45,7 +45,7 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 150 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 158 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate remains the 2026-05-08 clean
 PyInstaller release build plus real package smoke at about `596.35 MB` with

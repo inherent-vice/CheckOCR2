@@ -47,6 +47,8 @@ working.
   windows for click point and rectangle selection.
 - `checkocr2/ui/menu.py`: menu bar command wiring for files, settings,
   previews, run controls, and help.
+- `checkocr2/ui/presets.py`: preset combo refresh, apply, save, and delete
+  controller logic.
 - `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and
   theme selection.
 - `checkocr2/ui/dialogs.py`: keyboard-shortcut and about dialogs, including

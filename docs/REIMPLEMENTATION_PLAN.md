@@ -51,7 +51,8 @@ test or a manual verification note.
   into `checkocr2/ui/theme.py`; overlay windows have moved into
   `checkocr2/ui/overlays.py`; grid data management has moved into
   `checkocr2/data_manager.py`; settings UI binding has moved into
-  `checkocr2/ui/settings_binding.py`; low-risk panels, menu/toolbar,
+  `checkocr2/ui/settings_binding.py`; preset controller behavior has moved
+  into `checkocr2/ui/presets.py`; low-risk panels, menu/toolbar,
   shortcut/about dialogs, and legacy queue dispatch have been extracted
   incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
@@ -120,6 +121,7 @@ checkocr2/
     overlays.py
     dialogs.py
     settings_binding.py
+    presets.py
     panels/
       file_panel.py
       coordinates_panel.py

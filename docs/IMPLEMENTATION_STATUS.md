@@ -69,6 +69,9 @@ Date: 2026-05-11
 - Extracted OCR-start input validation messages into
   `checkocr2/ui/start_validation.py` with unit coverage for empty-grid,
   output-folder, OCR-loading, OCR-failed, and ready states.
+- Extracted preset controller behavior into `checkocr2/ui/presets.py` with
+  unit coverage for combo refresh, apply, save, delete, dialog fallback, and
+  legacy wrapper delegation.
 - Moved grid status summary and progress label formatting into
   `checkocr2/table_model.py`, preserving the existing GUI text.
 - Moved grid render value and status-tag decisions into
@@ -169,7 +172,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 150 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 158 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -193,6 +196,7 @@ Latest code verification on 2026-05-11:
 - Source GUI fast-OCR smoke after data-manager extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `data_manager_module="checkocr2.data_manager"`.
 - Source GUI fast-OCR smoke after settings-binding extraction used isolated temporary `APPDATA`, opened `📊 Check Capture OCR V6.1`, and reached `Ready` with `ocr_ready=true`.
 - Source GUI fast-OCR smoke after grid-render helper extraction used isolated temporary `APPDATA`, opened `📊 Check Capture OCR V6.1`, and reached `Ready` with `ocr_ready=true`.
+- Source GUI fast-OCR smoke after preset-controller extraction used isolated temporary `APPDATA`, opened `📊 Check Capture OCR V6.1`, and reached `Ready` with `ocr_ready=true`.
 
 Latest package verification on 2026-05-08:
 

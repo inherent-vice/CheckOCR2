@@ -9,7 +9,7 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox
 
 import numpy as np
 from PIL import Image
@@ -63,6 +63,18 @@ from checkocr2.ui.panels.log_panel import create_log_panel
 from checkocr2.ui.panels.options_panel import create_options_panel
 from checkocr2.ui.panels.preset_panel import create_preset_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
+from checkocr2.ui.presets import (
+    apply_selected_preset as apply_selected_preset_action,
+)
+from checkocr2.ui.presets import (
+    delete_selected_preset as delete_selected_preset_action,
+)
+from checkocr2.ui.presets import (
+    save_current_as_preset as save_current_as_preset_action,
+)
+from checkocr2.ui.presets import (
+    update_preset_combo as update_preset_combo_action,
+)
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.ui.settings_binding import (
     apply_ui_settings,
@@ -1200,54 +1212,16 @@ class CheckCaptureOCRApp(tk.Tk):
     def relocate_ratearea(self): self._relocate_area_generic(self.ratearea_x1, self.ratearea_y1, self.ratearea_x2, self.ratearea_y2, "warning")
 
     def update_preset_combo(self):
-        if hasattr(self, 'preset_combo') and self.preset_combo:
-            preset_names = self.settings_manager.get_preset_names()
-            self.preset_combo['values'] = preset_names
-            if preset_names: self.preset_combo.current(0)
-            else: self.preset_combo.set('')
+        update_preset_combo_action(self)
 
     def apply_selected_preset(self):
-        if not hasattr(self, 'preset_combo'): return
-        selected = self.preset_combo.get()
-        if selected:
-            preset_settings = self.settings_manager.apply_preset(selected)
-            if preset_settings:
-                self.apply_settings_to_ui(preset_settings)
-                messagebox.showinfo("정보", f"프리셋 '{selected}'이 적용되었습니다.")
-                self.logger.info(f"프리셋 '{selected}' 적용됨.")
+        apply_selected_preset_action(self)
 
     def save_current_as_preset(self):
-        name_entry_widget = getattr(self, 'preset_name_entry', None)
-        name = ""
-        if name_entry_widget:
-            name = name_entry_widget.get().strip()
-            if name == "새 프리셋 이름" or not name:
-                messagebox.showwarning("경고", "유효한 프리셋 이름을 입력해주세요.")
-                return
-        else:
-            name = simpledialog.askstring("프리셋 저장", "프리셋 이름을 입력하세요:", parent=self)
-            if not name: return
-
-        current_settings = self.get_current_ui_settings()
-        self.settings_manager.save_preset(name, current_settings)
-        self.update_preset_combo()
-        if name_entry_widget:
-            name_entry_widget.delete(0, tk.END)
-            name_entry_widget.insert(0, "새 프리셋 이름")
-        messagebox.showinfo("완료", f"'{name}' 프리셋이 저장되었습니다.")
-        self.logger.info(f"프리셋 '{name}' 저장됨.")
+        save_current_as_preset_action(self)
 
     def delete_selected_preset(self):
-        if not hasattr(self, 'preset_combo'): return
-        selected = self.preset_combo.get()
-        if not selected:
-            messagebox.showwarning("경고", "삭제할 프리셋을 선택해주세요.")
-            return
-        if messagebox.askyesno("확인", f"프리셋 '{selected}'을(를) 삭제하시겠습니까?"):
-            self.settings_manager.delete_preset(selected)
-            self.update_preset_combo()
-            messagebox.showinfo("완료", f"프리셋 '{selected}'이 삭제되었습니다.")
-            self.logger.info(f"프리셋 '{selected}' 삭제됨.")
+        delete_selected_preset_action(self)
 
     def show_area_preview(self):
         areas_info = {
