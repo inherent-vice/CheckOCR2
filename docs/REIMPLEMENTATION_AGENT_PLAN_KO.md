@@ -17,10 +17,10 @@
 - `checkocr2/`에는 설정, 경로, Excel I/O, OCR 텍스트 정규화, OCR 엔진
   어댑터, 화면 자동화, 캡처 어댑터, 워크플로, 런 리포트, 런타임 상태,
   큐 디스패치, 주요 UI action/helper가 분리되어 있다.
-- 최신 소스 게이트는 `ruff`, `pytest` 265개, `compileall`, OCR benchmark
+- 최신 소스 게이트는 `ruff`, `pytest` 271개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, canonical source GUI smoke까지 통과했다.
 - 최신 패키지 게이트는 clean PyInstaller build와 real OCR package smoke를
-  통과했으며, 패키지 크기는 약 `596.385 MB`, 시작 시간은 `3.219`초다.
+  통과했으며, 패키지 크기는 약 `596.385 MB`, 시작 시간은 `1.11`초다.
 - 아직 실제 OCR crop fixture와 같은 입력 10행 라이브 비교가 없으므로 OCR
   기본값, wait-time, 엔진 교체는 기본값으로 승격하지 않는다.
 

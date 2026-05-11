@@ -45,13 +45,6 @@ from checkocr2.run_report import (
 from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
-from checkocr2.table_model import (
-    format_grid_progress_text,
-    format_grid_status_text,
-    grid_row_tags,
-    grid_row_values,
-    summarize_grid_rows,
-)
 from checkocr2.ui.completion_actions import (
     complete_stopped_work as complete_stopped_work_action,
 )
@@ -91,6 +84,12 @@ from checkocr2.ui.grid_edit_actions import (
     on_cell_double_click,
     save_cell_edit,
     save_cell_edit_on_focus_out,
+)
+from checkocr2.ui.grid_refresh_actions import (
+    refresh_grid as refresh_grid_action,
+)
+from checkocr2.ui.grid_refresh_actions import (
+    update_grid_status_labels as update_grid_status_labels_action,
 )
 from checkocr2.ui.grid_update_actions import handle_grid_update
 from checkocr2.ui.icons import apply_application_icon
@@ -959,25 +958,10 @@ class CheckCaptureOCRApp(tk.Tk):
         copy_selected_rates(self)
 
     def refresh_grid_ui(self):
-        if not self.grid_tree: return
-        for item in self.grid_tree.get_children(): self.grid_tree.delete(item)
-        
-        for i, row in enumerate(self.data_manager.excel_data):
-            tags = grid_row_tags(
-                row,
-                row_index=i,
-                current_processing_index=self.data_manager.current_processing_index,
-                is_running=self.work_controller.is_running,
-            )
-            self.grid_tree.insert('', 'end', values=grid_row_values(row), tags=tags)
-        self.update_grid_status_labels()
+        refresh_grid_action(self)
 
     def update_grid_status_labels(self):
-        if not hasattr(self, 'grid_status_label'): return
-        summary = summarize_grid_rows(self.data_manager.excel_data)
-        self.grid_status_label.config(text=format_grid_status_text(summary))
-        if hasattr(self, 'grid_progress_label'):
-            self.grid_progress_label.config(text=format_grid_progress_text(summary))
+        update_grid_status_labels_action(self)
 
     def on_cell_double_click_ui(self, event):
         on_cell_double_click(self, event)

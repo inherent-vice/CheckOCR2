@@ -29,8 +29,9 @@ the Korean parallel-agent plan and workstream split, use
   manager, run-report, queue-dispatch, shortcut/about dialogs, overlay windows,
   preset controller, file-dialog path preparation, Excel/output-folder actions,
   coordinate capture/preview actions, grid/context-menu actions, grid-update
-  actions, grid-edit actions, keyboard actions, log text actions, OCR run/stop
-  actions, work-completion actions, application icons, OCR-start validation, and
+  actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
+  log text actions, OCR run/stop actions, work-completion actions, application
+  icons, OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu
   bar, top toolbar, and main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
@@ -60,11 +61,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 265 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 271 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
-PyInstaller release build after grid-edit action extraction plus real package
-smoke at about `596.385 MB` with startup `3.219` seconds and settings-file
+PyInstaller release build after grid-refresh action extraction plus real package
+smoke at about `596.385 MB` with startup `1.11` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -109,6 +110,12 @@ save/cancel/focus-out behavior into `checkocr2/ui/grid_edit_actions.py`;
 focused grid-edit tests pass for Tk event binding, theme registration, update
 delegation, and legacy wrapper compatibility. Source GUI smoke and real
 package smoke both pass for this slice.
+
+The latest grid refresh slice moved Treeview redraw and status/progress label
+updates into `checkocr2/ui/grid_refresh_actions.py`; focused refresh tests pass
+for delete/insert ordering, render values/tags, label no-op behavior, and
+legacy wrapper compatibility. Source GUI smoke and real package smoke both pass
+for this slice.
 
 ## Commands To Re-Run Before Release
 
