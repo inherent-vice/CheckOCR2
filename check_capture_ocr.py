@@ -30,9 +30,7 @@ from checkocr2.ocr_text import (
     is_valid_rate_format,
 )
 from checkocr2.package_smoke_status import (
-    PACKAGE_SMOKE_STATUS_FILE_ENV,
     package_smoke_fast_ocr_enabled,
-    write_package_smoke_status,
 )
 from checkocr2.paths import clean_folder_path, updated_workbook_path
 from checkocr2.run_report import (
@@ -42,7 +40,7 @@ from checkocr2.run_report import (
     report_output_path,
     write_run_report,
 )
-from checkocr2.runtime_state import RuntimeState, runtime_state_ui
+from checkocr2.runtime_state import RuntimeState
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.ui.completion_actions import (
@@ -133,6 +131,18 @@ from checkocr2.ui.presets import (
     update_preset_combo as update_preset_combo_action,
 )
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
+from checkocr2.ui.runtime_status_actions import (
+    ready_or_error_state as ready_or_error_state_action,
+)
+from checkocr2.ui.runtime_status_actions import (
+    set_ocr_ready_ui as set_ocr_ready_ui_action,
+)
+from checkocr2.ui.runtime_status_actions import (
+    set_runtime_state as set_runtime_state_action,
+)
+from checkocr2.ui.runtime_status_actions import (
+    write_package_smoke_status_for_app as write_package_smoke_status_action,
+)
 from checkocr2.ui.settings_binding import (
     apply_ui_settings,
     build_current_settings,
@@ -734,41 +744,16 @@ class CheckCaptureOCRApp(tk.Tk):
         self.ocr_init_thread.start()
 
     def _set_runtime_state(self, state):
-        self.runtime_state = state
-        ui_state = runtime_state_ui(state)
-        if not hasattr(self, "run_btn") or not self.run_btn:
-            self._write_package_smoke_status()
-            return
-        self.run_btn.config(state=ui_state.run_button_state, text=ui_state.run_button_text)
-        if hasattr(self, "stop_btn") and self.stop_btn:
-            self.stop_btn.config(state=ui_state.stop_button_state)
-        self._write_package_smoke_status()
+        set_runtime_state_action(self, state)
 
     def _set_ocr_ready_ui(self, ready):
-        self._set_runtime_state(RuntimeState.READY if ready else RuntimeState.OCR_LOADING)
+        set_ocr_ready_ui_action(self, ready)
 
     def _ready_or_error_state(self):
-        return RuntimeState.READY if self.ocr_workflow_manager.ocr_reader else RuntimeState.ERROR
+        return ready_or_error_state_action(self)
 
     def _write_package_smoke_status(self):
-        status_file = os.environ.get(PACKAGE_SMOKE_STATUS_FILE_ENV)
-        if not status_file:
-            return
-
-        try:
-            write_package_smoke_status(
-                status_file,
-                runtime_state=self.runtime_state,
-                ocr_ready=bool(self.ocr_workflow_manager.ocr_reader),
-                settings_file=getattr(
-                    getattr(self, "settings_manager", None),
-                    "settings_file",
-                    None,
-                ),
-            )
-        except OSError as exc:
-            if hasattr(self, "logger"):
-                self.logger.debug("Package smoke status write failed: %s", exc)
+        write_package_smoke_status_action(self)
 
     def _setup_application_icon(self):
         apply_application_icon(self)

@@ -30,8 +30,8 @@ the Korean parallel-agent plan and workstream split, use
   preset controller, file-dialog path preparation, Excel/output-folder actions,
   coordinate capture/preview actions, grid/context-menu actions, grid-update
   actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
-  log text actions, OCR run/stop actions, work-completion actions, application
-  icons, OCR-start validation, and
+  runtime-status actions, log text actions, OCR run/stop actions,
+  work-completion actions, application icons, OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu
   bar, top toolbar, and main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
@@ -61,11 +61,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 271 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 279 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
-PyInstaller release build after grid-refresh action extraction plus real package
-smoke at about `596.385 MB` with startup `1.11` seconds and settings-file
+PyInstaller release build after runtime-status action extraction plus real
+package smoke at about `596.386 MB` with startup `3.219` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -116,6 +116,13 @@ updates into `checkocr2/ui/grid_refresh_actions.py`; focused refresh tests pass
 for delete/insert ordering, render values/tags, label no-op behavior, and
 legacy wrapper compatibility. Source GUI smoke and real package smoke both pass
 for this slice.
+
+The latest runtime-status slice moved runtime-state button updates,
+OCR-ready/error mapping, and package-smoke status writing into
+`checkocr2/ui/runtime_status_actions.py`; focused tests pass for smoke env
+handling, no-workflow no-op behavior, write failure logging, and legacy wrapper
+compatibility. Source GUI smoke and real package smoke both pass for this
+slice.
 
 ## Commands To Re-Run Before Release
 

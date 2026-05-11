@@ -25,9 +25,9 @@ document describes how to continue safely from the current state.
   helpers, queue dispatch, start validation, menu/toolbar, dialogs, file-dialog path preparation,
   Excel/output-folder actions, coordinate capture/preview actions,
   grid/context-menu actions, grid-edit actions, grid-refresh/status actions,
-  grid-update actions, keyboard actions, log text actions, OCR run/stop
-  actions, work-completion actions, several panels, and work-control state now
-  have package-level seams and tests.
+  grid-update actions, keyboard actions, runtime-status actions, log text
+  actions, OCR run/stop actions, work-completion actions, several panels, and
+  work-control state now have package-level seams and tests.
 - `check_capture_ocr.py` still owns the remaining Tk shell, some controller
   glue, and release-compatible behavior.
 
@@ -63,8 +63,8 @@ document describes how to continue safely from the current state.
 6. Continue package-size cleanup one measured PyInstaller/dependency change at
    a time, followed by a clean build and package smoke.
 7. Continue small controller extractions that do not alter UI layout. Good
-   targets are remaining runtime-state helpers and final controller-only
-   branches that can be tested with fakes.
+   targets are remaining final controller-only branches that can be tested with
+   fakes.
 
 ## OCR Accuracy And Speed Gate
 

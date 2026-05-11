@@ -92,6 +92,9 @@ working.
   logging.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
+- `checkocr2/ui/runtime_status_actions.py`: runtime-state button updates,
+  OCR-ready state mapping, and package-smoke status payload writing for the Tk
+  shell.
 - `checkocr2/ui/settings_binding.py`: settings-to-Tk-variable mapping for
   current settings, preset application, and advanced option persistence.
 - `checkocr2/ui/start_validation.py`: OCR-start validation messages for empty
