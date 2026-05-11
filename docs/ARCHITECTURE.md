@@ -39,6 +39,8 @@ working.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
 - `checkocr2/work_controller.py`: processing run/stop/skip state and stop
   event ownership.
+- `checkocr2/ui/theme.py`: Tk/ttk theme catalog, widget registration, and
+  theme application for the legacy GUI.
 - `checkocr2/ui/menu.py`: menu bar command wiring for files, settings,
   previews, run controls, and help.
 - `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and

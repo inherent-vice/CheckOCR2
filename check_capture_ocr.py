@@ -9,7 +9,7 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from time import perf_counter
-from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import filedialog, messagebox, simpledialog
 
 import numpy as np
 from PIL import Image
@@ -67,6 +67,7 @@ from checkocr2.ui.panels.preset_panel import create_preset_panel
 from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.ui.start_validation import ERROR, validate_ocr_start
+from checkocr2.ui.theme import ThemeManager
 from checkocr2.ui.toolbar import create_simple_toolbar
 from checkocr2.work_controller import WorkController
 from checkocr2.worker import start_daemon_worker
@@ -103,134 +104,6 @@ class UnifiedSettingsManager(SettingsStore):
         settings = dict(settings)
         settings["created_at"] = datetime.now().isoformat()
         super().save_preset(name, settings)
-
-############################################
-# 테마 관리 시스템
-############################################
-class ThemeManager:
-    def __init__(self, root_app):
-        self.root_app = root_app # CheckCaptureOCRApp 인스턴스
-        self.settings_manager = root_app.settings_manager
-        self.logger = root_app.logger
-
-        self.available_themes = {
-            'modern_blue': {'name': '🔵 모던 블루', 'primary': '#1976D2', 'secondary': '#42A5F5', 'success': '#4CAF50', 'warning': '#FF9800', 'danger': '#F44336', 'light': '#F5F5F5', 'dark': '#212121', 'white': '#FFFFFF', 'accent': '#9C27B0', 'surface': '#FFFFFF', 'on_surface': '#212121', 'outline': '#79747E', 'treeview_bg': '#FFFFFF', 'treeview_fg': '#000000', 'treeview_selected_bg': '#AED6F1'},
-            'dark_pro': {'name': '🌙 다크 프로', 'primary': '#BB86FC', 'secondary': '#03DAC6', 'success': '#4CAF50', 'warning': '#FFC107', 'danger': '#CF6679', 'light': '#121212', 'dark': '#000000', 'white': '#FFFFFF', 'accent': '#03DAC6', 'surface': '#1E1E1E', 'on_surface': '#E1E1E1', 'outline': '#938F99', 'treeview_bg': '#2C2C2C', 'treeview_fg': '#E1E1E1', 'treeview_selected_bg': '#555555'},
-            'elegant_purple': {'name': '💜 엘레간트 퍼플', 'primary': '#6750A4', 'secondary': '#958DA5', 'success': '#4CAF50', 'warning': '#F57C00', 'danger': '#BA1A1A', 'light': '#FEF7FF', 'dark': '#21005D', 'white': '#FFFFFF', 'accent': '#D0BCFF', 'surface': '#FFFBFE', 'on_surface': '#1D1B20', 'outline': '#79747E', 'treeview_bg': '#FFFBFE', 'treeview_fg': '#1D1B20', 'treeview_selected_bg': '#E8DEF8'},
-            'green_nature': {'name': '🌿 그린 네이처', 'primary': '#006E26', 'secondary': '#52634F', 'success': '#4CAF50', 'warning': '#F57C00', 'danger': '#BA1A1A', 'light': '#F6FFF6', 'dark': '#00210A', 'white': '#FFFFFF', 'accent': '#006E26', 'surface': '#FEFFFE', 'on_surface': '#1A1C18', 'outline': '#72796F', 'treeview_bg': '#FEFFFE', 'treeview_fg': '#1A1C18', 'treeview_selected_bg': '#C8E6C9'},
-            'orange_warm': {'name': '🧡 오렌지 웜', 'primary': '#8F4E00', 'secondary': '#77574B', 'success': '#4CAF50', 'warning': '#FF8F00', 'danger': '#BA1A1A', 'light': '#FFFBF8', 'dark': '#2F1500', 'white': '#FFFFFF', 'accent': '#FFB59D', 'surface': '#FFFBF8', 'on_surface': '#201A16', 'outline': '#837568', 'treeview_bg': '#FFFBF8', 'treeview_fg': '#201A16', 'treeview_selected_bg': '#FFCCBC'}
-        }
-        
-        saved_theme_key = self.settings_manager.get_advanced('ui_theme', 'modern_blue')
-        self.current_theme_key = saved_theme_key if saved_theme_key in self.available_themes else 'modern_blue'
-        self.colors = self.available_themes[self.current_theme_key].copy()
-        
-        self.themed_widgets = {} # {widget_ref: {'bg': 'color_key', 'fg': 'color_key', ...}}
-
-    def register_widget(self, widget, style_map):
-        """위젯과 스타일 매핑을 등록"""
-        if widget:
-            self.themed_widgets[widget] = style_map
-
-    def get_color(self, key, default=None):
-        return self.colors.get(key, default if default is not None else '#000000')
-
-    def apply_theme_to_all_widgets(self):
-        """등록된 모든 위젯에 현재 테마 적용"""
-        self.root_app.configure(bg=self.get_color('surface'))
-
-        # 색상이 아닌 속성들 (그대로 적용)
-        non_color_props = {'relief', 'bd', 'borderwidth', 'width', 'height', 'padx', 'pady', 
-                          'state', 'cursor', 'font', 'justify', 'anchor', 'wrap'}
-
-        for widget, style_map in list(self.themed_widgets.items()): # list()로 복사본 순회 (삭제 대비)
-            if not widget or not widget.winfo_exists():
-                del self.themed_widgets[widget] # 파괴된 위젯 제거
-                continue
-
-            config_options = {}
-            for tk_prop, value in style_map.items():
-                if tk_prop in non_color_props:
-                    # 색상이 아닌 속성은 그대로 적용
-                    config_options[tk_prop] = value
-                else:
-                    # 색상 속성은 테마에서 가져오기
-                    config_options[tk_prop] = self.get_color(value)
-            
-            if config_options:
-                try:
-                    widget.configure(**config_options)
-                except tk.TclError as e:
-                    self.logger.warning(f"위젯 스타일 적용 오류 ({widget}): {e}")
-
-        # ttk 스타일 업데이트
-        s = ttk.Style()
-        s.theme_use('clam') # 'clam', 'alt', 'default', 'classic' 등 사용 가능
-
-        # Treeview
-        s.configure("Treeview", 
-                    background=self.get_color('treeview_bg'), 
-                    foreground=self.get_color('treeview_fg'),
-                    fieldbackground=self.get_color('treeview_bg'),
-                    font=('Segoe UI', 9))
-        s.map("Treeview", background=[('selected', self.get_color('treeview_selected_bg'))],
-                          foreground=[('selected', self.get_color('treeview_fg'))]) # 선택 시 텍스트 색 유지 또는 변경
-        s.configure("Treeview.Heading", 
-                    background=self.get_color('primary'), 
-                    foreground=self.get_color('white'), 
-                    relief="flat", font=('Segoe UI', 9, 'bold'))
-        s.map("Treeview.Heading", background=[('active', self.get_color('secondary'))])
-
-        # Progressbar
-        s.configure("TProgressbar", 
-                    background=self.get_color('success'), 
-                    troughcolor=self.get_color('light'),
-                    bordercolor=self.get_color('primary'), troughrelief='flat')
-        
-        # Scrollbar
-        s.configure("TScrollbar", 
-                    gripcount=0,
-                    background=self.get_color('primary'), 
-                    darkcolor=self.get_color('light'), 
-                    lightcolor=self.get_color('light'),
-                    troughcolor=self.get_color('surface'), 
-                    bordercolor=self.get_color('outline'), 
-                    arrowcolor=self.get_color('white'))
-        s.map('TScrollbar', background=[('active', self.get_color('secondary'))])
-
-        # Combobox
-        s.configure("TCombobox", 
-                    fieldbackground=self.get_color('white'), 
-                    background=self.get_color('secondary'), 
-                    foreground=self.get_color('on_surface'),
-                    arrowcolor=self.get_color('primary'),
-                    selectbackground=self.get_color('light'), # 드롭다운 리스트 배경
-                    selectforeground=self.get_color('on_surface')) # 드롭다운 리스트 텍스트
-        s.map('TCombobox', fieldbackground=[('readonly', self.get_color('white'))])
-
-        # 로그 텍스트 위젯 태그 색상도 업데이트
-        if hasattr(self.root_app, 'log_text_widget') and self.root_app.log_text_widget and self.root_app.log_text_widget.winfo_exists():
-            log_widget = self.root_app.log_text_widget
-            log_widget.tag_configure("INFO", foreground=self.get_color('primary'))
-            log_widget.tag_configure("WARNING", foreground=self.get_color('warning'))
-            log_widget.tag_configure("ERROR", foreground=self.get_color('danger'))
-            log_widget.tag_configure("SUCCESS", foreground=self.get_color('success'))
-            log_widget.tag_configure("DEBUG", foreground=self.get_color('secondary'))
-
-        # 태그 색상도 업데이트 (CheckCaptureOCRApp에서 호출)
-        if hasattr(self.root_app, 'refresh_grid_tags'):
-             self.root_app.refresh_grid_tags()
-
-
-    def change_theme(self, theme_key):
-        if theme_key in self.available_themes:
-            self.current_theme_key = theme_key
-            self.colors = self.available_themes[theme_key].copy()
-            self.settings_manager.set_advanced('ui_theme', theme_key)
-            self.apply_theme_to_all_widgets()
-            self.logger.info(f"테마 변경됨: {self.available_themes[theme_key]['name']}")
-        else:
-            self.logger.warning(f"알 수 없는 테마 키: {theme_key}")
 
 ############################################
 # 영역 시각화 오버레이 창

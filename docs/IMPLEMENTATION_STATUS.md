@@ -84,6 +84,8 @@ Date: 2026-05-08
   finalization payload validation out of the queue dispatcher.
 - Moved `WorkController` into `checkocr2/work_controller.py`, keeping
   run/stop/skip state out of the legacy Tk source file.
+- Moved `ThemeManager` into `checkocr2/ui/theme.py`, keeping theme catalog and
+  Tk/ttk style application out of the legacy Tk source file.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
@@ -171,6 +173,8 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_excel_table_modules.py tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-grid-update-green`: 16 passed for legacy grid-update row mutation, queue dispatch, clipboard selection text, grid status summary text, and shared workflow error-status constants.
 - `python -m pytest tests\test_queue_dispatcher.py tests\test_workflow_module.py --basetemp $env:TEMP\checkocr2-finalize-parser-green`: 11 passed for final-export payload parsing and workflow event compatibility.
 - `python -m pytest tests\test_work_controller.py tests\test_async_ocr_initialization.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-work-controller-green`: 17 passed for package-level work controller behavior and OCR workflow compatibility.
+- `python -m pytest tests\test_theme_manager.py tests\test_toolbar.py tests\test_coordinates_panel.py --basetemp $env:TEMP\checkocr2-theme-extract2`: 4 passed for package-level theme manager behavior and UI consumers.
+- Source GUI fast-OCR smoke after theme extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `theme_module="checkocr2.ui.theme"`.
 
 Latest package verification on 2026-05-08:
 
