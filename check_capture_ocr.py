@@ -16,7 +16,7 @@ from PIL import Image
 
 from checkocr2.build_metadata import format_build_metadata, load_build_metadata
 from checkocr2.excel_io import export_grid_rows, load_grid_rows
-from checkocr2.exceptions import SettingsError
+from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
 from checkocr2.logging_config import TkinterLogHandler, setup_logging
 from checkocr2.ocr_engine import (
@@ -269,7 +269,7 @@ class AreaVisualizationOverlay(tk.Toplevel):
                 self.iconphoto(True, *master._icon_photos)
             elif os.path.exists("eye_ocr_02_scanline.ico"):
                 self.iconbitmap("eye_ocr_02_scanline.ico")
-        except Exception:
+        except (OSError, tk.TclError):
             pass  # 아이콘 설정 실패해도 계속 진행
 
         self.attributes("-fullscreen", True)
@@ -345,7 +345,7 @@ class DragCaptureOverlay(tk.Toplevel):
                 self.iconphoto(True, *master._icon_photos)
             elif os.path.exists("eye_ocr_02_scanline.ico"):
                 self.iconbitmap("eye_ocr_02_scanline.ico")
-        except Exception:
+        except (OSError, tk.TclError):
             pass  # 아이콘 설정 실패해도 계속 진행
 
         self.attributes("-fullscreen", True)
@@ -396,7 +396,7 @@ class PointCaptureOverlay(tk.Toplevel):
                 self.iconphoto(True, *master._icon_photos)
             elif os.path.exists("eye_ocr_02_scanline.ico"):
                 self.iconbitmap("eye_ocr_02_scanline.ico")
-        except Exception:
+        except (OSError, tk.TclError):
             pass  # 아이콘 설정 실패해도 계속 진행
 
         self.attributes("-fullscreen", True)
@@ -438,7 +438,7 @@ class DataManager:
                 self.logger.warning(f"Excel 파일에 '{target_col}'에 해당하는 컬럼을 찾을 수 없습니다.")
             self.excel_data = new_data
             return len(self.excel_data)
-        except Exception as e:
+        except (OSError, ValueError, ImportError, ExcelIOError) as e:
             self.logger.exception("Excel 파일 로드 실패")
             self.message_queue.put(("error_messagebox", "Excel 파일 로드 중 오류", f"{e}"))
             return 0
@@ -451,7 +451,7 @@ class DataManager:
             rows = rows_from_clipboard(clipboard_content)
             self.excel_data.extend(rows)
             return len(rows)
-        except Exception as e:
+        except (AttributeError, TypeError, ValueError) as e:
             self.logger.exception("클립보드 붙여넣기 실패")
             self.message_queue.put(("error_messagebox", "붙여넣기 중 오류", f"{e}"))
             return 0
@@ -489,7 +489,7 @@ class DataManager:
             export_success_path = new_file_path
             self.message_queue.put(("log", f"결과 Excel 파일 저장 완료: {new_file_path}", "SUCCESS"))
             return export_success_path
-        except Exception as e:
+        except (OSError, ValueError, ImportError, ExcelIOError) as e:
             self.message_queue.put(("log", f"Excel 파일 저장 실패: {e}", "ERROR"))
             self.logger.exception("Excel 파일 저장 중 예외 발생")
             raise
@@ -521,7 +521,7 @@ class OCRWorkflowManager:
             languages = ['en'] # 영어로 고정
             self.ocr_reader = create_easyocr_reader(languages, gpu=gpu_enabled)
             self.logger.info(f"EasyOCR 초기화 완료 - 언어: {languages}, GPU: {gpu_enabled}")
-        except Exception as e:
+        except (ImportError, OSError, RuntimeError, ValueError, OCREngineError) as e:
             self.logger.error(f"EasyOCR 초기화 실패: {e}")
             try:
                 self.logger.info("기본 모드(영어, CPU)로 EasyOCR 재초기화 시도...")
@@ -529,7 +529,7 @@ class OCRWorkflowManager:
                 self.settings_manager.set_advanced('ocr_gpu_enabled', False)
                 self.settings_manager.set_advanced('ocr_languages', ['en'])
                 self.logger.info("EasyOCR 영어 모드(CPU)로 초기화 완료.")
-            except Exception as e2:
+            except (ImportError, OSError, RuntimeError, ValueError, OCREngineError) as e2:
                 self.message_queue.put(("error_messagebox", "치명적 오류", f"OCR 엔진 초기화에 완전히 실패했습니다: {e2}"))
                 self.logger.critical(f"OCR 엔진 초기화 완전 실패: {e2}")
                 self.ocr_reader = None # 명시적으로 None 설정
@@ -685,7 +685,7 @@ class OCRWorkflowManager:
         try:
             report_path = write_run_report(self._current_run_report, self._current_run_report_path)
             self.message_queue.put(("log", f"OCR run report saved: {report_path}", "INFO"))
-        except Exception as report_error:
+        except (OSError, TypeError, ValueError) as report_error:
             self.message_queue.put(("log", f"OCR run report save failed: {report_error}", "WARNING"))
             self.logger.exception("OCR run report save failed")
 
@@ -801,7 +801,7 @@ class OCRWorkflowManager:
                 date_result = self._extract_text_with_ocr_attempts_internal(date_img_src, self._analyze_date_results_internal, "날짜", save_details)
             if rate_img_src:
                 rate_result = self._extract_text_with_ocr_attempts_internal(rate_img_src, self._analyze_rate_results_internal, "금리", save_details)
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, OCREngineError) as e:
             self.message_queue.put(("log", f"단일 OCR 처리 중 오류: {e}", "ERROR"))
             self.logger.exception("단일 OCR 처리 중 예외 발생")
         return date_result, rate_result
@@ -859,7 +859,7 @@ class OCRWorkflowManager:
             parsed_text = analysis_function(all_text, field_name)
             self._last_ocr_timings[f"{field_key}_parse_ms"] = self._elapsed_ms(parse_started)
             return parsed_text
-        except Exception as e:
+        except (OSError, RuntimeError, TypeError, ValueError, OCREngineError) as e:
             self.message_queue.put(("log", f"{field_name} 추출 중 오류: {e}", "ERROR"))
             self.logger.exception(f"{field_name} 추출 중 예외 발생")
             return ""
@@ -870,7 +870,7 @@ class OCRWorkflowManager:
                     try:
                         os.remove(image_source)
                         self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제: {image_source}", "DEBUG"))
-                    except Exception as e_remove:
+                    except OSError as e_remove:
                         self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제 실패: {e_remove}", "WARNING"))
 
     def _ocr_detail_level(self):
@@ -946,7 +946,7 @@ class OCRWorkflowManager:
                 if row_data['상태'] == '처리 중...' or row_data['상태'] == '대기 중':
                     row_data['상태'] = '중단됨'
             self.message_queue.put(("log", "모든 처리 상태를 최종화했습니다.", "INFO"))
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             self.message_queue.put(("log", f"상태 최종화 중 오류: {e}", "ERROR"))
             self.logger.exception("처리 상태 최종화 중 예외 발생")
 
@@ -971,7 +971,7 @@ class OCRWorkflowManager:
                 output_dir=output_dir_str,
                 input_file_path_str=input_excel_path_str,
             ) or output_workbook
-        except Exception as export_exc:
+        except (OSError, ValueError, ImportError, ExcelIOError) as export_exc:
             export_error = f"Excel export failed: {export_exc}"
         export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
         report_manager = self
@@ -1054,7 +1054,7 @@ class OCRWorkflowManager:
             
             return upscaled_img
             
-        except Exception as e:
+        except (AttributeError, OSError, TypeError, ValueError) as e:
             self.message_queue.put(("log", f"이미지 업스케일링 실패: {e}, 원본 이미지 사용", "WARNING"))
             self.logger.exception("이미지 업스케일링 중 예외 발생")
             # 업스케일링 실패 시 원본 이미지 반환
@@ -1223,13 +1223,13 @@ class CheckCaptureOCRApp(tk.Tk):
 
                 except ImportError:
                     print("PIL 라이브러리를 찾을 수 없어 PNG 아이콘 설정을 건너뜁니다.")
-                except Exception as e:
+                except (OSError, tk.TclError) as e:
                     print(f"PNG 아이콘 설정 중 오류: {e}")
 
             if not ico_path and not png_path:
                 print("아이콘 파일을 찾을 수 없습니다.")
 
-        except Exception as e:
+        except (OSError, tk.TclError) as e:
             print(f"아이콘 설정 중 전체 오류: {e}")
 
     def center_window(self):
@@ -1413,7 +1413,7 @@ class CheckCaptureOCRApp(tk.Tk):
             
             self.settings_manager.save_settings()
             self.logger.info("고급 설정이 저장되었습니다.")
-        except Exception as e:
+        except (OSError, SettingsError, TypeError, ValueError) as e:
             self.logger.error(f"고급 설정 저장 실패: {e}")
 
     def reset_advanced_settings_and_ui(self):
@@ -1480,7 +1480,7 @@ class CheckCaptureOCRApp(tk.Tk):
                                       f"• 네트워크 연결 상태를 확인하세요\n"
                                       f"• 쓰기 권한이 있는지 확인하세요")
                 
-        except Exception as e:
+        except (OSError, tk.TclError, ValueError) as e:
             self.logger.error(f"폴더 선택 중 오류: {e}")
             messagebox.showerror("오류", f"폴더 선택 중 오류가 발생했습니다.\n\n{e}")
 
@@ -1533,7 +1533,7 @@ class CheckCaptureOCRApp(tk.Tk):
                                                              f"• 접근 권한을 확인하세요\n"
                                                              f"• VPN 연결이 필요할 수 있습니다")
                                         return
-                            except Exception as e:
+                            except (OSError, ValueError) as e:
                                 self.logger.error(f"UNC 경로 접근 오류: {e}")
                                 if messagebox.askyesno("네트워크 폴더 오류", 
                                                      f"네트워크 폴더에 접근할 수 없습니다.\n\n"
@@ -1553,7 +1553,7 @@ class CheckCaptureOCRApp(tk.Tk):
                     else:
                         self.logger.info(f"폴더가 이미 존재합니다: {cleaned_path_windows}")
                 
-                except Exception as path_error:
+                except (OSError, ValueError) as path_error:
                     self.logger.warning(f"경로 접근 확인 중 오류: {path_error}")
                     # 경로 확인 실패해도 열기 시도는 계속
 
@@ -1567,13 +1567,13 @@ class CheckCaptureOCRApp(tk.Tk):
                     #     messagebox.showinfo("폴더 열기 완료", 
                     #                       f"네트워크 폴더가 Windows 탐색기에서 열렸습니다.\n\n경로: {cleaned_path_windows}")
                 
-                except Exception as startfile_error:
+                except OSError as startfile_error:
                     self.logger.error(f"os.startfile 실패: {startfile_error}")
                     # 대안 방법 시도: explorer.exe 직접 호출
                     try:
                         subprocess.run(['explorer', cleaned_path_windows], check=True, timeout=10)
                         self.logger.info("출력 폴더 열기 (explorer.exe) 완료")
-                    except Exception as explorer_error:
+                    except (OSError, subprocess.SubprocessError) as explorer_error:
                         self.logger.error(f"explorer.exe 호출 실패: {explorer_error}")
                         raise explorer_error
 
@@ -1614,7 +1614,7 @@ class CheckCaptureOCRApp(tk.Tk):
         except subprocess.TimeoutExpired:
             messagebox.showerror("오류", "폴더 열기 시간 초과\n네트워크 연결을 확인하세요.")
             self.logger.error("폴더 열기 시간 초과")
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError, ValueError) as e:
             # 기타 예외 처리
             messagebox.showerror("오류", f"알 수 없는 오류 발생: {e}\n\n경로: {output_path}\n\n네트워크 연결 및 접근 권한을 확인하세요.")
             self.logger.error(f"알 수 없는 오류 발생: {e} for {output_path}")
@@ -1733,7 +1733,7 @@ class CheckCaptureOCRApp(tk.Tk):
                     self.logger.debug(f"[_handle_grid_update] {grid_idx}번 항목 업데이트 후: {self.data_manager.excel_data[grid_idx]}")
 
                 self.refresh_grid_ui()
-        except Exception as e:
+        except (KeyError, tk.TclError, TypeError, ValueError) as e:
             self.logger.error(f"그리드 업데이트 중 오류: {e}, 데이터: {data}")
 
     def show_shortcuts(self):
@@ -2027,7 +2027,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)
                     self.worker_thread.join(timeout=2) # Wait up to 2 seconds
                     if self.worker_thread.is_alive:
                          self.logger.warning("작업 스레드가 종료 시간 내에 응답하지 않았습니다.")
-                except Exception as e:
+                except (AttributeError, RuntimeError) as e:
                      self.logger.error(f"작업 스레드 종료 중 오류 발생: {e}")
             self.destroy() # Close the main window
         else:
@@ -2047,7 +2047,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)
                 self.settings_manager.data['advanced'] = self.settings_manager._get_default_advanced_settings()
             self.update_preset_combo()
             self.theme_manager.change_theme(self.settings_manager.get_advanced('ui_theme', 'modern_blue'))
-        except Exception as e:
+        except (OSError, SettingsError, tk.TclError, TypeError, ValueError) as e:
             self.logger.error(f"설정 불러오기 실패: {e}")
 
     def quick_save_settings(self):
@@ -2061,7 +2061,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)
             self.save_advanced_ui_to_settings()  # 고급 설정도 함께 저장
             
             self.logger.info("현재 설정이 저장되었습니다.")
-        except Exception as e:
+        except (OSError, SettingsError, tk.TclError, TypeError, ValueError) as e:
             self.logger.error(f"설정 저장 실패: {e}")
             messagebox.showerror("오류", f"설정 저장 중 오류가 발생했습니다: {e}")
 
@@ -2099,7 +2099,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)
                     # UI 업데이트는 refresh_grid_ui에서 일괄 처리되므로 여기서 별도 호출 불필요
 
             self.message_queue.put(("log", "모든 처리 상태를 최종화했습니다.", "INFO"))
-        except Exception as e:
+        except (KeyError, TypeError) as e:
             self.message_queue.put(("log", f"상태 최종화 중 오류: {e}", "ERROR"))
             self.logger.exception("처리 상태 최종화 중 예외 발생")
 
@@ -2118,7 +2118,7 @@ OCR 자동화 애플리케이션 (EasyOCR 기반)
         output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
         try:
             output_workbook = self.data_manager.export_grid_to_excel_data(output_dir_str, input_excel_path_str) or output_workbook
-        except Exception as export_exc:
+        except (OSError, ValueError, ImportError, ExcelIOError) as export_exc:
             export_error = f"Excel export failed: {export_exc}"
         export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
         report_manager = self.ocr_workflow_manager

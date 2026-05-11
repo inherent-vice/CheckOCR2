@@ -141,6 +141,27 @@ def test_extract_text_rejects_detail_one_below_confidence_threshold(ocr_module):
     assert any(event[0] == "log" and "confidence below threshold" in event[1] for event in list(events.queue))
 
 
+def test_extract_text_handles_ocr_engine_errors_as_blank_field(ocr_module):
+    manager, events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings({"upscaling_enabled": False})
+
+    class FailingReader:
+        def readtext(self, image, detail=0, **kwargs):
+            raise RuntimeError("opencv failed")
+
+    manager.ocr_reader = FailingReader()
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        Image.new("RGB", (8, 8), "white"),
+        manager._analyze_date_results_internal,
+        "날짜",
+        save_details=False,
+    )
+
+    assert result == ""
+    assert any(event[0] == "log" and "readtext failed" in event[1] for event in list(events.queue))
+
+
 def test_extract_text_detail_zero_ignores_confidence_threshold_for_parity(ocr_module):
     manager, _events = make_workflow_manager(ocr_module)
     manager.settings_manager = DummySettings(

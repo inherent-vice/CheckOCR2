@@ -6,22 +6,33 @@ import statistics
 from collections.abc import Sequence
 from typing import Any, Protocol
 
+from .exceptions import OCREngineError
+
 
 class EasyOcrReaderLike(Protocol):
     def readtext(self, image, detail: int = 0, **kwargs: Any): ...
 
 
 def create_easyocr_reader(languages: Sequence[str], *, gpu: bool = False) -> EasyOcrReaderLike:
-    import easyocr
+    try:
+        import easyocr
+    except ImportError as exc:
+        raise OCREngineError(f"EasyOCR import failed: {exc}") from exc
 
-    return easyocr.Reader(list(languages), gpu=gpu)
+    try:
+        return easyocr.Reader(list(languages), gpu=gpu)
+    except Exception as exc:
+        raise OCREngineError(f"EasyOCR reader initialization failed: {exc}") from exc
 
 
 def read_ocr_text(reader: EasyOcrReaderLike, image, *, detail: int = 0, allowlist: str | None = None):
     kwargs: dict[str, Any] = {"detail": detail}
     if allowlist is not None:
         kwargs["allowlist"] = allowlist
-    return reader.readtext(image, **kwargs)
+    try:
+        return reader.readtext(image, **kwargs)
+    except Exception as exc:
+        raise OCREngineError(f"EasyOCR readtext failed: {exc}") from exc
 
 
 def extract_text_with_confidence(results: Sequence[Any], detail: int) -> tuple[str, float | None]:

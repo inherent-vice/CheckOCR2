@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import queue
+from zipfile import ZipFile
 
 import pandas as pd
 import pytest
@@ -42,6 +43,31 @@ def test_load_excel_to_grid_accepts_english_code_and_name_columns(ocr_module, tm
         {CODE: "A001", NAME: "Alpha", DATE: "", RATE: "", STATUS: WAITING},
         {CODE: "B002", NAME: "Beta", DATE: "", RATE: "", STATUS: WAITING},
     ]
+
+
+def test_load_excel_to_grid_handles_corrupt_xlsx_without_raising(ocr_module, tmp_path):
+    workbook_path = tmp_path / "corrupt.xlsx"
+    workbook_path.write_bytes(b"PK-not-a-valid-xlsx")
+    manager, events = make_data_manager(ocr_module)
+
+    assert manager.load_excel_to_grid_data(workbook_path) == 0
+    assert manager.excel_data == []
+    queued = list(events.queue)
+    assert queued
+    assert queued[-1][0] == "error_messagebox"
+
+
+def test_load_excel_to_grid_handles_zip_that_is_not_workbook(ocr_module, tmp_path):
+    workbook_path = tmp_path / "not_workbook.xlsx"
+    with ZipFile(workbook_path, "w") as workbook_zip:
+        workbook_zip.writestr("not_workbook.txt", "hello")
+    manager, events = make_data_manager(ocr_module)
+
+    assert manager.load_excel_to_grid_data(workbook_path) == 0
+    assert manager.excel_data == []
+    queued = list(events.queue)
+    assert queued
+    assert queued[-1][0] == "error_messagebox"
 
 
 def test_export_grid_to_excel_writes_updated_workbook(ocr_module, tmp_path):

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .exceptions import ExcelIOError
 from .models import CODE_COL, DATE_COL, NAME_COL, RATE_COL, STATUS_COL
 from .table_model import empty_row, rows_for_export
 
@@ -32,7 +33,10 @@ def resolve_columns(columns: list[object]) -> tuple[dict[str, str | None], list[
 
 
 def load_grid_rows(file_path: str | os.PathLike[str]) -> tuple[list[dict[str, str]], list[str]]:
-    df = pd.read_excel(file_path, dtype=str)
+    try:
+        df = pd.read_excel(file_path, dtype=str)
+    except Exception as exc:
+        raise ExcelIOError(f"Excel file could not be read: {exc}") from exc
     col_map, missing = resolve_columns(list(df.columns))
 
     rows: list[dict[str, str]] = []
@@ -50,8 +54,11 @@ def load_grid_rows(file_path: str | os.PathLike[str]) -> tuple[list[dict[str, st
 
 def export_grid_rows(rows: list[dict[str, str]], output_path: str | os.PathLike[str]) -> Path:
     output = Path(output_path)
-    df_export = pd.DataFrame(rows_for_export(rows))
-    df_export = df_export[[CODE_COL, NAME_COL, DATE_COL, RATE_COL, STATUS_COL]]
-    with pd.ExcelWriter(output, engine="openpyxl") as writer:
-        df_export.to_excel(writer, sheet_name="OCR_Results", index=False)
+    try:
+        df_export = pd.DataFrame(rows_for_export(rows))
+        df_export = df_export[[CODE_COL, NAME_COL, DATE_COL, RATE_COL, STATUS_COL]]
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df_export.to_excel(writer, sheet_name="OCR_Results", index=False)
+    except Exception as exc:
+        raise ExcelIOError(f"Excel file could not be written: {exc}") from exc
     return output

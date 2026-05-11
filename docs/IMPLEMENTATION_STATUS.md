@@ -82,6 +82,16 @@ Date: 2026-05-08
 - Added `scripts/compare_run_reports.py` to compare same-input live run reports
   before wait-time or OCR-default changes, including input-workbook matching,
   row identity checks, blank/failure regression checks, and timing validation.
+- Narrowed broad exception handlers in the legacy Tk app for icon setup, Excel
+  load/export, clipboard parsing, run-report flushing, OCR image processing,
+  folder opening, settings save/load, and status finalization. Remaining broad
+  catches are limited to the top-level workflow safety boundary and adapter
+  boundaries.
+- Normalized corrupt Excel workbook errors through `ExcelIOError` and EasyOCR /
+  OpenCV reader failures through `OCREngineError`, preserving row-level OCR
+  failure handling while keeping typed catches at the GUI boundary.
+- Wrapped Excel writer failures in `ExcelIOError` so finalization and run-report
+  handling still complete when openpyxl rejects workbook content.
 
 ## Verification
 
@@ -114,7 +124,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 106 passed after fixture-audit and live-comparison tooling.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 111 passed after fixture-audit, live-comparison, and typed exception-boundary coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -122,6 +132,11 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_audit_ocr_fixtures_script.py tests\test_compare_run_reports_script.py --basetemp $env:TEMP\checkocr2-ocr-gates-pytest`: 12 passed for fixture audit and live report comparison coverage.
 - `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
 - `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json`: failed as expected because `tests\fixtures\ocr_crops\ground_truth.csv` does not exist yet; this hard gate remains open.
+- Broad exception audit now reports only adapter/safety boundaries: the top-level
+  workflow safety boundary, Excel/OCR adapter normalization, and the two
+  workflow adapter boundaries:
+  `rg -n "except Exception|except BaseException|except:" check_capture_ocr.py checkocr2 scripts tests`.
+- `python -m pytest tests\test_data_manager.py tests\test_excel_table_modules.py tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-review-fixes-pytest`: 26 passed for corrupt workbook, Excel writer, and OCR reader failure regressions.
 
 Latest package verification on 2026-05-08:
 

@@ -28,13 +28,19 @@ behavior.
   field-specific allowlists.
 - Fixture audit and live run comparison scripts now gate real OCR evidence
   before OCR-default or wait-time changes.
+- Legacy broad exception handling has been reduced to typed catches in
+  file/settings/OCR/folder/icon/status paths; remaining broad catches are the
+  top-level workflow and adapter safety boundaries.
+- Excel and OCR third-party failures are normalized into local exception types
+  before reaching the GUI boundary, with tests for corrupt workbooks, Excel
+  writer failures, and OCR reader failures.
 - Package smoke verifies build metadata, OCR-ready startup, package size,
   startup budget, and absence of forbidden GUI/contrib OpenCV metadata.
 - PyInstaller no longer broadly collects all Torch submodules; targeted Torch
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 106 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 111 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate remains the 2026-05-08 clean
 PyInstaller release build plus real package smoke at about `596.35 MB` with

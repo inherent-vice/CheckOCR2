@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from checkocr2.excel_io import export_grid_rows, load_grid_rows, resolve_columns
+from checkocr2.exceptions import ExcelIOError
 from checkocr2.models import CODE_COL, DATE_COL, NAME_COL, RATE_COL, STATUS_COL, STATUS_STOPPED
 from checkocr2.table_model import delete_rows, row_for_copy, rows_for_export, rows_from_clipboard
 
@@ -44,3 +46,18 @@ def test_excel_io_loads_and_exports_grid_rows(tmp_path):
 
     assert exported.to_dict("records")[0][CODE_COL] == "A001"
     assert exported.to_dict("records")[0][RATE_COL] == "3.500"
+
+
+def test_excel_io_normalizes_writer_failures(tmp_path):
+    rows = [
+        {
+            CODE_COL: "A001",
+            NAME_COL: "Alpha\x01",
+            DATE_COL: "2026/05/08",
+            RATE_COL: "3.500",
+            STATUS_COL: "",
+        }
+    ]
+
+    with pytest.raises(ExcelIOError, match="could not be written"):
+        export_grid_rows(rows, tmp_path / "out.xlsx")

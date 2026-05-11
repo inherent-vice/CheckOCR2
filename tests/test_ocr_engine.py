@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from checkocr2.exceptions import OCREngineError
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
     extract_text_with_confidence,
@@ -34,6 +35,15 @@ def test_read_ocr_text_passes_allowlist_only_when_requested():
     read_ocr_text(reader, "image-array", detail=0, allowlist="0123456789")
 
     assert reader.calls == [("image-array", 0, {"allowlist": "0123456789"})]
+
+
+def test_read_ocr_text_normalizes_reader_failures():
+    class FailingReader:
+        def readtext(self, image, detail=0, **kwargs):
+            raise RuntimeError("opencv failed")
+
+    with pytest.raises(OCREngineError, match="readtext failed"):
+        read_ocr_text(FailingReader(), "image-array")
 
 
 def test_extract_text_with_confidence_handles_easyocr_detail_modes():
