@@ -63,8 +63,8 @@ the package bootstrap and remains available for existing shortcuts.
 
 ## Known Constraints
 
-- OCR tuning requires real crop fixtures, matrix benchmark evidence, and a
-  same-input live comparison.
+- OCR tuning requires real crop fixtures, fixture audit, matrix benchmark
+  evidence, and a same-input live comparison.
 - Desktop automation depends on screen coordinates and the external target app.
 - Tests should fake OCR and screen automation unless running an explicit smoke.
 - Personal settings, screenshots, production workbooks, and benchmark crops must

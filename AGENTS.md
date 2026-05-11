@@ -15,8 +15,10 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 - `python -m ruff check .`: lint new package, scripts, tests, and the legacy app with scoped ignores.
 - `python -m compileall check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: quick syntax check before committing.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: validate the OCR benchmark harness while fixtures are being built.
+- `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json`: audit real crop fixtures before treating benchmark results as baseline evidence.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture`: validate the OCR preprocessing/detail matrix runner before real fixtures exist.
 - `python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json`: compare field-specific OCR allowlists after fixtures exist.
+- `python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json`: compare same-input 10-row live runs before reducing waits or OCR defaults.
 - `python -m PyInstaller build_app.spec`: build the OneDIR Windows package under `dist/CheckCaptureOCR_V6.1/`.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready`: smoke-test the packaged EXE, metadata, and GUI Ready state.
 

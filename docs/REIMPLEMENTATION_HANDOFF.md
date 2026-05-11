@@ -26,17 +26,19 @@ behavior.
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
   field-specific allowlists.
+- Fixture audit and live run comparison scripts now gate real OCR evidence
+  before OCR-default or wait-time changes.
 - Package smoke verifies build metadata, OCR-ready startup, package size,
   startup budget, and absence of forbidden GUI/contrib OpenCV metadata.
 - PyInstaller no longer broadly collects all Torch submodules; targeted Torch
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest full gate result: `ruff` passed, `pytest` passed with 87 tests,
-`compileall` passed, clean PyInstaller release build completed after
-hidden-import cleanup, real package smoke passed at about `596.35 MB` with
-startup `1.141` seconds, and the full test suite passed with 94 tests after
-menu extraction.
+Latest code gate result: `ruff` passed, `pytest` passed with 106 tests,
+`compileall` passed, and benchmark dry-runs passed after fixture-audit and live
+run-comparison tooling. Latest package gate remains the 2026-05-08 clean
+PyInstaller release build plus real package smoke at about `596.35 MB` with
+startup `1.141` seconds.
 
 ## Commands To Re-Run Before Release
 
@@ -50,6 +52,10 @@ $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m Py
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
+Before OCR tuning or release decisions that depend on OCR accuracy, also run
+the fixture audit and same-input live comparison commands from
+`docs/OCR_BENCHMARK_PLAN.md`.
+
 Use the clean release venv for PyInstaller. The global interpreter is expected
 to fail release preflight on this machine when GUI/contrib OpenCV packages are
 installed outside the release environment.
@@ -57,9 +63,9 @@ installed outside the release environment.
 ## Evidence Gates Not Yet Cleared
 
 - Create real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with
-  `ground_truth.csv`.
-- Run a same-input 10-row live OCR comparison before reducing wait defaults or
-  changing OCR defaults.
+  `ground_truth.csv`, then pass the fixture audit script.
+- Run a same-input 10-row live OCR comparison through the run-report comparator
+  before reducing wait defaults or changing OCR defaults.
 - Benchmark alternate OCR engines only after the fixture baseline exists.
 - Continue trimming PyInstaller hidden imports only when each removal is
   followed by a clean build and package smoke.
@@ -68,10 +74,11 @@ installed outside the release environment.
 
 ## Recommended Next Order
 
-1. Build representative date/rate crop fixtures and record the baseline.
-2. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
-3. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
+1. Build representative date/rate crop fixtures and pass the fixture audit.
+2. Record the EasyOCR baseline and matrix reports under `.analysis_tmp/`.
+3. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
+4. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
    confidence thresholds, and field allowlists.
-4. Tune waits or OCR defaults only if accuracy does not regress.
-5. Reduce packaging size through one PyInstaller or dependency change at a time.
-6. Extract the remaining GUI panels and dialogs in small parity-checked commits.
+5. Tune waits or OCR defaults only if accuracy does not regress.
+6. Reduce packaging size through one PyInstaller or dependency change at a time.
+7. Extract the remaining GUI panels and dialogs in small parity-checked commits.

@@ -76,10 +76,16 @@ Date: 2026-05-08
   event order and finalization counts.
 - Added benchmark report coverage for exact accuracy, blank count,
   false-positive count, P95 latency, and confidence fields using fake OCR.
+- Added `scripts/audit_ocr_fixtures.py` to fail loudly until ignored OCR crop
+  fixtures are readable, normalized, deduplicated, and large enough for a real
+  baseline.
+- Added `scripts/compare_run_reports.py` to compare same-input live run reports
+  before wait-time or OCR-default changes, including input-workbook matching,
+  row identity checks, blank/failure regression checks, and timing validation.
 
 ## Verification
 
-Run this full gate before release or push:
+Run this code gate before push:
 
 ```powershell
 python -m ruff check .
@@ -94,19 +100,31 @@ $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m Py
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
+Before OCR tuning or release decisions that depend on OCR accuracy, also run:
+
+```powershell
+python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json
+python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json
+```
+
 Manual GUI smoke remains required after startup, threading, UI state, or
 packaging changes. Launch the canonical app, compatibility launcher, and package
 launcher, then confirm the window title and OCR-ready transition.
 
-Latest verification on 2026-05-08:
+Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 94 passed after package-smoke real mode and menu extraction.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 106 passed after fixture-audit and live-comparison tooling.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
-- `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\ocr_benchmark_matrix.json`: dry-run matrix report written.
+- `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
 - `python -m pytest tests\test_ocr_engine.py tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py --basetemp $env:TEMP\checkocr2-allowlist-pytest`: 11 passed for field allowlist benchmark coverage.
+- `python -m pytest tests\test_audit_ocr_fixtures_script.py tests\test_compare_run_reports_script.py --basetemp $env:TEMP\checkocr2-ocr-gates-pytest`: 12 passed for fixture audit and live report comparison coverage.
 - `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
+- `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json`: failed as expected because `tests\fixtures\ocr_crops\ground_truth.csv` does not exist yet; this hard gate remains open.
+
+Latest package verification on 2026-05-08:
+
 - Python GUI smoke passed for the canonical launcher, compatibility launcher,
   and `python -m checkocr2.main`; each showed `📊 Check Capture OCR V6.1`.
 - Source GUI fast-OCR smoke passed after queue-dispatch extraction; the Tk app
@@ -126,9 +144,10 @@ that warning non-blocking while package smoke remains green.
 ## Remaining Evidence Gates
 
 - Build real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with a
-  `ground_truth.csv`.
-- Run a same-input 10-row live OCR comparison before reducing wait times or
-  changing OCR defaults.
+  `ground_truth.csv`, then pass `scripts\audit_ocr_fixtures.py`.
+- Run a same-input 10-row live OCR comparison with
+  `scripts\compare_run_reports.py` before reducing wait times or changing OCR
+  defaults.
 - Benchmark candidate engines only after fixture baselines exist.
 - Continue package-size cleanup only one measured PyInstaller/dependency change
   at a time, with clean build and package smoke after each removal.

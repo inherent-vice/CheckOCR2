@@ -29,6 +29,17 @@ python scripts/benchmark_ocr.py --dry-run --allow-empty-fixture
 Once `ground_truth.csv` exists, omit `--allow-empty-fixture` so a missing or
 empty fixture set fails the check.
 
+Audit real fixtures before recording a baseline:
+
+```powershell
+python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json
+```
+
+The audit fails until crop paths are readable, expected values are already
+normalized, duplicate paths are removed, and the fixture set meets the minimum
+date/rate counts. The default gate is 100 total crops with at least 50 date and
+50 rate cases; pass smaller `--min-*` values only for local dry runs.
+
 Run the current baseline:
 
 ```powershell
@@ -63,6 +74,21 @@ reference.
 Reports include raw OCR text and crop paths, so write them under
 `.analysis_tmp/`. The script rejects other repository-local output paths unless
 `--allow-repo-output` is supplied intentionally.
+
+## Live Run Comparison
+
+Before reducing fixed waits or changing OCR defaults, run the same 10 or more
+rows twice and compare the generated run reports:
+
+```powershell
+python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json
+```
+
+The comparator checks that the input workbook path and row identities match,
+date/rate outputs are unchanged, blank fields do not increase, failure rows do
+not increase, and timing values are parseable. Use `--allow-output-changes`
+only for a manual review run where changed OCR output is expected and will be
+checked against source data.
 
 ## Acceptance Gate
 

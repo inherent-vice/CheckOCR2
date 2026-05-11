@@ -51,6 +51,10 @@ $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m Py
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
 ```
 
+Before OCR tuning or release decisions that depend on OCR accuracy, also run
+`scripts\audit_ocr_fixtures.py` against real fixtures and
+`scripts\compare_run_reports.py` against same-input live run reports.
+
 Run GUI smoke checks through all three Python entry points after touching
 startup, settings, threading, or Tkinter UI state.
 
@@ -62,7 +66,8 @@ startup, settings, threading, or Tkinter UI state.
   runtime UI state, plus low-risk Tk panel and queue-dispatch helpers.
 - `tests/`: pytest characterization and unit tests with fakes for OCR, screen
   automation, and Tk-facing behavior.
-- `scripts/`: OCR benchmark, benchmark-matrix, and packaged-EXE smoke tools.
+- `scripts/`: OCR benchmark, fixture audit, live run comparison,
+  benchmark-matrix, and packaged-EXE smoke tools.
 - `docs/`: architecture, reimplementation plan, implementation handoff, GUI
   parity, run report, and benchmark documentation.
 - `legacy/`: historical versions kept for reference only.
@@ -90,9 +95,16 @@ same ground-truth set. The matrix report compares every candidate with the
 first combination as the baseline. Add `--allowlist-modes none,field` when
 testing field-specific EasyOCR character allowlists for date and rate crops.
 
+Use `scripts\audit_ocr_fixtures.py` before recording an OCR baseline. It checks
+the ignored `tests/fixtures/ocr_crops/ground_truth.csv`, crop paths, image
+readability, date/rate counts, duplicate paths, and normalized expected text.
+Use `scripts\compare_run_reports.py` for same-input live runs; by default it
+requires at least 10 matching rows, unchanged date/rate outputs, and no blank
+or failure increase.
+
 ## Current Evidence Gates
 
 Do not tune OCR defaults or replace EasyOCR until representative crop fixtures
-exist under `tests/fixtures/ocr_crops/` with a `ground_truth.csv`. Speed changes
-must be compared against the same 10-row live input with no increase in blank or
-false-positive values.
+exist under `tests/fixtures/ocr_crops/` with a `ground_truth.csv` and pass the
+fixture audit. Speed changes must be compared against the same 10-row live input
+with no output change and no increase in blank or failed rows.
