@@ -13,7 +13,7 @@ from PIL import Image
 from checkocr2.capture_adapter import capture_screenshots
 from checkocr2.data_manager import DataManager
 from checkocr2.events import parse_legacy_grid_update
-from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
+from checkocr2.exceptions import OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
@@ -32,7 +32,7 @@ from checkocr2.ocr_text import (
 from checkocr2.package_smoke_status import (
     package_smoke_fast_ocr_enabled,
 )
-from checkocr2.paths import clean_folder_path, updated_workbook_path
+from checkocr2.paths import clean_folder_path
 from checkocr2.run_report import (
     create_run_report,
     finalize_run_report,
@@ -51,6 +51,9 @@ from checkocr2.ui.completion_actions import (
 )
 from checkocr2.ui.completion_actions import (
     complete_work as complete_work_action,
+)
+from checkocr2.ui.completion_actions import (
+    finalize_export_and_complete as finalize_export_and_complete_action,
 )
 from checkocr2.ui.coordinate_actions import (
     relocate_area as relocate_area_action,
@@ -566,70 +569,16 @@ class OCRWorkflowManager:
 
     # 엑셀 내보내기 및 최종 완료 처리를 담당하는 함수 (메인 스레드에서 호출됨)
     def _finalize_export_and_complete(self, output_dir_str, input_excel_path_str, summary_message):
-        self.logger.info("[_finalize_export_and_complete] 함수 호출됨 (Main Thread)")
-
-        # 엑셀 내보내기 직전에 최종 상태를 다시 한번 정리 (안정성 강화)
-        # 이전에 모든 grid_update 메시지가 처리되었음을 가정하고 finalize_processing_states 호출
-        self._finalize_processing_states() # 이 함수는 이제 data_manager.excel_data를 직접 업데이트
-
-        # 데이터 내보내기 호출
-        export_started = perf_counter()
-        export_error = None
-        output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
-        try:
-            output_workbook = self.data_manager.export_grid_to_excel_data(
-                output_dir=output_dir_str,
-                input_file_path_str=input_excel_path_str,
-            ) or output_workbook
-        except (OSError, ValueError, ImportError, ExcelIOError) as export_exc:
-            export_error = f"Excel export failed: {export_exc}"
-        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
-        report_manager = self
-        if report_manager._current_run_report is not None:
-            existing_timings = {
-                row_report.get("index"): row_report.get("timing_ms", {})
-                for row_report in report_manager._current_run_report.get("rows", [])
-            }
-            existing_metadata = {
-                row_report.get("index"): {"ocr_confidence": row_report.get("ocr_confidence")}
-                for row_report in report_manager._current_run_report.get("rows", [])
-                if row_report.get("ocr_confidence")
-            }
-            record_row_reports(
-                report_manager._current_run_report,
-                self.data_manager.excel_data,
-                existing_timings,
-                existing_metadata,
-            )
-            summary = report_manager._current_run_report.get("summary", {})
-            if export_error is None and not output_workbook.exists():
-                export_error = f"Export workbook was not found after export: {output_workbook}"
-            finalize_run_report(
-                report_manager._current_run_report,
-                self.data_manager.excel_data,
-                processed_count=int(summary.get("processed_count", 0) or 0),
-                total_items=int(summary.get("total_items", len(self.data_manager.excel_data)) or 0),
-                stopped=bool(summary.get("stopped", False)),
-                output_workbook_path=output_workbook,
-                export_timing_ms=export_timing_ms,
-                error=export_error,
-            )
-            report_manager._flush_current_run_report()
-
-        if export_error is not None:
-            self.refresh_grid_ui()
-            messagebox.showerror("Excel export failed", export_error)
-            return
-
-        # 그리드 UI 최종 새로고침
-        # _finalize_processing_states 및 export_grid_to_excel_data 후에 UI를 새로고침하여 최종 상태와 데이터를 표시
-        self.refresh_grid_ui() # 상태 최종화 결과 반영 및 최종 데이터 표시
-
-        # 최종 완료 메시지 박스 표시
-        if export_error is not None:
-            messagebox.showerror("Excel export failed", export_error)
-            return
-        messagebox.showinfo("처리 완료", summary_message)
+        finalize_export_and_complete_action(
+            self.app,
+            output_dir_str,
+            input_excel_path_str,
+            summary_message,
+            report_manager=self,
+            reset_work_state=False,
+            showerror=messagebox.showerror,
+            showinfo=messagebox.showinfo,
+        )
 
     def _apply_image_upscaling(self, image_source, enable_upscaling, upscaling_factor, upscaling_method):
         """
@@ -1013,66 +962,14 @@ class CheckCaptureOCRApp(tk.Tk):
 
     # 엑셀 내보내기 및 최종 완료 처리를 담당하는 함수 (메인 스레드에서 호출됨)
     def _finalize_export_and_complete(self, output_dir_str, input_excel_path_str, summary_message):
-        self.logger.info("[_finalize_export_and_complete] 함수 호출됨 (Main Thread)")
-
-        # 엑셀 내보내기 직전에 최종 상태를 다시 한번 정리 (안정성 강화)
-        # 이전에 모든 grid_update 메시지가 처리되었음을 가정하고 finalize_processing_states 호출
-        self._finalize_processing_states() # 이 함수는 이제 data_manager.excel_data를 직접 업데이트
-
-        # 데이터 내보내기 호출
-        export_started = perf_counter()
-        export_error = None
-        output_workbook = updated_workbook_path(output_dir_str, input_excel_path_str)
-        try:
-            output_workbook = self.data_manager.export_grid_to_excel_data(output_dir_str, input_excel_path_str) or output_workbook
-        except (OSError, ValueError, ImportError, ExcelIOError) as export_exc:
-            export_error = f"Excel export failed: {export_exc}"
-        export_timing_ms = {"export_ms": round((perf_counter() - export_started) * 1000, 3)}
-        report_manager = self.ocr_workflow_manager
-        if report_manager._current_run_report is not None:
-            existing_timings = {
-                row_report.get("index"): row_report.get("timing_ms", {})
-                for row_report in report_manager._current_run_report.get("rows", [])
-            }
-            existing_metadata = {
-                row_report.get("index"): {"ocr_confidence": row_report.get("ocr_confidence")}
-                for row_report in report_manager._current_run_report.get("rows", [])
-                if row_report.get("ocr_confidence")
-            }
-            record_row_reports(
-                report_manager._current_run_report,
-                self.data_manager.excel_data,
-                existing_timings,
-                existing_metadata,
-            )
-            summary = report_manager._current_run_report.get("summary", {})
-            if export_error is None and not output_workbook.exists():
-                export_error = f"Export workbook was not found after export: {output_workbook}"
-            finalize_run_report(
-                report_manager._current_run_report,
-                self.data_manager.excel_data,
-                processed_count=int(summary.get("processed_count", 0) or 0),
-                total_items=int(summary.get("total_items", len(self.data_manager.excel_data)) or 0),
-                stopped=bool(summary.get("stopped", False)),
-                output_workbook_path=output_workbook,
-                export_timing_ms=export_timing_ms,
-                error=export_error,
-            )
-            report_manager._flush_current_run_report()
-
-        self.work_controller.reset()
-        self.data_manager.current_processing_index = -1
-        self._set_runtime_state(self._ready_or_error_state())
-
-        # 그리드 UI 최종 새로고침
-        # _finalize_processing_states 및 export_grid_to_excel_data 후에 UI를 새로고침하여 최종 상태와 데이터를 표시
-        self.refresh_grid_ui() # 상태 최종화 결과 반영 및 최종 데이터 표시
-
-        # 최종 완료 메시지 박스 표시
-        if export_error is not None:
-            messagebox.showerror("Excel export failed", export_error)
-            return
-        messagebox.showinfo("처리 완료", summary_message)
+        finalize_export_and_complete_action(
+            self,
+            output_dir_str,
+            input_excel_path_str,
+            summary_message,
+            showerror=messagebox.showerror,
+            showinfo=messagebox.showinfo,
+        )
 
     def _generate_ocr_summary_internal(self, processed_count, total_items):
         return build_ocr_summary_action(self.data_manager.excel_data, total_items)

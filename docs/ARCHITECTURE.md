@@ -43,10 +43,11 @@ working.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
 - `checkocr2/work_controller.py`: processing run/stop/skip state and stop
   event ownership.
-- `checkocr2/ui/completion_actions.py`: main-thread work completion and
-  stopped-work UI finalization, including controller reset, runtime-state
-  restore, grid refresh, settings save, OCR completion summary text creation,
-  stopped-state finalization, and stopped dialog display.
+- `checkocr2/ui/completion_actions.py`: main-thread work completion,
+  final-export completion, and stopped-work UI finalization, including
+  controller reset, runtime-state restore, grid refresh, settings save, OCR
+  completion summary text creation, run-report finalization, export result
+  dialogs, stopped-state finalization, and stopped dialog display.
 - `checkocr2/ui/coordinate_actions.py`: click-point relocation, rectangle-area
   relocation, and current-area preview creation for the legacy coordinate
   controls.
