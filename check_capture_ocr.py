@@ -119,6 +119,9 @@ from checkocr2.ui.ocr_actions import (
 from checkocr2.ui.ocr_actions import (
     stop_processing as stop_processing_action,
 )
+from checkocr2.ui.ocr_actions import (
+    validate_inputs_for_ocr as validate_inputs_for_ocr_action,
+)
 from checkocr2.ui.overlays import (  # noqa: F401
     AreaVisualizationOverlay,
     DragCaptureOverlay,
@@ -163,7 +166,6 @@ from checkocr2.ui.settings_binding import (
     collect_ui_settings,
     save_advanced_settings,
 )
-from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.ui.theme import ThemeManager
 from checkocr2.work_controller import WorkController
 from checkocr2.workflow import (
@@ -902,18 +904,11 @@ class CheckCaptureOCRApp(tk.Tk):
         run_ocr_process_action(self)
 
     def _validate_inputs_for_ocr(self):
-        output_dir = self.output_folder_path.get().strip()
-        validation = validate_ocr_start(
-            rows=self.data_manager.excel_data,
-            output_dir_exists=lambda: bool(output_dir and os.path.isdir(output_dir)),
-            ocr_initializing=self.ocr_initializing,
-            ocr_ready=bool(self.ocr_workflow_manager.ocr_reader),
+        return validate_inputs_for_ocr_action(
+            self,
+            showerror=messagebox.showerror,
+            showwarning=getattr(messagebox, "showwarning", messagebox.showinfo),
         )
-        if not validation.is_valid:
-            show_message = messagebox.showerror if validation.severity == ERROR else messagebox.showwarning
-            show_message(validation.title, validation.message, parent=self)
-            return False
-        return True
 
     def load_excel_to_grid(self):
         load_excel_to_grid_action(self)

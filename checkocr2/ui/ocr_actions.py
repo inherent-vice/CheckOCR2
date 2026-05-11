@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
+from tkinter import messagebox
 from typing import Any
 
 from checkocr2.runtime_state import RuntimeState
+from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.worker import start_daemon_worker
 
 
@@ -40,3 +43,32 @@ def run_ocr_process(
         save_details,
         name="checkocr2-ocr-workflow",
     )
+
+
+def validate_inputs_for_ocr(
+    app: Any,
+    *,
+    isdir: Callable[[str], bool] = os.path.isdir,
+    showerror: Callable[..., object] | None = None,
+    showwarning: Callable[..., object] | None = None,
+    validator: Callable[..., Any] = validate_ocr_start,
+) -> bool:
+    error_dialog = showerror if showerror is not None else messagebox.showerror
+    warning_dialog = (
+        showwarning
+        if showwarning is not None
+        else getattr(messagebox, "showwarning", messagebox.showinfo)
+    )
+
+    output_dir = app.output_folder_path.get().strip()
+    validation = validator(
+        rows=app.data_manager.excel_data,
+        output_dir_exists=lambda: bool(output_dir and isdir(output_dir)),
+        ocr_initializing=app.ocr_initializing,
+        ocr_ready=bool(app.ocr_workflow_manager.ocr_reader),
+    )
+    if not validation.is_valid:
+        show_message = error_dialog if validation.severity == ERROR else warning_dialog
+        show_message(validation.title, validation.message, parent=app)
+        return False
+    return True

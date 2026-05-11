@@ -26,9 +26,9 @@ document describes how to continue safely from the current state.
   Excel/output-folder actions, coordinate capture/preview actions,
   grid/context-menu actions, grid-edit actions, grid-refresh/status actions,
   grid-update actions, keyboard actions, runtime-status actions, log text
-  actions, settings load/save actions, OCR run/stop actions, work-completion
-  actions, several panels, and work-control state now have package-level seams
-  and tests.
+  actions, settings load/save actions, OCR run/stop/input-validation actions,
+  work-completion actions, several panels, and work-control state now have
+  package-level seams and tests.
 - `check_capture_ocr.py` still owns the remaining Tk shell, some controller
   glue, and release-compatible behavior.
 
