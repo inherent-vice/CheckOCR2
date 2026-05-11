@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from collections.abc import Callable
 from tkinter import messagebox
 from typing import Any
 
@@ -102,3 +103,32 @@ def copy_selected_rates(app: Any) -> None:
         app.logger.info(f"선택된 {selection.count}개 행의 금리가 클립보드에 복사되었습니다.")
     else:
         app.logger.info("선택된 행에 금리 데이터가 없습니다.")
+
+
+def show_context_menu(app: Any, event: Any, *, menu_factory: Callable[..., Any] = tk.Menu) -> None:
+    if not app.grid_tree:
+        return
+
+    context_menu = menu_factory(app, tearoff=0)
+    app.theme_manager.register_widget(
+        context_menu,
+        {
+            "bg": "surface",
+            "fg": "on_surface",
+            "activebackground": "primary",
+            "activeforeground": "white",
+        },
+    )
+
+    context_menu.add_command(label="➕ 행 추가", command=app.add_empty_row_ui)
+    context_menu.add_command(label="🗑️ 선택 행 삭제", command=app.delete_selected_rows_ui)
+    context_menu.add_separator()
+    context_menu.add_command(label="📋 선택 행 복사 (Ctrl+C)", command=app.copy_selected_rows_ui)
+    context_menu.add_command(label="📈 선택 행 금리 복사", command=app.copy_selected_rates_ui)
+    context_menu.add_command(label="📝 클립보드에서 붙여넣기 (Ctrl+V)", command=app.paste_from_clipboard_ui)
+    context_menu.add_separator()
+    context_menu.add_command(label="🧹 전체 데이터 삭제", command=app.clear_all_data_ui)
+    try:
+        context_menu.tk_popup(event.x_root, event.y_root)
+    finally:
+        context_menu.grab_release()

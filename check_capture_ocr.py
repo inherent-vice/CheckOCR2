@@ -85,6 +85,7 @@ from checkocr2.ui.grid_actions import (
     copy_selected_rows,
     delete_selected_rows,
     paste_from_clipboard,
+    show_context_menu,
 )
 from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.main_window import (
@@ -1074,24 +1075,7 @@ class CheckCaptureOCRApp(tk.Tk):
         return "break" # 다른 바인딩으로 이벤트 전파 중지
 
     def show_context_menu_ui(self, event):
-        if not self.grid_tree: return
-        context_menu = tk.Menu(self, tearoff=0)
-        self.theme_manager.register_widget(context_menu, {'bg': 'surface', 'fg': 'on_surface', 
-                                                          'activebackground': 'primary', 'activeforeground': 'white'})
-
-        context_menu.add_command(label="➕ 행 추가", command=self.add_empty_row_ui)
-        context_menu.add_command(label="🗑️ 선택 행 삭제", command=self.delete_selected_rows_ui)
-        context_menu.add_separator()
-        context_menu.add_command(label="📋 선택 행 복사 (Ctrl+C)", command=self.copy_selected_rows_ui)
-        # 새로운 금리 복사 메뉴 항목 추가
-        context_menu.add_command(label="📈 선택 행 금리 복사", command=self.copy_selected_rates_ui)
-        context_menu.add_command(label="📝 클립보드에서 붙여넣기 (Ctrl+V)", command=self.paste_from_clipboard_ui)
-        context_menu.add_separator()
-        context_menu.add_command(label="🧹 전체 데이터 삭제", command=self.clear_all_data_ui)
-        try:
-            context_menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            context_menu.grab_release()
+        show_context_menu(self, event)
             
     def quit_app(self):
         # Check if work is running

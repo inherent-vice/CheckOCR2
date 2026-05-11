@@ -57,6 +57,14 @@ class FakeLogger:
         self.messages.append(message)
 
 
+class FakeThemeManager:
+    def __init__(self):
+        self.registered = []
+
+    def register_widget(self, widget, style_config):
+        self.registered.append((widget, style_config))
+
+
 class FakeMessageBox:
     def __init__(self, *, askyesno=True):
         self.askyesno_result = askyesno
@@ -81,9 +89,11 @@ class FakeApp:
         self.data_manager = FakeDataManager()
         self.grid_tree = FakeTree(["i0", "i1"], selected=["i0", "i1"])
         self.logger = FakeLogger()
+        self.theme_manager = FakeThemeManager()
         self.refresh_count = 0
         self.clipboard = ""
         self.clipboard_get_value = "A001\tAlpha"
+        self.actions = []
 
     def refresh_grid_ui(self):
         self.refresh_count += 1
@@ -96,6 +106,45 @@ class FakeApp:
 
     def clipboard_append(self, text):
         self.clipboard += text
+
+    def add_empty_row_ui(self):
+        self.actions.append("add")
+
+    def delete_selected_rows_ui(self):
+        self.actions.append("delete")
+
+    def copy_selected_rows_ui(self):
+        self.actions.append("copy_rows")
+
+    def copy_selected_rates_ui(self):
+        self.actions.append("copy_rates")
+
+    def paste_from_clipboard_ui(self):
+        self.actions.append("paste")
+
+    def clear_all_data_ui(self):
+        self.actions.append("clear")
+
+
+class FakeContextMenu:
+    def __init__(self, parent, tearoff):
+        self.parent = parent
+        self.tearoff = tearoff
+        self.items = []
+        self.popup_at = None
+        self.grab_released = False
+
+    def add_command(self, *, label, command):
+        self.items.append(("command", label, command))
+
+    def add_separator(self):
+        self.items.append(("separator",))
+
+    def tk_popup(self, x_root, y_root):
+        self.popup_at = (x_root, y_root)
+
+    def grab_release(self):
+        self.grab_released = True
 
 
 @pytest.fixture
@@ -235,3 +284,83 @@ def test_copy_selected_rates_warns_when_no_selection(fake_messagebox):
 
     assert fake_messagebox.calls[0][0] == "warning"
     assert fake_messagebox.calls[0][1] == ("경고", "복사할 행을 선택해주세요.")
+
+
+def test_show_context_menu_builds_legacy_grid_commands_and_releases_grab():
+    app = FakeApp()
+    created_menus = []
+    event = type("Event", (), {"x_root": 10, "y_root": 20})()
+
+    def menu_factory(parent, tearoff):
+        menu = FakeContextMenu(parent, tearoff)
+        created_menus.append(menu)
+        return menu
+
+    grid_actions.show_context_menu(app, event, menu_factory=menu_factory)
+
+    menu = created_menus[0]
+    labels = [item[1] for item in menu.items if item[0] == "command"]
+    assert labels == [
+        "➕ 행 추가",
+        "🗑️ 선택 행 삭제",
+        "📋 선택 행 복사 (Ctrl+C)",
+        "📈 선택 행 금리 복사",
+        "📝 클립보드에서 붙여넣기 (Ctrl+V)",
+        "🧹 전체 데이터 삭제",
+    ]
+    assert [item[0] for item in menu.items] == [
+        "command",
+        "command",
+        "separator",
+        "command",
+        "command",
+        "command",
+        "separator",
+        "command",
+    ]
+    assert menu.parent is app
+    assert menu.tearoff == 0
+    assert menu.popup_at == (10, 20)
+    assert menu.grab_released is True
+    assert app.theme_manager.registered == [
+        (
+            menu,
+            {
+                "bg": "surface",
+                "fg": "on_surface",
+                "activebackground": "primary",
+                "activeforeground": "white",
+            },
+        )
+    ]
+
+    for item in menu.items:
+        if item[0] == "command":
+            item[2]()
+
+    assert app.actions == ["add", "delete", "copy_rows", "copy_rates", "paste", "clear"]
+
+
+def test_show_context_menu_noops_without_grid_tree():
+    app = FakeApp()
+    app.grid_tree = None
+
+    grid_actions.show_context_menu(
+        app,
+        type("Event", (), {"x_root": 10, "y_root": 20})(),
+        menu_factory=lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("no menu")),
+    )
+
+    assert app.theme_manager.registered == []
+
+
+def test_legacy_app_context_menu_method_delegates(ocr_module, monkeypatch):
+    app = object.__new__(ocr_module.CheckCaptureOCRApp)
+    event = object()
+    calls = []
+
+    monkeypatch.setattr(ocr_module, "show_context_menu", lambda actual_app, actual_event: calls.append((actual_app, actual_event)))
+
+    app.show_context_menu_ui(event)
+
+    assert calls == [(app, event)]
