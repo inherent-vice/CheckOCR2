@@ -53,6 +53,8 @@ working.
   theme selection.
 - `checkocr2/ui/dialogs.py`: keyboard-shortcut and about dialogs, including
   build metadata text.
+- `checkocr2/ui/icons.py`: application icon candidate selection and Tk icon
+  application.
 - `checkocr2/ui/main_window.py`: top-level Tk window layout assembly for the
   menu, toolbar, three-panel grid, and log handler wiring.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for

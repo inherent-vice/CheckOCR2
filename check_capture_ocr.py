@@ -57,6 +57,7 @@ from checkocr2.table_model import (
     summarize_grid_rows,
 )
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
+from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.main_window import (
     build_main_window,
     create_center_excel_grid,
@@ -805,58 +806,7 @@ class CheckCaptureOCRApp(tk.Tk):
                 self.logger.debug("Package smoke status write failed: %s", exc)
 
     def _setup_application_icon(self):
-        """애플리케이션 아이콘을 창과 작업표시줄에 모두 설정"""
-        try:
-            # ICO 파일 설정 (Windows 창 제목표시줄용)
-            ico_path = None
-            if os.path.exists("eye_ocr_02_scanline.ico"):
-                ico_path = "eye_ocr_02_scanline.ico"
-            elif os.path.exists("app_icon.ico"):
-                ico_path = "app_icon.ico"
-
-            if ico_path:
-                self.iconbitmap(ico_path)
-                print(f"ICO 아이콘 설정 완료: {ico_path}")
-
-            # PNG 파일 설정 (작업표시줄 및 추가 지원용)
-            png_path = None
-            if os.path.exists("eye_ocr_02_scanline.png"):
-                png_path = "eye_ocr_02_scanline.png"
-            elif os.path.exists("app_icon.png"):
-                png_path = "app_icon.png"
-
-            if png_path:
-                try:
-                    from PIL import Image, ImageTk
-                    # PNG 이미지를 PhotoImage로 변환
-                    pil_image = Image.open(png_path)
-                    # 다양한 크기로 아이콘 설정 (16x16, 32x32, 48x48)
-                    icon_sizes = [16, 32, 48]
-                    photo_images = []
-
-                    for size in icon_sizes:
-                        resized_image = pil_image.resize((size, size), Image.Resampling.LANCZOS)
-                        photo_image = ImageTk.PhotoImage(resized_image)
-                        photo_images.append(photo_image)
-
-                    # PhotoImage 객체들을 인스턴스 변수로 저장 (가비지 컬렉션 방지)
-                    self._icon_photos = photo_images
-
-                    # 가장 큰 크기 아이콘을 기본으로 설정
-                    if photo_images:
-                        self.iconphoto(True, *photo_images)  # True는 모든 창에 적용
-                        print(f"PNG 아이콘 설정 완료: {png_path} ({len(photo_images)}개 크기)")
-
-                except ImportError:
-                    print("PIL 라이브러리를 찾을 수 없어 PNG 아이콘 설정을 건너뜁니다.")
-                except (OSError, tk.TclError) as e:
-                    print(f"PNG 아이콘 설정 중 오류: {e}")
-
-            if not ico_path and not png_path:
-                print("아이콘 파일을 찾을 수 없습니다.")
-
-        except (OSError, tk.TclError) as e:
-            print(f"아이콘 설정 중 전체 오류: {e}")
+        apply_application_icon(self)
 
     def center_window(self):
         self.update_idletasks()
