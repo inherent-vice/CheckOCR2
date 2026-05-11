@@ -78,6 +78,12 @@ from checkocr2.ui.main_window import (
     create_timing_section,
     create_toolbar,
 )
+from checkocr2.ui.ocr_actions import (
+    run_ocr_process as run_ocr_process_action,
+)
+from checkocr2.ui.ocr_actions import (
+    stop_processing as stop_processing_action,
+)
 from checkocr2.ui.overlays import AreaVisualizationOverlay, DragCaptureOverlay, PointCaptureOverlay
 from checkocr2.ui.presets import (
     apply_selected_preset as apply_selected_preset_action,
@@ -101,7 +107,6 @@ from checkocr2.ui.settings_binding import (
 from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.ui.theme import ThemeManager
 from checkocr2.work_controller import WorkController
-from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
     CapturedImages,
     OcrResult,
@@ -1128,10 +1133,7 @@ class CheckCaptureOCRApp(tk.Tk):
         AreaVisualizationOverlay(self, areas_info, self.theme_manager, auto_close=True)
 
     def stop_processing_ui_initiated(self):
-        if self.work_controller.is_running:
-            message = self.work_controller.stop_work()
-            self._set_runtime_state(RuntimeState.STOPPING)
-            self.message_queue.put(("log", message, "INFO"))
+        stop_processing_action(self)
 
     def _on_work_complete_ui_only(self, summary_message):
         self.logger.info("[_on_work_complete_ui_only] 함수 호출됨 (Main Thread)")
@@ -1166,24 +1168,7 @@ class CheckCaptureOCRApp(tk.Tk):
         show_about_dialog(parent=self)
 
     def run_ocr_process(self):
-        if self.work_controller.is_running:
-            self.stop_processing_ui_initiated()
-            return
-        if not self._validate_inputs_for_ocr(): return
-
-        self.work_controller.start_work()
-        self._set_runtime_state(RuntimeState.RUNNING)
-        current_ui_settings = self.get_current_ui_settings()
-        output_dir = self.output_folder_path.get().strip()
-        save_details = self.save_detail_images.get()
-
-        self.worker_thread = start_daemon_worker(
-            self.ocr_workflow_manager.execute_ocr_workflow_threaded,
-            current_ui_settings,
-            output_dir,
-            save_details,
-            name="checkocr2-ocr-workflow",
-        )
+        run_ocr_process_action(self)
 
     def _validate_inputs_for_ocr(self):
         output_dir = self.output_folder_path.get().strip()

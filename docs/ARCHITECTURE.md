@@ -63,6 +63,9 @@ working.
   application.
 - `checkocr2/ui/main_window.py`: top-level Tk window layout assembly for the
   menu, toolbar, three-panel grid, and log handler wiring.
+- `checkocr2/ui/ocr_actions.py`: OCR run/stop button orchestration, including
+  validation handoff, runtime-state transition, worker launch, and queued stop
+  logging.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
   logs, dialogs, grid updates, OCR-ready state, and final export completion.
 - `checkocr2/ui/settings_binding.py`: settings-to-Tk-variable mapping for

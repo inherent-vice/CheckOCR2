@@ -25,10 +25,10 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
   image-processing, runtime-state, work-controller, theme manager, run-report,
   queue-dispatch, shortcut/about dialogs, overlay windows, preset controller,
-  file-dialog path preparation, grid actions, application icons,
-  OCR-start validation, and file/coordinates/timing/options/preset/grid/log
-  panel seams plus the menu bar, top toolbar, and main-window layout now have
-  test coverage.
+  file-dialog path preparation, grid actions, OCR run/stop actions,
+  application icons, OCR-start validation, and
+  file/coordinates/timing/options/preset/grid/log panel seams plus the menu bar,
+  top toolbar, and main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -53,11 +53,11 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 204 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 209 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate uses the 2026-05-11 clean
 PyInstaller release build for the latest package-affecting app code plus real
-package smoke at about `596.375 MB` with startup `1.719` seconds and
+package smoke at about `596.376 MB` with startup `3.703` seconds and
 settings-file verification under isolated `APPDATA`.
 
 ## Commands To Re-Run Before Release
