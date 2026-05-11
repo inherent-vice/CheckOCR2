@@ -86,6 +86,12 @@ from checkocr2.ui.grid_actions import (
     paste_from_clipboard,
     show_context_menu,
 )
+from checkocr2.ui.grid_edit_actions import (
+    cancel_cell_edit,
+    on_cell_double_click,
+    save_cell_edit,
+    save_cell_edit_on_focus_out,
+)
 from checkocr2.ui.grid_update_actions import handle_grid_update
 from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.keyboard_actions import handle_f5_key as handle_f5_key_action
@@ -974,78 +980,16 @@ class CheckCaptureOCRApp(tk.Tk):
             self.grid_progress_label.config(text=format_grid_progress_text(summary))
 
     def on_cell_double_click_ui(self, event):
-        if not self.grid_tree: return
-
-        # 기존 편집 위젯이 있다면 제거
-        if hasattr(self, '_editing_cell_entry') and self._editing_cell_entry.winfo_exists():
-            self._editing_cell_entry.destroy()
-
-        item_id = self.grid_tree.identify_row(event.y)
-        column_id = self.grid_tree.identify_column(event.x)
-
-        if not item_id or not column_id: return
-
-        col_index = int(column_id.replace('#', '')) - 1
-        if col_index < 0: return # 헤더 클릭 방지
-
-        col_name = self.grid_tree['columns'][col_index]
-        row_index = self.grid_tree.index(item_id)
-
-        if not (0 <= row_index < len(self.data_manager.excel_data)): return
-        
-        # 셀의 경계 가져오기
-        x, y, width, height = self.grid_tree.bbox(item_id, column_id)
-
-        # 편집용 Entry 위젯 생성
-        current_value = self.data_manager.excel_data[row_index].get(col_name, "")
-        self._editing_cell_entry = tk.Entry(self.grid_tree, font=('Segoe UI', 9))
-        self.theme_manager.register_widget(self._editing_cell_entry, {'bg': 'white', 'fg': 'on_surface', 'insertbackground': 'on_surface', 'relief': 'solid', 'bd':1})
-        self.theme_manager.apply_theme_to_all_widgets() # 새로 생성된 위젯에 테마 적용
-
-        self._editing_cell_entry.place(x=x, y=y, width=width, height=height)
-        self._editing_cell_entry.insert(0, current_value)
-        self._editing_cell_entry.focus_set()
-        self._editing_cell_entry.select_range(0, tk.END)
-
-        # 이벤트 바인딩
-        self._editing_cell_entry.bind("<Return>", lambda e, ri=row_index, cn=col_name: self._save_cell_edit(ri, cn))
-        self._editing_cell_entry.bind("<KP_Enter>", lambda e, ri=row_index, cn=col_name: self._save_cell_edit(ri, cn)) # 숫자패드 Enter
-        self._editing_cell_entry.bind("<Escape>", lambda e: self._cancel_cell_edit())
-        self._editing_cell_entry.bind("<FocusOut>", lambda e, ri=row_index, cn=col_name: self._save_cell_edit_on_focus_out(ri, cn))
-
-        # 현재 편집 중인 셀 정보 저장 (FocusOut에서 사용)
-        self._current_edit_info = {'row_index': row_index, 'col_name': col_name}
-
+        on_cell_double_click(self, event)
 
     def _save_cell_edit_on_focus_out(self, row_index, col_name):
-        # FocusOut 이벤트가 Escape로 인한 것인지, 아니면 실제로 포커스를 잃은 것인지 확인
-        # Escape를 누르면 _editing_cell_entry가 먼저 파괴될 수 있음
-        if hasattr(self, '_editing_cell_entry') and self._editing_cell_entry.winfo_exists():
-            # 위젯이 아직 존재하면, 정상적인 포커스 아웃으로 간주하고 저장
-             self._save_cell_edit(row_index, col_name)
-        # 이미 위젯이 파괴되었다면 (아마도 Escape 때문), 아무것도 안 함
+        save_cell_edit_on_focus_out(self, row_index, col_name)
 
     def _save_cell_edit(self, row_index, col_name):
-        if hasattr(self, '_editing_cell_entry') and self._editing_cell_entry.winfo_exists():
-            new_value = self._editing_cell_entry.get()
-            self._editing_cell_entry.destroy()
-            del self._editing_cell_entry # 참조 제거
-
-            if self.data_manager.update_grid_cell_data(row_index, col_name, new_value):
-                self.refresh_grid_ui()
-                # 현재 편집 정보 초기화
-                if hasattr(self, '_current_edit_info'):
-                    del self._current_edit_info
-        return "break" # 다른 바인딩으로 이벤트 전파 중지
+        return save_cell_edit(self, row_index, col_name)
 
     def _cancel_cell_edit(self):
-        if hasattr(self, '_editing_cell_entry') and self._editing_cell_entry.winfo_exists():
-            self._editing_cell_entry.destroy()
-            del self._editing_cell_entry
-        # 현재 편집 정보 초기화
-        if hasattr(self, '_current_edit_info'):
-            del self._current_edit_info
-        return "break" # 다른 바인딩으로 이벤트 전파 중지
+        return cancel_cell_edit(self)
 
     def show_context_menu_ui(self, event):
         show_context_menu(self, event)
