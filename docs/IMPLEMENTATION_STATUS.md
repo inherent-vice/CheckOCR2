@@ -125,6 +125,12 @@ Date: 2026-05-11
 - Added `scripts/audit_ocr_fixtures.py` to fail loudly until ignored OCR crop
   fixtures are readable, normalized, deduplicated, and large enough for a real
   baseline.
+- Added `scripts/prepare_ocr_fixtures.py` to copy saved date/rate detail crops
+  into the ignored fixture folder and create a review-required
+  `ground_truth_draft.csv` that must be manually verified before promotion to
+  `ground_truth.csv`.
+- Added `docs/OCR_FIXTURE_WORKFLOW.md` to document the safe crop draft,
+  manual-review, audit, benchmark, and live-comparison sequence.
 - Added `scripts/compare_run_reports.py` to compare same-input live run reports
   before wait-time or OCR-default changes, including input-workbook matching,
   row identity checks, blank/failure regression checks, and timing validation.
@@ -172,12 +178,13 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 158 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 168 passed after final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
-- `python -m pytest tests\test_ocr_engine.py tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py --basetemp $env:TEMP\checkocr2-allowlist-pytest`: 11 passed for field allowlist benchmark coverage.
-- `python -m pytest tests\test_audit_ocr_fixtures_script.py tests\test_compare_run_reports_script.py --basetemp $env:TEMP\checkocr2-ocr-gates-pytest`: 12 passed for fixture audit and live report comparison coverage.
+- `python -m pytest tests\test_ocr_engine.py tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py --basetemp $env:TEMP\checkocr2-allowlist-pytest`: 17 passed for field allowlist benchmark coverage and draft-fixture rejection.
+- `python -m pytest tests\test_audit_ocr_fixtures_script.py tests\test_compare_run_reports_script.py --basetemp $env:TEMP\checkocr2-ocr-gates-pytest`: 21 passed for fixture audit and live report comparison coverage.
+- `python -m pytest tests\test_prepare_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-prepare-fixtures`: 8 passed for fixture draft preparation, overwrite protection, run-report prefill, safe output targeting, dry-run, and CLI error handling.
 - `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
 - `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json`: failed as expected because `tests\fixtures\ocr_crops\ground_truth.csv` does not exist yet; this hard gate remains open.
 - Broad exception audit now reports only adapter/safety boundaries: the top-level
@@ -221,8 +228,9 @@ that warning non-blocking while package smoke remains green.
 
 ## Remaining Evidence Gates
 
-- Build real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with a
-  `ground_truth.csv`, then pass `scripts\audit_ocr_fixtures.py`.
+- Build real OCR crop fixtures using `docs/OCR_FIXTURE_WORKFLOW.md`, promote a
+  manually reviewed `ground_truth.csv`, then pass
+  `scripts\audit_ocr_fixtures.py`.
 - Run a same-input 10-row live OCR comparison with
   `scripts\compare_run_reports.py` before reducing wait times or changing OCR
   defaults.

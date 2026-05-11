@@ -27,6 +27,7 @@ DEFAULT_MIN_TOTAL = 100
 DEFAULT_MIN_DATE = 50
 DEFAULT_MIN_RATE = 50
 SUPPORTED_FIELDS = {"date", "rate"}
+DRAFT_NOTE_MARKERS = ("review_required", "expected_from_run_report")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -92,6 +93,13 @@ def audit_fixtures(
             )
         if not expected_text:
             report["blank_expected_cases"] += 1
+            report["errors"].append(f"blank expected_text for {crop_path_value}")
+        notes = str(case.get("notes", "") or "").lower()
+        for marker in DRAFT_NOTE_MARKERS:
+            if marker in notes:
+                report["errors"].append(
+                    f"draft fixture marker for {crop_path_value}: {marker}"
+                )
 
         try:
             crop_path = resolve_crop_path(fixture_dir, crop_path_value)
@@ -125,7 +133,9 @@ def audit_fixtures(
         widths.append(width)
         heights.append(height)
 
-    report["field_counts"] = {field: field_counts[field] for field in sorted(field_counts)}
+    report["field_counts"] = {
+        field: field_counts[field] for field in sorted(field_counts)
+    }
     if widths and heights:
         report["image_size"] = {
             "min_width": min(widths),
@@ -135,11 +145,15 @@ def audit_fixtures(
         }
 
     if report["total_cases"] < min_total:
-        report["errors"].append(f"minimum total cases not met: {report['total_cases']} < {min_total}")
+        report["errors"].append(
+            f"minimum total cases not met: {report['total_cases']} < {min_total}"
+        )
     for field, minimum in minimums.items():
         count = field_counts.get(field, 0)
         if count < minimum:
-            report["errors"].append(f"minimum {field} cases not met: {count} < {minimum}")
+            report["errors"].append(
+                f"minimum {field} cases not met: {count} < {minimum}"
+            )
 
     return finalize_report(report)
 

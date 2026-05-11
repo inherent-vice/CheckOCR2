@@ -19,18 +19,27 @@ FIELD_ALLOWLISTS = {
     "date": "0123456789./-",
     "rate": "0123456789.,%",
 }
+DRAFT_NOTE_MARKERS = ("review_required", "expected_from_run_report")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--fixture-csv", type=Path, default=Path("tests/fixtures/ocr_crops/ground_truth.csv"))
+    parser.add_argument(
+        "--fixture-csv",
+        type=Path,
+        default=Path("tests/fixtures/ocr_crops/ground_truth.csv"),
+    )
     parser.add_argument("--output-json", type=Path)
     parser.add_argument(
         "--allow-repo-output",
         action="store_true",
         help="Allow writing benchmark reports inside the repository outside .analysis_tmp",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Validate fixture metadata without loading OCR")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate fixture metadata without loading OCR",
+    )
     parser.add_argument(
         "--allow-empty-fixture",
         action="store_true",
@@ -50,7 +59,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_cases(fixture_csv: Path, limit: int = 0, *, allow_empty: bool = False) -> list[dict[str, str]]:
+def load_cases(
+    fixture_csv: Path, limit: int = 0, *, allow_empty: bool = False
+) -> list[dict[str, str]]:
     if not fixture_csv.exists():
         if allow_empty:
             return []
@@ -61,11 +72,26 @@ def load_cases(fixture_csv: Path, limit: int = 0, *, allow_empty: bool = False) 
         fieldnames = set(reader.fieldnames or [])
         missing_columns = sorted(required_columns - fieldnames)
         if missing_columns:
-            raise ValueError(f"Fixture CSV missing columns: {', '.join(missing_columns)}")
+            raise ValueError(
+                f"Fixture CSV missing columns: {', '.join(missing_columns)}"
+            )
         rows = list(reader)
     if not rows and not allow_empty:
         raise ValueError(f"Fixture CSV has no cases: {fixture_csv}")
     return rows[:limit] if limit > 0 else rows
+
+
+def validate_benchmark_cases(cases: list[dict[str, str]]) -> None:
+    for case in cases:
+        notes = str(case.get("notes", "") or "").lower()
+        for marker in DRAFT_NOTE_MARKERS:
+            if marker in notes:
+                crop_path = case.get("crop_path", "")
+                raise ValueError(
+                    "Fixture CSV contains draft marker "
+                    f"for {crop_path}: {marker}. Run the fixture audit and "
+                    "promote a manually reviewed ground_truth.csv before benchmarking."
+                )
 
 
 def is_relative_to(path: Path, parent: Path) -> bool:
@@ -96,7 +122,9 @@ def validate_output_path(output_json: Path | None, allow_repo_output: bool) -> N
         return
     allowed_dir = (root / ".analysis_tmp").resolve()
     if not is_relative_to(resolved, allowed_dir):
-        raise ValueError("Write benchmark reports under .analysis_tmp/ or pass --allow-repo-output")
+        raise ValueError(
+            "Write benchmark reports under .analysis_tmp/ or pass --allow-repo-output"
+        )
 
 
 def normalize(field: str, text: str) -> str:
@@ -143,7 +171,9 @@ def empty_field_stats() -> dict[str, Any]:
     }
 
 
-def summarize_field_stats(field_stats: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def summarize_field_stats(
+    field_stats: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     summaries: dict[str, dict[str, Any]] = {}
     for field, stats in sorted(field_stats.items()):
         evaluated = stats["evaluated_cases"]
@@ -152,9 +182,13 @@ def summarize_field_stats(field_stats: dict[str, dict[str, Any]]) -> dict[str, d
             "evaluated_cases": evaluated,
             "missing_cases": stats["missing_cases"],
             "invalid_path_cases": stats["invalid_path_cases"],
-            "exact_accuracy": (stats["exact_matches"] / evaluated) if evaluated else 0.0,
+            "exact_accuracy": (
+                (stats["exact_matches"] / evaluated) if evaluated else 0.0
+            ),
             "blank_count": stats["blank_count"],
-            "blank_on_expected_nonempty_count": stats["blank_on_expected_nonempty_count"],
+            "blank_on_expected_nonempty_count": stats[
+                "blank_on_expected_nonempty_count"
+            ],
             "false_positive_count": stats["false_positive_count"],
             "p95_latency_ms": round(p95(stats["latencies_ms"]), 2),
         }
@@ -162,7 +196,10 @@ def summarize_field_stats(field_stats: dict[str, dict[str, Any]]) -> dict[str, d
 
 
 def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
-    cases = load_cases(args.fixture_csv, args.limit, allow_empty=args.allow_empty_fixture)
+    cases = load_cases(
+        args.fixture_csv, args.limit, allow_empty=args.allow_empty_fixture
+    )
+    validate_benchmark_cases(cases)
     allowlist_mode = getattr(args, "allowlist_mode", "none")
     report: dict[str, Any] = {
         "fixture_csv": str(args.fixture_csv),
@@ -193,7 +230,9 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
     fixture_dir = args.fixture_csv.parent
     latencies_ms: list[float] = []
     field_stats: dict[str, dict[str, Any]] = {}
-    exact = blank = blank_on_expected_nonempty = false_positive = missing = invalid_path = 0
+    exact = blank = blank_on_expected_nonempty = false_positive = missing = (
+        invalid_path
+    ) = 0
 
     for case in cases:
         field = case.get("field", "")
@@ -256,7 +295,9 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         stats["evaluated_cases"] += 1
         stats["exact_matches"] += int(matched)
         stats["blank_count"] += int(not normalized)
-        stats["blank_on_expected_nonempty_count"] += int(bool(expected) and not normalized)
+        stats["blank_on_expected_nonempty_count"] += int(
+            bool(expected) and not normalized
+        )
         stats["false_positive_count"] += int(not expected and bool(normalized))
         stats["latencies_ms"].append(latency)
         report["results"].append(

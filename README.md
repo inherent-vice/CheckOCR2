@@ -54,6 +54,11 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 Before OCR tuning or release decisions that depend on OCR accuracy, also run
 `scripts\audit_ocr_fixtures.py` against real fixtures and
 `scripts\compare_run_reports.py` against same-input live run reports.
+Use `scripts\prepare_ocr_fixtures.py` to copy saved `*_date.png` and
+`*_rate.png` detail images into the ignored fixture folder and create a
+review-required `ground_truth_draft.csv`; only rename it to `ground_truth.csv`
+after manual verification. See `docs/OCR_FIXTURE_WORKFLOW.md` for the full
+fixture preparation, audit, and benchmark sequence.
 
 Run GUI smoke checks through all three Python entry points after touching
 startup, settings, threading, or Tkinter UI state.
@@ -67,10 +72,10 @@ startup, settings, threading, or Tkinter UI state.
 - `tests/`: pytest characterization and unit tests with fakes for OCR, screen
   automation, and Tk-facing behavior.
 - `scripts/`: OCR benchmark, fixture audit, live run comparison,
-  benchmark-matrix, and packaged-EXE smoke tools.
+  fixture preparation, benchmark-matrix, and packaged-EXE smoke tools.
 - `docs/`: architecture, Korean modernization summary, reimplementation plan,
-  execution guide, implementation handoff, GUI parity, run report, and
-  benchmark documentation.
+  execution guide, implementation handoff, GUI parity, run report, OCR fixture
+  workflow, and benchmark documentation.
 - `legacy/`: historical versions kept for reference only.
 - `tools/`: icon generation utilities.
 
@@ -100,7 +105,8 @@ are evaluated separately.
 
 Use `scripts\audit_ocr_fixtures.py` before recording an OCR baseline. It checks
 the ignored `tests/fixtures/ocr_crops/ground_truth.csv`, crop paths, image
-readability, date/rate counts, duplicate paths, and normalized expected text.
+readability, date/rate counts, duplicate paths, normalized expected text, and
+rejects review-required draft markers.
 Use `scripts\compare_run_reports.py` for same-input live runs; by default it
 requires at least 10 matching rows, unchanged date/rate outputs, and no blank
 or failure increase. Add `--require-p95-improvement --min-p95-improvement-percent

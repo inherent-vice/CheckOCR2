@@ -26,7 +26,9 @@ def test_audit_fixtures_accepts_minimum_date_and_rate_cases(tmp_path):
         encoding="utf-8",
     )
 
-    report = audit_fixtures(fixture_csv, min_total=2, min_by_field={"date": 1, "rate": 1})
+    report = audit_fixtures(
+        fixture_csv, min_total=2, min_by_field={"date": 1, "rate": 1}
+    )
 
     assert report["status"] == "ready"
     assert report["ready_for_baseline"] is True
@@ -49,7 +51,9 @@ def test_audit_fixtures_reports_missing_duplicate_and_threshold_errors(tmp_path)
         encoding="utf-8",
     )
 
-    report = audit_fixtures(fixture_csv, min_total=4, min_by_field={"date": 2, "rate": 2})
+    report = audit_fixtures(
+        fixture_csv, min_total=4, min_by_field={"date": 2, "rate": 2}
+    )
 
     assert report["status"] == "not_ready"
     assert report["ready_for_baseline"] is False
@@ -57,7 +61,10 @@ def test_audit_fixtures_reports_missing_duplicate_and_threshold_errors(tmp_path)
     assert "missing crop file: missing.png" in report["errors"]
     assert "minimum total cases not met: 3 < 4" in report["errors"]
     assert "minimum rate cases not met: 1 < 2" in report["errors"]
-    assert "expected_text is not normalized for date.png: 20260508 -> 2026/05/08" in report["errors"]
+    assert (
+        "expected_text is not normalized for date.png: 20260508 -> 2026/05/08"
+        in report["errors"]
+    )
 
 
 def test_audit_fixtures_detects_duplicate_resolved_crop_paths(tmp_path):
@@ -72,10 +79,38 @@ def test_audit_fixtures_detects_duplicate_resolved_crop_paths(tmp_path):
         encoding="utf-8",
     )
 
-    report = audit_fixtures(fixture_csv, min_total=2, min_by_field={"date": 1, "rate": 1})
+    report = audit_fixtures(
+        fixture_csv, min_total=2, min_by_field={"date": 1, "rate": 1}
+    )
 
     assert report["status"] == "not_ready"
     assert "duplicate crop file: ./date.png resolves to date.png" in report["errors"]
+
+
+def test_audit_fixtures_rejects_blank_expected_and_draft_markers(tmp_path):
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    write_crop(fixture_dir / "date.png")
+    write_crop(fixture_dir / "rate.png")
+    fixture_csv = fixture_dir / "ground_truth.csv"
+    fixture_csv.write_text(
+        "crop_path,field,expected_text,source_run,notes\n"
+        "date.png,date,,draft,source=date.png; review_required\n"
+        "rate.png,rate,3.500,draft,expected_from_run_report\n",
+        encoding="utf-8",
+    )
+
+    report = audit_fixtures(
+        fixture_csv, min_total=2, min_by_field={"date": 1, "rate": 1}
+    )
+
+    assert report["status"] == "not_ready"
+    assert "blank expected_text for date.png" in report["errors"]
+    assert "draft fixture marker for date.png: review_required" in report["errors"]
+    assert (
+        "draft fixture marker for rate.png: expected_from_run_report"
+        in report["errors"]
+    )
 
 
 def test_audit_fixtures_cli_writes_json_and_fails_when_not_ready(tmp_path):

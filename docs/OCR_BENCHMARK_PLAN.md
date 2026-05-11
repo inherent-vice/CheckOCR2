@@ -26,6 +26,24 @@ Validate the harness without OCR:
 python scripts/benchmark_ocr.py --dry-run --allow-empty-fixture
 ```
 
+Bootstrap a review-required fixture draft from saved detail images:
+
+```powershell
+python scripts\prepare_ocr_fixtures.py --source-dir .analysis_tmp\detail_images --output-dir tests\fixtures\ocr_crops
+```
+
+The script copies `*_date.png` and `*_rate.png` crops into the ignored fixture
+folder and writes `ground_truth_draft.csv` rows with blank `expected_text`
+values. Fill those values manually from the source screen, then rename or copy
+the reviewed file to `ground_truth.csv` before treating it as ground truth. If
+you intentionally want to prefill draft values from a run report for review,
+add `--run-report <path> --fill-expected-from-report`; those values still
+require manual verification before baseline use. See
+`docs/OCR_FIXTURE_WORKFLOW.md` for the end-to-end fixture workflow. The
+preparer refuses to write `ground_truth.csv` directly and blocks output outside
+the ignored fixture, analysis, or temp folders unless `--allow-unsafe-output`
+is passed deliberately.
+
 Once `ground_truth.csv` exists, omit `--allow-empty-fixture` so a missing or
 empty fixture set fails the check.
 
@@ -37,8 +55,10 @@ python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_aud
 
 The audit fails until crop paths are readable, expected values are already
 normalized, duplicate paths are removed, and the fixture set meets the minimum
-date/rate counts. The default gate is 100 total crops with at least 50 date and
-50 rate cases; pass smaller `--min-*` values only for local dry runs.
+date/rate counts. It also rejects blank `expected_text` cells and draft markers
+such as `review_required` or `expected_from_run_report`. The default gate is
+100 total crops with at least 50 date and 50 rate cases; pass smaller
+`--min-*` values only for local dry runs.
 
 Run the current baseline:
 

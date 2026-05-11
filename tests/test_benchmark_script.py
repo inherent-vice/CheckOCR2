@@ -54,7 +54,13 @@ def test_benchmark_dry_run_requires_fixture_unless_allow_empty():
     missing = Path("tests/fixtures/ocr_crops/missing_ground_truth.csv")
 
     result = subprocess.run(
-        [sys.executable, "scripts/benchmark_ocr.py", "--dry-run", "--fixture-csv", str(missing)],
+        [
+            sys.executable,
+            "scripts/benchmark_ocr.py",
+            "--dry-run",
+            "--fixture-csv",
+            str(missing),
+        ],
         check=False,
         capture_output=True,
         text=True,
@@ -80,6 +86,33 @@ def test_benchmark_dry_run_requires_fixture_unless_allow_empty():
     assert allowed.returncode == 0
 
 
+def test_benchmark_rejects_draft_fixture_markers(tmp_path):
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    fixture_csv = fixture_dir / "ground_truth_draft.csv"
+    fixture_csv.write_text(
+        "crop_path,field,expected_text,source_run,notes\n"
+        "date.png,date,2026/05/08,draft,source=date.png; review_required\n",
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "scripts/benchmark_ocr.py",
+            "--dry-run",
+            "--fixture-csv",
+            str(fixture_csv),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "Fixture CSV contains draft marker" in result.stderr
+
+
 def test_benchmark_rejects_crop_paths_outside_fixture_dir(tmp_path):
     fixture_dir = tmp_path / "fixtures"
     fixture_dir.mkdir()
@@ -95,7 +128,9 @@ def test_benchmark_rejects_unignored_repo_output_path():
     with pytest.raises(ValueError, match="\\.analysis_tmp"):
         validate_output_path(Path("benchmark_report.json"), allow_repo_output=False)
 
-    validate_output_path(Path(".analysis_tmp/benchmark_report.json"), allow_repo_output=False)
+    validate_output_path(
+        Path(".analysis_tmp/benchmark_report.json"), allow_repo_output=False
+    )
 
 
 def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidence(
@@ -104,7 +139,12 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
 ):
     fixture_dir = tmp_path / "fixtures"
     fixture_dir.mkdir()
-    for name in ("date.png", "blank_rate.png", "false_positive_rate.png", "expected_empty_blank_rate.png"):
+    for name in (
+        "date.png",
+        "blank_rate.png",
+        "false_positive_rate.png",
+        "expected_empty_blank_rate.png",
+    ):
         Image.new("RGB", (8, 8), "white").save(fixture_dir / name)
     fixture_csv = fixture_dir / "ground_truth.csv"
     fixture_csv.write_text(
@@ -132,7 +172,9 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
         def readtext(self, image, detail=0):
             return next(outputs)
 
-    monkeypatch.setitem(sys.modules, "easyocr", types.SimpleNamespace(Reader=FakeReader))
+    monkeypatch.setitem(
+        sys.modules, "easyocr", types.SimpleNamespace(Reader=FakeReader)
+    )
 
     report = run_benchmark(
         Namespace(
@@ -196,7 +238,9 @@ def test_benchmark_field_allowlist_passes_field_specific_easyocr_allowlists(
             allowlist_calls.append(allowlist)
             return next(outputs)
 
-    monkeypatch.setitem(sys.modules, "easyocr", types.SimpleNamespace(Reader=FakeReader))
+    monkeypatch.setitem(
+        sys.modules, "easyocr", types.SimpleNamespace(Reader=FakeReader)
+    )
 
     report = run_benchmark(
         Namespace(

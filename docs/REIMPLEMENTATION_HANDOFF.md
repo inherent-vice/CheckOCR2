@@ -45,7 +45,7 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 158 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 168 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. Latest package gate remains the 2026-05-08 clean
 PyInstaller release build plus real package smoke at about `596.35 MB` with
@@ -67,7 +67,8 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 
 Before OCR tuning or release decisions that depend on OCR accuracy, also run
 the fixture audit and same-input live comparison commands from
-`docs/OCR_BENCHMARK_PLAN.md`.
+`docs/OCR_BENCHMARK_PLAN.md`; use `docs/OCR_FIXTURE_WORKFLOW.md` to prepare and
+promote the audited crop fixtures.
 
 Use the clean release venv for PyInstaller. The global interpreter is expected
 to fail release preflight on this machine when GUI/contrib OpenCV packages are
@@ -76,7 +77,7 @@ installed outside the release environment.
 ## Evidence Gates Not Yet Cleared
 
 - Create real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with
-  `ground_truth.csv`, then pass the fixture audit script.
+  a manually reviewed `ground_truth.csv`, then pass the fixture audit script.
 - Run a same-input 10-row live OCR comparison through the run-report comparator
   before reducing wait defaults or changing OCR defaults.
 - Benchmark alternate OCR engines only after the fixture baseline exists.
