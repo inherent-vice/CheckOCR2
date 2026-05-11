@@ -1,6 +1,6 @@
 # CheckOCR2 Reimplementation Plan
 
-Date: 2026-05-08
+Date: 2026-05-11
 
 ## Purpose
 
@@ -49,7 +49,8 @@ test or a manual verification note.
   lifecycle, and release-compatible controller behavior. WorkController state
   has moved into `checkocr2/work_controller.py`; theme management has moved
   into `checkocr2/ui/theme.py`; overlay windows have moved into
-  `checkocr2/ui/overlays.py`; low-risk panels, menu/toolbar, shortcut/about
+  `checkocr2/ui/overlays.py`; grid data management has moved into
+  `checkocr2/data_manager.py`; low-risk panels, menu/toolbar, shortcut/about
   dialogs, and legacy queue dispatch have been extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
@@ -102,6 +103,7 @@ checkocr2/
   settings.py                         # SettingsStore, presets, migration
   paths.py                            # UNC cleanup, output naming, folder open
   logging_config.py                   # logger + Tk queue handler
+  data_manager.py                     # Excel grid state and export events
   table_model.py                      # row CRUD, state counts, status rules
   excel_io.py                         # Excel read/write only
   image_processing.py                 # crop validation, upscaling, preprocessing
@@ -116,9 +118,10 @@ checkocr2/
     dialogs.py
     panels/
       file_panel.py
-      capture_panel.py
+      coordinates_panel.py
+      timing_panel.py
       options_panel.py
-      presets_panel.py
+      preset_panel.py
       grid_panel.py
       log_panel.py
 ```

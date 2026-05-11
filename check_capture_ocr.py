@@ -14,8 +14,8 @@ from tkinter import filedialog, messagebox, simpledialog
 import numpy as np
 from PIL import Image
 
+from checkocr2.data_manager import DataManager
 from checkocr2.events import parse_legacy_grid_update
-from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
 from checkocr2.logging_config import TkinterLogHandler, setup_logging
@@ -46,13 +46,10 @@ from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import (
     apply_grid_update,
-    delete_rows,
-    empty_row,
     format_grid_progress_text,
     format_grid_status_text,
     rates_for_copy,
     rows_for_copy,
-    rows_from_clipboard,
     status_is_error,
     summarize_grid_rows,
 )
@@ -105,77 +102,6 @@ class UnifiedSettingsManager(SettingsStore):
         settings = dict(settings)
         settings["created_at"] = datetime.now().isoformat()
         super().save_preset(name, settings)
-
-############################################
-# 데이터 관리자
-############################################
-class DataManager:
-    def __init__(self, app_ref, logger, message_queue):
-        self.app = app_ref # CheckCaptureOCRApp 참조
-        self.logger = logger
-        self.message_queue = message_queue
-        self.excel_data = [] # [{'종목코드': '', '종목명': '', '날짜': '', '금리': '', '상태': ''}, ...]
-        self.current_processing_index = -1
-
-    def load_excel_to_grid_data(self, file_path):
-        try:
-            new_data, missing_columns = load_grid_rows(file_path)
-            self.clear_all_data_internal()
-            for target_col in missing_columns:
-                self.logger.warning(f"Excel 파일에 '{target_col}'에 해당하는 컬럼을 찾을 수 없습니다.")
-            self.excel_data = new_data
-            return len(self.excel_data)
-        except (OSError, ValueError, ImportError, ExcelIOError) as e:
-            self.logger.exception("Excel 파일 로드 실패")
-            self.message_queue.put(("error_messagebox", "Excel 파일 로드 중 오류", f"{e}"))
-            return 0
-            
-    def add_empty_row_data(self):
-        self.excel_data.append(empty_row())
-
-    def paste_from_clipboard_data(self, clipboard_content):
-        try:
-            rows = rows_from_clipboard(clipboard_content)
-            self.excel_data.extend(rows)
-            return len(rows)
-        except (AttributeError, TypeError, ValueError) as e:
-            self.logger.exception("클립보드 붙여넣기 실패")
-            self.message_queue.put(("error_messagebox", "붙여넣기 중 오류", f"{e}"))
-            return 0
-
-    def delete_rows_data(self, indices_to_delete):
-        delete_rows(self.excel_data, indices_to_delete)
-    
-    def clear_all_data_internal(self):
-        self.excel_data.clear()
-        self.current_processing_index = -1
-
-    def update_grid_cell_data(self, row_index, col_name, new_value):
-        if 0 <= row_index < len(self.excel_data):
-            self.excel_data[row_index][col_name] = new_value
-            return True
-        return False
-
-    def export_grid_to_excel_data(self, output_dir, input_file_path_str):
-        if not self.excel_data:
-            self.message_queue.put(("log", "내보낼 데이터가 없습니다.", "INFO"))
-            return None
-
-        new_file_path = updated_workbook_path(output_dir, input_file_path_str)
-
-        try:
-            # 디버그 로그: 엑셀 내보내기 직전 데이터 상태 확인
-            self.logger.debug(f"[export_grid_to_excel_data] 내보내기 직전 데이터: {self.excel_data}")
-            
-            export_grid_rows(self.excel_data, new_file_path)
-            export_success_path = new_file_path
-            self.message_queue.put(("log", f"결과 Excel 파일 저장 완료: {new_file_path}", "SUCCESS"))
-            return export_success_path
-        except (OSError, ValueError, ImportError, ExcelIOError) as e:
-            self.message_queue.put(("log", f"Excel 파일 저장 실패: {e}", "ERROR"))
-            self.logger.exception("Excel 파일 저장 중 예외 발생")
-            raise
-
 
 ############################################
 # OCR 워크플로우 관리자

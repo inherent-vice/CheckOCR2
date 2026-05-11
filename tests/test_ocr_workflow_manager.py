@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 from PIL import Image
 
+from checkocr2 import data_manager as data_manager_module
 from checkocr2.models import (
     CODE_COL,
     DATE_COL,
@@ -435,7 +436,7 @@ def test_finalize_export_report_records_failure_when_old_output_exists(ocr_modul
     def fail_export_grid_rows(rows, output_path):
         raise PermissionError("locked workbook")
 
-    monkeypatch.setattr(ocr_module, "export_grid_rows", fail_export_grid_rows)
+    monkeypatch.setattr(data_manager_module, "export_grid_rows", fail_export_grid_rows)
     monkeypatch.setattr(ocr_module.messagebox, "showerror", lambda title, message: errors.append((title, message)))
     monkeypatch.setattr(ocr_module.messagebox, "showinfo", lambda title, message: infos.append((title, message)))
 

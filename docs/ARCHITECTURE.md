@@ -24,6 +24,8 @@ working.
 - `checkocr2/paths.py`: output path generation, UNC normalization, and folder
   helpers.
 - `checkocr2/excel_io.py`: Excel import/export logic.
+- `checkocr2/data_manager.py`: legacy grid data manager for Excel load/export,
+  clipboard paste, row deletion, and queue events.
 - `checkocr2/table_model.py`: row CRUD, legacy grid-update row mutation,
   clipboard selection text, grid status summaries, and final status
   normalization.

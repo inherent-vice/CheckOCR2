@@ -53,6 +53,8 @@ the package bootstrap and remains available for existing shortcuts.
 
 - `README.md`: quick start, commands, repo map, evidence gates.
 - `docs/ARCHITECTURE.md`: module boundaries and runtime flow.
+- `docs/MODERNIZATION_PLAN_KO.md`: Korean modernization execution summary,
+  OCR evidence gates, and next implementation order.
 - `docs/REIMPLEMENTATION_PLAN.md`: phased modernization roadmap.
 - `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`: current execution rules,
   next safe slices, parity gates, and commit checklist.

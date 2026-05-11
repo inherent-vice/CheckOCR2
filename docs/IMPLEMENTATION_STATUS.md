@@ -1,6 +1,6 @@
 # Implementation Status
 
-Date: 2026-05-08
+Date: 2026-05-11
 
 ## Completed
 
@@ -89,9 +89,15 @@ Date: 2026-05-08
 - Moved capture and area-preview overlay windows into
   `checkocr2/ui/overlays.py`, keeping full-screen coordinate selection outside
   the legacy Tk source file.
+- Moved `DataManager` into `checkocr2/data_manager.py`, keeping Excel grid
+  state, clipboard paste, row deletion, and export queue events out of the
+  legacy Tk source file.
 - Added root and technical documentation:
   `README.md`, `docs/ARCHITECTURE.md`, updated `docs/PROJECT_OVERVIEW.md`, and
   this status document.
+- Added `docs/MODERNIZATION_PLAN_KO.md` as a Korean execution summary covering
+  GUI parity, target structure, OCR evidence gates, parallel workstreams, and
+  next implementation order.
 - Added `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md` as the current execution
   guide for safe work slices, OCR evidence gates, GUI parity checks, parallel
   agent coordination, and commit discipline.
@@ -158,7 +164,7 @@ launcher, then confirm the window title and OCR-ready transition.
 Latest code verification on 2026-05-11:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 123 passed after final-export parser extraction, grid-update row mutation extraction, grid status extraction, OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, and typed exception-boundary coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 142 passed after final-export parser extraction, grid-update row mutation extraction, grid status extraction, OCR-start validation extraction, dialog extraction, fixture-audit, live-comparison, typed exception-boundary coverage, and DataManager extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -179,6 +185,7 @@ Latest code verification on 2026-05-11:
 - `python -m pytest tests\test_theme_manager.py tests\test_toolbar.py tests\test_coordinates_panel.py --basetemp $env:TEMP\checkocr2-theme-extract2`: 4 passed for package-level theme manager behavior and UI consumers.
 - Source GUI fast-OCR smoke after theme extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `theme_module="checkocr2.ui.theme"`.
 - Source GUI fast-OCR smoke after overlay extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `PointCaptureOverlay.__module__="checkocr2.ui.overlays"`.
+- Source GUI fast-OCR smoke after data-manager extraction opened `📊 Check Capture OCR V6.1`, reached `Ready` with `ocr_ready=true`, and reported `data_manager_module="checkocr2.data_manager"`.
 
 Latest package verification on 2026-05-08:
 
