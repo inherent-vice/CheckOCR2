@@ -33,6 +33,8 @@ working.
 - `checkocr2/image_processing.py`: crop validation and upscaling.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
   including `detail=1` text/confidence extraction helpers.
+- `checkocr2/capture_adapter.py`: screen-copy, click, paste-wait, screenshot,
+  crop-save, and capture timing orchestration for date/rate OCR images.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
 - `checkocr2/worker.py`: daemon worker helper.

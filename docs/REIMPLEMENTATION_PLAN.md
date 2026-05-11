@@ -86,6 +86,9 @@ test or a manual verification note.
   environments, and package smoke now rejects packaged GUI/contrib OpenCV
   dist-info. PyInstaller hidden imports and OCR-related package size still need
   package-smoke-backed cleanup.
+- Mitigated: screen copy/click/paste-wait/screenshot capture logic now lives in
+  `checkocr2/capture_adapter.py`, with the legacy manager method reduced to a
+  compatibility wrapper.
 
 ## Target Architecture
 
@@ -113,6 +116,7 @@ checkocr2/
   excel_io.py                         # Excel read/write only
   image_processing.py                 # crop validation, upscaling, preprocessing
   ocr_engine.py                       # EasyOCR/RapidOCR/etc adapter boundary
+  capture_adapter.py                  # screen copy/click/screenshot capture
   screen_automation.py                # pyautogui and clipboard adapter
   workflow.py                         # OCR orchestration without Tk imports
   worker.py                           # thread/cancel/event bridge

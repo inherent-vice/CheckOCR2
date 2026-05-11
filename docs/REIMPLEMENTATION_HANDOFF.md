@@ -12,7 +12,9 @@ capture tools, presets, grid behavior, output naming, and stop/final-export
 behavior.
 
 For the current execution rules, next safe work slices, agent coordination, and
-commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
+commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`. For
+the Korean parallel-agent plan and workstream split, use
+`docs/REIMPLEMENTATION_AGENT_PLAN_KO.md`.
 
 ## Current Verified State
 
@@ -23,9 +25,9 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
-  image-processing, runtime-state, work-controller, theme manager, run-report,
-  queue-dispatch, shortcut/about dialogs, overlay windows, preset controller,
-  file-dialog path preparation, Excel/output-folder actions,
+  image-processing, capture automation, runtime-state, work-controller, theme
+  manager, run-report, queue-dispatch, shortcut/about dialogs, overlay windows,
+  preset controller, file-dialog path preparation, Excel/output-folder actions,
   coordinate capture/preview actions, grid actions, OCR run/stop actions,
   work-completion actions, application icons, OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu
@@ -57,11 +59,11 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 235 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 242 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
-PyInstaller release build after folder-action extraction plus real package
-smoke at about `596.38 MB` with startup `3.422` seconds and settings-file
+PyInstaller release build after capture-adapter extraction plus real package
+smoke at about `596.382 MB` with startup `3.234` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -75,6 +77,11 @@ The newest verification slice adds `scripts/source_gui_smoke.py`; it passed for
 `python check_capture_ocr.py`, `python Check_Capture_Excel_V6.1_배포.py`, and
 `python -m checkocr2.main` with isolated `APPDATA`, `require-ready`, and
 `require-settings-file`.
+
+The newest implementation slice moves screen copy/click/paste-wait/screenshot
+capture into `checkocr2/capture_adapter.py`; focused capture/workflow tests pass
+and the legacy manager wrapper still feeds captured timing into run reports.
+Source GUI smoke and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

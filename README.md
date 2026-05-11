@@ -68,15 +68,16 @@ touching startup, settings, threading, or Tkinter UI state.
 
 - `check_capture_ocr.py`: current GUI shell and compatibility surface.
 - `checkocr2/`: extracted package modules for settings, models, paths, OCR
-  engine access, screen automation, workflow, worker helpers, reports, and
+  engine access, screen capture automation, workflow, worker helpers, reports, and
   runtime UI state, plus low-risk Tk panel, action, and queue-dispatch helpers.
 - `tests/`: pytest characterization and unit tests with fakes for OCR, screen
   automation, and Tk-facing behavior.
 - `scripts/`: OCR benchmark, fixture audit, live run comparison,
   fixture preparation, benchmark-matrix, and packaged-EXE smoke tools.
 - `docs/`: architecture, Korean modernization summary, reimplementation plan,
-  execution guide, implementation handoff, GUI parity, run report, OCR fixture
-  workflow, and benchmark documentation.
+  parallel-agent reimplementation plan, execution guide, implementation
+  handoff, GUI parity, run report, OCR fixture workflow, and benchmark
+  documentation.
 - `legacy/`: historical versions kept for reference only.
 - `tools/`: icon generation utilities.
 

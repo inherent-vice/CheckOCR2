@@ -55,6 +55,8 @@ Worker -> typed queue events -> Tk GUI
 
 ## 병렬 작업 스트림
 
+세부 운영 계획은 `docs/REIMPLEMENTATION_AGENT_PLAN_KO.md`를 기준으로 한다.
+
 - 아키텍처 스트림: 남은 controller glue, 모듈 경계, 문서, 런처 호환성.
 - OCR/성능 스트림: fixture 구축, benchmark matrix, run report 비교,
   대기시간 후보 실험.

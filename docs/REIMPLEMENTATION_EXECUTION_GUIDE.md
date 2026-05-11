@@ -21,8 +21,8 @@ document describes how to continue safely from the current state.
 - EasyOCR loads asynchronously after the Tk window appears. OCR start must stay
   blocked until the app reaches `Ready`.
 - Workflow, settings, paths, Excel I/O, OCR engine access, screen automation,
-  table behavior, run reports, runtime state, worker helpers, queue dispatch,
-  start validation, menu/toolbar, dialogs, file-dialog path preparation,
+  capture automation, table behavior, run reports, runtime state, worker
+  helpers, queue dispatch, start validation, menu/toolbar, dialogs, file-dialog path preparation,
   Excel/output-folder actions, coordinate capture/preview actions, grid
   actions, OCR run/stop actions, work-completion actions, several panels, and
   work-control state now have package-level seams and tests.
@@ -131,6 +131,9 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 ```
 
 ## Parallel Agent Protocol
+
+For the Korean operator-facing version of this split, use
+`docs/REIMPLEMENTATION_AGENT_PLAN_KO.md`.
 
 Use parallel agents only when write scopes are disjoint or when they are doing
 read-only review. Suggested workstreams:
