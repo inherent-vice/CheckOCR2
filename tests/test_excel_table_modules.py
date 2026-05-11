@@ -3,6 +3,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from checkocr2.events import GridUpdate, parse_legacy_grid_update
 from checkocr2.excel_io import export_grid_rows, load_grid_rows, resolve_columns
 from checkocr2.exceptions import ExcelIOError
 from checkocr2.models import (
@@ -14,12 +15,15 @@ from checkocr2.models import (
     STATUS_DONE,
     STATUS_ERROR_PROCESSING,
     STATUS_ERROR_SKIPPED,
+    STATUS_PROCESSING,
     STATUS_STOPPED,
     STATUS_WAITING,
 )
 from checkocr2.table_model import (
     ClipboardSelection,
     GridStatusSummary,
+    GridUpdateResult,
+    apply_grid_update,
     delete_rows,
     format_grid_progress_text,
     format_grid_status_text,
@@ -77,6 +81,32 @@ def test_grid_status_summary_and_labels_preserve_gui_text():
     assert format_grid_status_text(summary) == "총 5행 | 완료: 1 | 대기: 1 | 오류: 3"
     assert format_grid_progress_text(summary) == "진행률: 20.0%"
     assert status_is_error("정상") is False
+
+
+def test_apply_grid_update_preserves_legacy_tuple_behavior():
+    rows = rows_from_clipboard("A001\tAlpha\nB002\tBeta")
+
+    processing = apply_grid_update(rows, parse_legacy_grid_update(("processing", 1)))
+
+    assert processing == GridUpdateResult(row_index=1, should_refresh=True, should_scroll=True)
+    assert rows[1][STATUS_COL] == STATUS_PROCESSING
+
+    complete = apply_grid_update(rows, GridUpdate("complete", 1, (None, "3.500", STATUS_DONE)))
+
+    assert complete == GridUpdateResult(row_index=1, should_refresh=True, should_scroll=False)
+    assert rows[1][DATE_COL] == ""
+    assert rows[1][RATE_COL] == "3.500"
+    assert rows[1][STATUS_COL] == STATUS_DONE
+
+    error = apply_grid_update(rows, parse_legacy_grid_update(("error", 0, STATUS_ERROR_PROCESSING)))
+
+    assert error == GridUpdateResult(row_index=0, should_refresh=True, should_scroll=False)
+    assert rows[0][STATUS_COL] == STATUS_ERROR_PROCESSING
+
+    assert apply_grid_update(rows, parse_legacy_grid_update(("processing", 99))) == GridUpdateResult()
+
+    with pytest.raises(ValueError, match="requires update type"):
+        parse_legacy_grid_update(("processing",))
 
 
 def test_excel_io_loads_and_exports_grid_rows(tmp_path):

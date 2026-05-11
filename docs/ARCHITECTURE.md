@@ -19,11 +19,14 @@ working.
   repo-local settings.
 - `checkocr2/models.py`: shared column names, status constants, and simple
   data models.
+- `checkocr2/events.py`: typed queue/UI event contracts and legacy grid-update
+  payload parsing.
 - `checkocr2/paths.py`: output path generation, UNC normalization, and folder
   helpers.
 - `checkocr2/excel_io.py`: Excel import/export logic.
-- `checkocr2/table_model.py`: row CRUD, clipboard selection text, grid status
-  summaries, and final status normalization.
+- `checkocr2/table_model.py`: row CRUD, legacy grid-update row mutation,
+  clipboard selection text, grid status summaries, and final status
+  normalization.
 - `checkocr2/ocr_text.py`: OCR date/rate text normalization.
 - `checkocr2/image_processing.py`: crop validation and upscaling.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,

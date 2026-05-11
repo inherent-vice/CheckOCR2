@@ -63,7 +63,8 @@ test or a manual verification note.
 - Partially mitigated: queue events, rows, and settings have typed seams, but
   legacy tuple dispatch remains at the Tk controller edge. OCR-start validation
   messages, grid status label summaries, and grid clipboard text generation are
-  now isolated behind tested helpers.
+  now isolated behind tested helpers; legacy `grid_update` row mutation is also
+  parsed through `events.py` and tested in `table_model.py`.
 - Partially mitigated: broad exception handlers have been narrowed around GUI,
   file, OCR, and export boundaries; remaining broad catches are adapter and
   top-level workflow safety boundaries.

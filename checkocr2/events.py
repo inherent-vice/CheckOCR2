@@ -26,6 +26,28 @@ class UiEvent:
         return (self.type.value, *self.payload)
 
 
+@dataclass(frozen=True)
+class GridUpdate:
+    update_type: str
+    row_index: int
+    payload: tuple[Any, ...] = ()
+
+
+def parse_legacy_grid_update(data: object) -> GridUpdate:
+    if not isinstance(data, tuple | list):
+        raise TypeError("grid update payload must be a sequence")
+    if len(data) < 2:
+        raise ValueError("grid update payload requires update type and row index")
+
+    update_type = data[0]
+    row_index = data[1]
+    if not isinstance(update_type, str):
+        raise TypeError("grid update type must be a string")
+    if not isinstance(row_index, int):
+        raise TypeError("grid update row index must be an integer")
+    return GridUpdate(update_type, row_index, tuple(data[2:]))
+
+
 def log_event(message: str, level: str = "INFO") -> UiEvent:
     return UiEvent(UiEventType.LOG, (message, level))
 

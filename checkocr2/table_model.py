@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
+from .events import GridUpdate
 from .models import (
     CODE_COL,
     DATE_COL,
@@ -13,6 +15,7 @@ from .models import (
     RATE_COL,
     STATUS_COL,
     STATUS_DONE,
+    STATUS_PROCESSING,
     STATUS_STOPPED,
     STATUS_WAITING,
 )
@@ -38,6 +41,13 @@ class GridStatusSummary:
     @property
     def progress_percent(self) -> float:
         return (self.completed / self.total * 100) if self.total else 0.0
+
+
+@dataclass(frozen=True)
+class GridUpdateResult:
+    row_index: int | None = None
+    should_refresh: bool = False
+    should_scroll: bool = False
 
 
 def empty_row() -> dict[str, str]:
@@ -82,6 +92,31 @@ def rows_for_copy(rows: list[dict[str, str]], indices: list[int]) -> ClipboardSe
 def rates_for_copy(rows: list[dict[str, str]], indices: list[int]) -> ClipboardSelection:
     copied_rates = [str(rows[index].get(RATE_COL, "")) for index in indices if 0 <= index < len(rows)]
     return ClipboardSelection(text="\n".join(copied_rates), count=len(copied_rates))
+
+
+def apply_grid_update(rows: list[dict[str, Any]], update: GridUpdate) -> GridUpdateResult:
+    update_type = update.update_type
+    grid_idx = update.row_index
+    payload = update.payload
+    if not 0 <= grid_idx < len(rows):
+        return GridUpdateResult()
+
+    row = rows[grid_idx]
+    should_scroll = False
+    if update_type == "processing":
+        row[STATUS_COL] = STATUS_PROCESSING
+        should_scroll = True
+    elif update_type == "complete" and len(payload) >= 3:
+        date_result, rate_result, status_result = payload[0], payload[1], payload[2]
+        if date_result is not None:
+            row[DATE_COL] = date_result
+        if rate_result is not None:
+            row[RATE_COL] = rate_result
+        row[STATUS_COL] = status_result
+    elif update_type == "error" and len(payload) >= 1:
+        row[STATUS_COL] = payload[0]
+
+    return GridUpdateResult(row_index=grid_idx, should_refresh=True, should_scroll=should_scroll)
 
 
 def status_is_error(status: str) -> bool:

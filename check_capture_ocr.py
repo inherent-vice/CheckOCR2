@@ -14,6 +14,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import numpy as np
 from PIL import Image
 
+from checkocr2.events import parse_legacy_grid_update
 from checkocr2.excel_io import export_grid_rows, load_grid_rows
 from checkocr2.exceptions import ExcelIOError, OCREngineError, SettingsError
 from checkocr2.image_processing import upscale_image
@@ -44,6 +45,7 @@ from checkocr2.runtime_state import RuntimeState, runtime_state_ui
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
 from checkocr2.table_model import (
+    apply_grid_update,
     delete_rows,
     empty_row,
     format_grid_progress_text,
@@ -615,13 +617,12 @@ class OCRWorkflowManager:
             def emit_to_tk_queue(event):
                 legacy_event = event.as_legacy_tuple()
                 if legacy_event[0] == "grid_update":
-                    update_payload = legacy_event[1]
-                    update_type = update_payload[0]
-                    row_index = update_payload[1]
-                    if update_type == "processing":
+                    grid_update = parse_legacy_grid_update(legacy_event[1])
+                    row_index = grid_update.row_index
+                    if grid_update.update_type == "processing":
                         row_started_by_index[row_index] = perf_counter()
                         self.data_manager.current_processing_index = row_index
-                    elif update_type in {"complete", "error"} and row_index in row_started_by_index:
+                    elif grid_update.update_type in {"complete", "error"} and row_index in row_started_by_index:
                         row_timing_by_index.setdefault(row_index, {})["row_total_ms"] = self._elapsed_ms(
                             row_started_by_index[row_index]
                         )
@@ -1721,26 +1722,17 @@ class CheckCaptureOCRApp(tk.Tk):
 
     def _handle_grid_update(self, data):
         try:
-            update_type, grid_idx, *payload = data
-            if 0 <= grid_idx < len(self.data_manager.excel_data):
-                if update_type == "processing":
-                    self.data_manager.excel_data[grid_idx]['상태'] = '처리 중...'
-                    if self.grid_tree:
-                        children = self.grid_tree.get_children()
-                        if grid_idx < len(children):
-                             self.grid_tree.see(children[grid_idx])
-                elif update_type == "complete" and len(payload) >= 3:
-                    date_res, rate_res, status_res = payload[0], payload[1], payload[2]
-                    if date_res is not None: self.data_manager.excel_data[grid_idx]['날짜'] = date_res
-                    if rate_res is not None: self.data_manager.excel_data[grid_idx]['금리'] = rate_res
-                    self.data_manager.excel_data[grid_idx]['상태'] = status_res
-                elif update_type == "error" and len(payload) >= 1:
-                    self.data_manager.excel_data[grid_idx]['상태'] = payload[0]
-                
-                # 디버그 로그: 그리드 데이터 업데이트 후 상태 확인
-                if 0 <= grid_idx < len(self.data_manager.excel_data):
-                    self.logger.debug(f"[_handle_grid_update] {grid_idx}번 항목 업데이트 후: {self.data_manager.excel_data[grid_idx]}")
-
+            result = apply_grid_update(self.data_manager.excel_data, parse_legacy_grid_update(data))
+            if result.should_scroll and self.grid_tree and result.row_index is not None:
+                children = self.grid_tree.get_children()
+                if result.row_index < len(children):
+                    self.grid_tree.see(children[result.row_index])
+            if result.should_refresh:
+                if result.row_index is not None:
+                    self.logger.debug(
+                        f"[_handle_grid_update] {result.row_index}번 항목 업데이트 후: "
+                        f"{self.data_manager.excel_data[result.row_index]}"
+                    )
                 self.refresh_grid_ui()
         except (KeyError, tk.TclError, TypeError, ValueError) as e:
             self.logger.error(f"그리드 업데이트 중 오류: {e}, 데이터: {data}")
