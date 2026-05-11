@@ -88,6 +88,8 @@ from checkocr2.ui.grid_actions import (
 )
 from checkocr2.ui.grid_update_actions import handle_grid_update
 from checkocr2.ui.icons import apply_application_icon
+from checkocr2.ui.keyboard_actions import handle_f5_key as handle_f5_key_action
+from checkocr2.ui.keyboard_actions import setup_keyboard_shortcuts
 from checkocr2.ui.log_actions import append_log_text
 from checkocr2.ui.main_window import (
     build_main_window,
@@ -775,19 +777,10 @@ class CheckCaptureOCRApp(tk.Tk):
         self.geometry(f"{window_width}x{window_height}+{x}+{y}")
 
     def _setup_keyboard_shortcuts(self):
-        self.focus_set()
-        self.bind_all('<Control-s>', lambda e: self.quick_save_settings())
-        self.bind_all('<Control-l>', lambda e: self.load_last_settings())
-        self.bind_all('<Control-o>', lambda e: self.load_excel_to_grid())
-        self.bind_all('<F5>', lambda e: self.handle_f5_key())
-        self.bind_all('<Escape>', lambda e: self.stop_processing_ui_initiated())
-        self.bind_all('<F1>', lambda e: self.show_shortcuts())
+        setup_keyboard_shortcuts(self)
 
     def handle_f5_key(self):
-        if self.work_controller.is_running:
-            self.stop_processing_ui_initiated()
-        else:
-            self.run_ocr_process()
+        handle_f5_key_action(self)
 
     def check_queue(self):
         process_legacy_message_queue(self, show_error=messagebox.showerror)

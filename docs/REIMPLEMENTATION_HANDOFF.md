@@ -29,8 +29,8 @@ the Korean parallel-agent plan and workstream split, use
   manager, run-report, queue-dispatch, shortcut/about dialogs, overlay windows,
   preset controller, file-dialog path preparation, Excel/output-folder actions,
   coordinate capture/preview actions, grid/context-menu actions, grid-update
-  actions, log text actions, OCR run/stop actions, work-completion actions,
-  application icons, OCR-start validation, and
+  actions, keyboard actions, log text actions, OCR run/stop actions,
+  work-completion actions, application icons, OCR-start validation, and
   file/coordinates/timing/options/preset/grid/log panel seams plus the menu
   bar, top toolbar, and main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
@@ -60,11 +60,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 254 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 257 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
-PyInstaller release build after grid-update action extraction plus real package
-smoke at about `596.383 MB` with startup `3.734` seconds and settings-file
+PyInstaller release build after keyboard-action extraction plus real package
+smoke at about `596.384 MB` with startup `1.094` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -84,19 +84,24 @@ capture into `checkocr2/capture_adapter.py`; focused capture/workflow tests pass
 and the legacy manager wrapper still feeds captured timing into run reports.
 Source GUI smoke and real package smoke both pass for this slice.
 
-The next structural slice moves grid context-menu construction into
+The grid context-menu structural slice moved grid context-menu construction into
 `checkocr2/ui/grid_actions.py`; focused grid tests pass for menu labels,
 ordering, command wiring, popup coordinates, and grab cleanup. Source GUI smoke
 and real package smoke both pass for this slice.
 
-The next structural slice moves log text-widget updates into
+The log-action structural slice moved log text-widget updates into
 `checkocr2/ui/log_actions.py`; focused log tests pass for state transitions,
 tag fallback, insert/scroll behavior, and legacy wrapper delegation. Source GUI
 smoke and real package smoke both pass for this slice.
 
-The next structural slice moves legacy grid-update queue handling into
+The grid-update structural slice moved legacy grid-update queue handling into
 `checkocr2/ui/grid_update_actions.py`; focused grid-update tests pass for
 scroll/refresh behavior, malformed payload logging, and legacy wrapper
+delegation. Source GUI smoke and real package smoke both pass for this slice.
+
+The latest structural slice moved global shortcut binding and F5 dispatch into
+`checkocr2/ui/keyboard_actions.py`; focused keyboard tests pass for shortcut
+sequences, callback wiring, idle/run F5 behavior, and legacy wrapper
 delegation. Source GUI smoke and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
