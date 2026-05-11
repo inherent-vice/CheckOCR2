@@ -4,6 +4,14 @@ Use this checklist before and after every reimplementation phase. The goal is
 to preserve the current operator workflow while changing the internal
 architecture.
 
+## Evidence Status
+
+As of 2026-05-11, this checklist is still a manual parity checklist. Automated
+tests and source/package smoke cover launch, Ready state, settings-file load,
+and many extracted panel/action seams, but they do not yet record dated evidence
+for every item below. Add a repeatable source GUI parity-smoke helper before
+treating this checklist as an automated green gate.
+
 ## Launch And Window
 
 - [ ] `python check_capture_ocr.py` opens the app.

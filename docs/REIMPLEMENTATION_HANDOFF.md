@@ -25,11 +25,11 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
   image-processing, runtime-state, work-controller, theme manager, run-report,
   queue-dispatch, shortcut/about dialogs, overlay windows, preset controller,
-  file-dialog path preparation, coordinate capture/preview actions, grid
-  actions, OCR run/stop actions, work-completion actions, application icons,
-  OCR-start validation, and file/coordinates/timing/options/preset/grid/log
-  panel seams plus the menu bar, top toolbar, and main-window layout now have
-  test coverage.
+  file-dialog path preparation, Excel/output-folder actions,
+  coordinate capture/preview actions, grid actions, OCR run/stop actions,
+  work-completion actions, application icons, OCR-start validation, and
+  file/coordinates/timing/options/preset/grid/log panel seams plus the menu
+  bar, top toolbar, and main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -54,18 +54,19 @@ commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`.
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 218 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 228 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
-run-comparison tooling. The latest package gate remains the prior 2026-05-11
-clean PyInstaller release build plus real package smoke at about `596.377 MB`
-with startup `3.235` seconds and settings-file verification under isolated
-`APPDATA`.
+run-comparison tooling. The latest package gate uses the 2026-05-11 clean
+PyInstaller release build after folder-action extraction plus real package
+smoke at about `596.38 MB` with startup `3.422` seconds and settings-file
+verification under isolated `APPDATA`.
 
-The newest source-only slice extracts coordinate capture and preview action glue
-into `checkocr2/ui/coordinate_actions.py`. Source gates pass for click-point
-relocation, area relocation, preview payloads, legacy wrapper delegation, and a
-fast GUI Ready smoke. Package gate numbers above are still from the prior clean
-release build because this slice does not change package dependencies.
+The newest structural slices extract coordinate capture/preview action glue
+into `checkocr2/ui/coordinate_actions.py` and Excel/output-folder action glue
+into `checkocr2/ui/folder_actions.py`. Source gates pass for click-point
+relocation, area relocation, preview payloads, folder selection/open behavior,
+legacy wrapper delegation, and a fast GUI Ready smoke. Real package smoke was
+rerun because `folder_actions.py` is packaged application code.
 
 ## Commands To Re-Run Before Release
 
@@ -99,8 +100,10 @@ installed outside the release environment.
 - Benchmark alternate OCR engines only after the fixture baseline exists.
 - Continue trimming PyInstaller hidden imports only when each removal is
   followed by a clean build and package smoke.
-- Continue GUI/dialog/worker/controller-helper extraction only while
-  `docs/GUI_PARITY_CHECKLIST.md` and automated tests stay green.
+- Continue GUI/dialog/worker/controller-helper extraction only while targeted
+  tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
+  is still a manual checklist; add a repeatable source GUI parity-smoke helper
+  before treating the checklist itself as a green automated gate.
 
 ## Recommended Next Order
 
@@ -111,4 +114,5 @@ installed outside the release environment.
    confidence thresholds, and field allowlists.
 5. Tune waits or OCR defaults only if accuracy does not regress.
 6. Reduce packaging size through one PyInstaller or dependency change at a time.
-7. Extract the remaining GUI panels and dialogs in small parity-checked commits.
+7. Add a repeatable source GUI smoke helper and dated parity-checklist evidence.
+8. Extract the remaining GUI panels and dialogs in small parity-checked commits.

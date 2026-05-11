@@ -1,13 +1,11 @@
 import copy
 import os
-import platform  # OS 정보 확인용
 import queue
-import subprocess
 import threading
 import tkinter as tk
 from datetime import datetime
 from time import perf_counter
-from tkinter import filedialog, messagebox
+from tkinter import messagebox
 
 import numpy as np
 from PIL import Image
@@ -70,7 +68,15 @@ from checkocr2.ui.coordinate_actions import (
     show_area_preview as show_area_preview_action,
 )
 from checkocr2.ui.dialogs import show_about_dialog, show_shortcuts_dialog
-from checkocr2.ui.file_dialogs import output_folder_for_input_file, output_folder_initial_dir
+from checkocr2.ui.folder_actions import (
+    browse_input_excel as browse_input_excel_action,
+)
+from checkocr2.ui.folder_actions import (
+    browse_output_folder as browse_output_folder_action,
+)
+from checkocr2.ui.folder_actions import (
+    open_output_folder as open_output_folder_action,
+)
 from checkocr2.ui.grid_actions import (
     add_empty_row,
     clear_all_data,
@@ -933,16 +939,7 @@ class CheckCaptureOCRApp(tk.Tk):
             self.logger.info("고급 설정이 기본값으로 초기화되었습니다.")
 
     def browse_input_excel(self):
-        file_path = filedialog.askopenfilename(title="엑셀 파일 선택", filetypes=[("Excel files", "*.xlsx;*.xls")])
-        if file_path:
-            self.input_excel_path.set(file_path)
-            cleaned_base_path = output_folder_for_input_file(
-                file_path,
-                clean_folder=self._clean_output_folder_path,
-            )
-            self.output_folder_path.set(cleaned_base_path)
-            self.logger.info(f"Excel 파일 선택됨: {file_path}")
-            self.logger.info(f"출력 폴더 자동 설정됨: {cleaned_base_path}")
+        browse_input_excel_action(self)
 
     def _clean_output_folder_path(self, path: str | None) -> str:
         return clean_folder_path(
@@ -952,166 +949,10 @@ class CheckCaptureOCRApp(tk.Tk):
         )
 
     def browse_output_folder(self):
-        try:
-            initial_dir = output_folder_initial_dir(self.output_folder_path.get())
-            folder_path = filedialog.askdirectory(
-                title="출력 폴더 선택", 
-                initialdir=initial_dir,
-                mustexist=False  # 네트워크 폴더의 경우 False로 설정
-            )
-            
-            if folder_path: 
-                # 경로 정리 및 UNC 정규화
-                cleaned_path = self._clean_output_folder_path(folder_path)
-                self.output_folder_path.set(cleaned_path)
-                self.logger.info(f"출력 폴더 선택됨: {cleaned_path}")
-                
-                # 네트워크 경로인 경우 사용자에게 안내
-                if cleaned_path.startswith('\\\\'):
-                    messagebox.showinfo("네트워크 폴더 선택", 
-                                      f"네트워크 폴더가 선택되었습니다.\n\n"
-                                      f"경로: {cleaned_path}\n\n"
-                                      f"• 네트워크 연결 상태를 확인하세요\n"
-                                      f"• 쓰기 권한이 있는지 확인하세요")
-                
-        except (OSError, tk.TclError, ValueError) as e:
-            self.logger.error(f"폴더 선택 중 오류: {e}")
-            messagebox.showerror("오류", f"폴더 선택 중 오류가 발생했습니다.\n\n{e}")
+        browse_output_folder_action(self)
 
     def open_output_folder(self):
-        output_path = self.output_folder_path.get().strip()
-        if not output_path:
-            messagebox.showwarning("경고", "출력 폴더가 설정되지 않았습니다.")
-            return
-        
-        try:
-            system = platform.system()
-            cleaned_path = str(output_path).strip()
-
-            self.logger.info(f"출력 폴더 열기 시도 - 시스템: {system}, 원본 경로: {cleaned_path}")
-
-            if system == "Windows":
-                # UNC 경로 정규화 (단일 백슬래시를 이중 백슬래시로 변환)
-                if cleaned_path.startswith('\\') and not cleaned_path.startswith('\\\\'):
-                    cleaned_path = '\\' + cleaned_path  # \경로 -> \\경로
-                    self.logger.info(f"UNC 경로 정규화: {cleaned_path}")
-                
-                # 슬래시를 백슬래시로 변환
-                cleaned_path_windows = cleaned_path.replace('/', '\\')
-                self.logger.info(f"Windows 형식 경로 변환 후: {cleaned_path_windows}")
-
-                # UNC 경로 여부 확인
-                is_unc = cleaned_path_windows.startswith('\\\\')
-                
-                # 폴더 존재 여부 확인 및 생성
-                try:
-                    if not os.path.exists(cleaned_path_windows):
-                        if is_unc:
-                            self.logger.info("UNC 경로입니다. 네트워크 연결을 확인합니다.")
-                            # UNC 경로의 경우 네트워크 접근 시도
-                            try:
-                                # 상위 디렉토리까지만 확인 (서버 접근 가능 여부)
-                                path_parts = cleaned_path_windows.split('\\')
-                                if len(path_parts) >= 4:  # \\server\share\...
-                                    server_share = '\\\\' + path_parts[2] + '\\' + path_parts[3]
-                                    if os.path.exists(server_share):
-                                        # 하위 디렉토리 생성 시도
-                                        os.makedirs(cleaned_path_windows, exist_ok=True)
-                                        self.logger.info(f"UNC 네트워크 폴더 생성됨: {cleaned_path_windows}")
-                                    else:
-                                        self.logger.warning(f"네트워크 서버에 접근할 수 없습니다: {server_share}")
-                                        messagebox.showwarning("네트워크 오류", 
-                                                             f"네트워크 서버에 접근할 수 없습니다.\n\n"
-                                                             f"서버: {server_share}\n"
-                                                             f"• 네트워크 연결을 확인하세요\n"
-                                                             f"• 접근 권한을 확인하세요\n"
-                                                             f"• VPN 연결이 필요할 수 있습니다")
-                                        return
-                            except (OSError, ValueError) as e:
-                                self.logger.error(f"UNC 경로 접근 오류: {e}")
-                                if messagebox.askyesno("네트워크 폴더 오류", 
-                                                     f"네트워크 폴더에 접근할 수 없습니다.\n\n"
-                                                     f"오류: {e}\n\n"
-                                                     f"그래도 폴더 열기를 시도하시겠습니까?"):
-                                    pass  # 계속 진행
-                                else:
-                                    return
-                        else:
-                            # 로컬 경로인 경우 폴더 생성 확인
-                            if messagebox.askyesno("폴더 생성", 
-                                                 f"폴더가 존재하지 않습니다.\n생성하시겠습니까?\n\n경로: {cleaned_path_windows}"):
-                                os.makedirs(cleaned_path_windows, exist_ok=True)
-                                self.logger.info(f"로컬 폴더 생성됨: {cleaned_path_windows}")
-                            else:
-                                return
-                    else:
-                        self.logger.info(f"폴더가 이미 존재합니다: {cleaned_path_windows}")
-                
-                except (OSError, ValueError) as path_error:
-                    self.logger.warning(f"경로 접근 확인 중 오류: {path_error}")
-                    # 경로 확인 실패해도 열기 시도는 계속
-
-                # Windows 탐색기로 폴더 열기
-                try:
-                    os.startfile(cleaned_path_windows)
-                    self.logger.info("출력 폴더 열기 (Windows Explorer) 완료")
-                    
-                    # 성공 메시지 제거 - 사용자가 요청함
-                    # if is_unc:
-                    #     messagebox.showinfo("폴더 열기 완료", 
-                    #                       f"네트워크 폴더가 Windows 탐색기에서 열렸습니다.\n\n경로: {cleaned_path_windows}")
-                
-                except OSError as startfile_error:
-                    self.logger.error(f"os.startfile 실패: {startfile_error}")
-                    # 대안 방법 시도: explorer.exe 직접 호출
-                    try:
-                        subprocess.run(['explorer', cleaned_path_windows], check=True, timeout=10)
-                        self.logger.info("출력 폴더 열기 (explorer.exe) 완료")
-                    except (OSError, subprocess.SubprocessError) as explorer_error:
-                        self.logger.error(f"explorer.exe 호출 실패: {explorer_error}")
-                        raise explorer_error
-
-            elif system == "Darwin": # macOS
-                # macOS는 open 명령어로 파일/폴더/URL을 엽니다.
-                if cleaned_path.startswith(('\\', '//')):
-                     # \\server\share -> smb://server/share
-                     smb_path = 'smb:' + cleaned_path.replace('\\', '/')
-                     self.logger.info(f"macOS SMB 경로 변환 후: {smb_path}")
-                     subprocess.run(['open', smb_path], check=True, timeout=10)
-                     self.logger.info(f"출력 폴더 열기 시도 (macOS smb) 완료")
-                else:
-                    # 일반 로컬 경로는 그대로 open
-                    self.logger.info(f"macOS 로컬 경로: {cleaned_path}")
-                    subprocess.run(['open', cleaned_path], check=True, timeout=10)
-                    self.logger.info(f"출력 폴더 열기 시도 (macOS) 완료")
-
-            else: # Linux 등 Unix-like 시스템
-                # Linux는 xdg-open 명령어로 파일/폴더/URL을 엽니다.
-                if cleaned_path.startswith(('\\', '//')):
-                     # \\server\share -> smb://server/share
-                     smb_path = 'smb:' + cleaned_path.replace('\\', '/')
-                     self.logger.info(f"Linux SMB 경로 변환 후: {smb_path}")
-                     subprocess.run(['xdg-open', smb_path], check=True, timeout=10)
-                     self.logger.info(f"출력 폴더 열기 시도 (Linux smb) 완료")
-                else:
-                    # 일반 로컬 경로는 그대로 xdg-open
-                    self.logger.info(f"Linux 로컬 경로: {cleaned_path}")
-                    subprocess.run(['xdg-open', cleaned_path], check=True, timeout=10)
-                    self.logger.info(f"출력 폴더 열기 시도 (Linux) 완료")
-            
-        except FileNotFoundError:
-             messagebox.showerror("오류", f"폴더 또는 파일을 찾을 수 없습니다.\n경로를 확인해주세요.\n\n경로: {output_path}")
-             self.logger.error(f"폴더 열기 실패: FileNotFoundError for {output_path}")
-        except subprocess.CalledProcessError as e:
-             messagebox.showerror("오류", f"폴더 열기 명령어 실행 실패: {e}\n\n경로: {output_path}")
-             self.logger.error(f"폴더 열기 명령어 실행 실패: {e} for {output_path}")
-        except subprocess.TimeoutExpired:
-            messagebox.showerror("오류", "폴더 열기 시간 초과\n네트워크 연결을 확인하세요.")
-            self.logger.error("폴더 열기 시간 초과")
-        except (OSError, subprocess.SubprocessError, ValueError) as e:
-            # 기타 예외 처리
-            messagebox.showerror("오류", f"알 수 없는 오류 발생: {e}\n\n경로: {output_path}\n\n네트워크 연결 및 접근 권한을 확인하세요.")
-            self.logger.error(f"알 수 없는 오류 발생: {e} for {output_path}")
+        open_output_folder_action(self)
 
     def relocate_clickpoint(self):
         relocate_clickpoint_action(self)

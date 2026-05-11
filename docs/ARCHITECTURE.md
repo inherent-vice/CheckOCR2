@@ -63,6 +63,9 @@ working.
 - `checkocr2/ui/file_dialogs.py`: file/open-folder dialog path preparation,
   including input-file parent output defaults and UNC initial-directory
   fallback behavior.
+- `checkocr2/ui/folder_actions.py`: Excel-file selection, output-folder
+  selection, and output-folder opening across Windows, macOS, Linux, and UNC
+  network paths.
 - `checkocr2/ui/grid_actions.py`: grid button and clipboard actions for add,
   paste, delete, clear, copy rows, and copy rates while preserving Tk
   messagebox and clipboard behavior.
