@@ -22,8 +22,8 @@ working.
 - `checkocr2/paths.py`: output path generation, UNC normalization, and folder
   helpers.
 - `checkocr2/excel_io.py`: Excel import/export logic.
-- `checkocr2/table_model.py`: row CRUD, grid status summaries, and final
-  status normalization.
+- `checkocr2/table_model.py`: row CRUD, clipboard selection text, grid status
+  summaries, and final status normalization.
 - `checkocr2/ocr_text.py`: OCR date/rate text normalization.
 - `checkocr2/image_processing.py`: crop validation and upscaling.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,

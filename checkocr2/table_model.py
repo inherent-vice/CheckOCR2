@@ -19,6 +19,16 @@ from .models import (
 
 
 @dataclass(frozen=True)
+class ClipboardSelection:
+    text: str
+    count: int
+
+    @property
+    def has_items(self) -> bool:
+        return self.count > 0
+
+
+@dataclass(frozen=True)
 class GridStatusSummary:
     total: int
     completed: int
@@ -62,6 +72,16 @@ def row_for_copy(row: dict[str, str]) -> str:
             row.get(STATUS_COL, ""),
         ]
     )
+
+
+def rows_for_copy(rows: list[dict[str, str]], indices: list[int]) -> ClipboardSelection:
+    copied_rows = [row_for_copy(rows[index]) for index in indices if 0 <= index < len(rows)]
+    return ClipboardSelection(text="\n".join(copied_rows), count=len(copied_rows))
+
+
+def rates_for_copy(rows: list[dict[str, str]], indices: list[int]) -> ClipboardSelection:
+    copied_rates = [str(rows[index].get(RATE_COL, "")) for index in indices if 0 <= index < len(rows)]
+    return ClipboardSelection(text="\n".join(copied_rates), count=len(copied_rates))
 
 
 def status_is_error(status: str) -> bool:

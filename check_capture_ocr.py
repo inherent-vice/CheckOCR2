@@ -49,7 +49,8 @@ from checkocr2.table_model import (
     empty_row,
     format_grid_progress_text,
     format_grid_status_text,
-    row_for_copy,
+    rates_for_copy,
+    rows_for_copy,
     rows_from_clipboard,
     status_is_error,
     summarize_grid_rows,
@@ -479,11 +480,6 @@ class DataManager:
             self.excel_data[row_index][col_name] = new_value
             return True
         return False
-
-    def get_row_for_copy(self, index):
-        if 0 <= index < len(self.excel_data):
-            return row_for_copy(self.excel_data[index])
-        return ""
 
     def export_grid_to_excel_data(self, output_dir, input_file_path_str):
         if not self.excel_data:
@@ -1851,19 +1847,13 @@ class CheckCaptureOCRApp(tk.Tk):
         if not self.grid_tree: return
         selected_items = self.grid_tree.selection()
         if not selected_items: return
-        
-        copied_data_str_list = []
-        for item in selected_items:
-            index = self.grid_tree.index(item)
-            row_str = self.data_manager.get_row_for_copy(index)
-            if row_str:
-                copied_data_str_list.append(row_str)
-        
-        if copied_data_str_list:
-            final_str = "\n".join(copied_data_str_list)
+
+        selected_indices = [self.grid_tree.index(item) for item in selected_items]
+        selection = rows_for_copy(self.data_manager.excel_data, selected_indices)
+        if selection.has_items:
             self.clipboard_clear()
-            self.clipboard_append(final_str)
-            self.logger.info(f"{len(copied_data_str_list)}개 행이 클립보드에 복사되었습니다.")
+            self.clipboard_append(selection.text)
+            self.logger.info(f"{selection.count}개 행이 클립보드에 복사되었습니다.")
 
     def copy_selected_rates_ui(self):
         if not self.grid_tree: return
@@ -1872,18 +1862,12 @@ class CheckCaptureOCRApp(tk.Tk):
             messagebox.showwarning("경고", "복사할 행을 선택해주세요.", parent=self)
             return
 
-        copied_rates = []
-        for item in selected_items:
-            index = self.grid_tree.index(item)
-            if 0 <= index < len(self.data_manager.excel_data):
-                rate_value = self.data_manager.excel_data[index].get('금리', '')
-                copied_rates.append(str(rate_value)) # 문자열로 변환하여 추가
-
-        if copied_rates:
-            final_str = "\n".join(copied_rates) # 각 금리 값을 줄바꿈으로 연결
+        selected_indices = [self.grid_tree.index(item) for item in selected_items]
+        selection = rates_for_copy(self.data_manager.excel_data, selected_indices)
+        if selection.has_items:
             self.clipboard_clear()
-            self.clipboard_append(final_str)
-            self.logger.info(f"선택된 {len(copied_rates)}개 행의 금리가 클립보드에 복사되었습니다.")
+            self.clipboard_append(selection.text)
+            self.logger.info(f"선택된 {selection.count}개 행의 금리가 클립보드에 복사되었습니다.")
         else:
              self.logger.info("선택된 행에 금리 데이터가 없습니다.")
 

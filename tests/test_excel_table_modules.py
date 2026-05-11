@@ -18,11 +18,14 @@ from checkocr2.models import (
     STATUS_WAITING,
 )
 from checkocr2.table_model import (
+    ClipboardSelection,
     GridStatusSummary,
     delete_rows,
     format_grid_progress_text,
     format_grid_status_text,
+    rates_for_copy,
     row_for_copy,
+    rows_for_copy,
     rows_for_export,
     rows_from_clipboard,
     status_is_error,
@@ -42,6 +45,13 @@ def test_table_model_clipboard_delete_copy_and_export_status():
     rows = rows_from_clipboard("A001\tAlpha\nB002\tBeta")
 
     assert row_for_copy(rows[0]) == "A001\tAlpha\t\t\t대기 중"
+    assert rows_for_copy(rows, [1, 99, 0]) == ClipboardSelection(
+        text="B002\tBeta\t\t\t대기 중\nA001\tAlpha\t\t\t대기 중",
+        count=2,
+    )
+
+    rows[0][RATE_COL] = "3.500"
+    assert rates_for_copy(rows, [0, 99, 1]) == ClipboardSelection(text="3.500\n", count=2)
 
     rows[1][STATUS_COL] = STATUS_STOPPED
     export_rows = rows_for_export(rows)
