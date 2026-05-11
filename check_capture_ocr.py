@@ -87,6 +87,9 @@ from checkocr2.ui.grid_refresh_actions import (
     refresh_grid as refresh_grid_action,
 )
 from checkocr2.ui.grid_refresh_actions import (
+    refresh_grid_tags as refresh_grid_tags_action,
+)
+from checkocr2.ui.grid_refresh_actions import (
     update_grid_status_labels as update_grid_status_labels_action,
 )
 from checkocr2.ui.grid_update_actions import handle_grid_update
@@ -822,10 +825,7 @@ class CheckCaptureOCRApp(tk.Tk):
         create_center_excel_grid(self, parent)
 
     def refresh_grid_tags(self):
-        if not self.grid_tree: return
-        self.grid_tree.tag_configure('processing', background=self.theme_manager.get_color('warning', '#FFF3CD'), foreground=self.theme_manager.get_color('dark', '#856404'))
-        self.grid_tree.tag_configure('completed', background=self.theme_manager.get_color('success', '#D4EDDA'), foreground=self.theme_manager.get_color('dark', '#155724'))
-        self.grid_tree.tag_configure('error', background=self.theme_manager.get_color('danger', '#F8D7DA'), foreground=self.theme_manager.get_color('white', '#721C24'))
+        refresh_grid_tags_action(self)
 
     def get_current_ui_settings(self):
         return collect_ui_settings(self)

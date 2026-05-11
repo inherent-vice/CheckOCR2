@@ -55,8 +55,8 @@ test or a manual verification note.
   have moved into `checkocr2/ui/settings_actions.py`; preset controller
   behavior has moved into `checkocr2/ui/presets.py`; low-risk panels, menu/toolbar,
   shortcut/about dialogs, Excel/output-folder actions, coordinate
-  capture/preview actions, and legacy queue dispatch have been extracted
-  incrementally.
+  capture/preview actions, grid refresh/tag actions, and legacy queue dispatch
+  have been extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
 - Still open: OCR workflow is sequential and uses fixed wait times. Current

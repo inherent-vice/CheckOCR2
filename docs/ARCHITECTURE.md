@@ -74,8 +74,9 @@ working.
 - `checkocr2/ui/grid_edit_actions.py`: double-click cell edit entry creation,
   save-on-enter/focus-out, escape cancellation, theme registration, and legacy
   wrapper-compatible event binding.
-- `checkocr2/ui/grid_refresh_actions.py`: Treeview row redraw and grid
-  status/progress label updates using shared table-model render helpers.
+- `checkocr2/ui/grid_refresh_actions.py`: Treeview status-tag styling,
+  row redraw, and grid status/progress label updates using shared table-model
+  render helpers.
 - `checkocr2/ui/grid_update_actions.py`: legacy grid-update queue handling for
   row mutation delegation, scroll-to-row, refresh, debug logging, and malformed
   payload logging.

@@ -30,6 +30,27 @@ def refresh_grid(app: Any) -> None:
     app.update_grid_status_labels()
 
 
+def refresh_grid_tags(app: Any) -> None:
+    if not app.grid_tree:
+        return
+
+    app.grid_tree.tag_configure(
+        "processing",
+        background=app.theme_manager.get_color("warning", "#FFF3CD"),
+        foreground=app.theme_manager.get_color("dark", "#856404"),
+    )
+    app.grid_tree.tag_configure(
+        "completed",
+        background=app.theme_manager.get_color("success", "#D4EDDA"),
+        foreground=app.theme_manager.get_color("dark", "#155724"),
+    )
+    app.grid_tree.tag_configure(
+        "error",
+        background=app.theme_manager.get_color("danger", "#F8D7DA"),
+        foreground=app.theme_manager.get_color("white", "#721C24"),
+    )
+
+
 def update_grid_status_labels(app: Any) -> None:
     if not hasattr(app, "grid_status_label"):
         return

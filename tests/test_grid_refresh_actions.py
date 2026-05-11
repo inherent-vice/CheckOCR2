@@ -18,6 +18,7 @@ class FakeTree:
         self.children = list(children)
         self.deleted = []
         self.inserted = []
+        self.tag_configs = []
 
     def get_children(self):
         return tuple(self.children)
@@ -27,6 +28,9 @@ class FakeTree:
 
     def insert(self, parent, index, *, values, tags):
         self.inserted.append((parent, index, values, tags))
+
+    def tag_configure(self, tag, **kwargs):
+        self.tag_configs.append((tag, kwargs))
 
 
 class FakeLabel:
@@ -69,11 +73,26 @@ class FakeWorkController:
     is_running = True
 
 
+class FakeThemeManager:
+    def __init__(self):
+        self.colors = {
+            "warning": "#warn",
+            "dark": "#dark",
+            "success": "#success",
+            "danger": "#danger",
+            "white": "#white",
+        }
+
+    def get_color(self, key, default=None):
+        return self.colors.get(key, default)
+
+
 class FakeApp:
     def __init__(self):
         self.grid_tree = FakeTree()
         self.data_manager = FakeDataManager()
         self.work_controller = FakeWorkController()
+        self.theme_manager = FakeThemeManager()
         self.grid_status_label = FakeLabel()
         self.grid_progress_label = FakeLabel()
         self.status_refresh_count = 0
@@ -89,7 +108,12 @@ def test_refresh_grid_rebuilds_tree_rows_and_refreshes_status():
 
     assert app.grid_tree.deleted == ["old0", "old1"]
     assert app.grid_tree.inserted == [
-        ("", "end", ("A001", "Alpha", "2026/05/11", "3.500", STATUS_DONE), ("completed",)),
+        (
+            "",
+            "end",
+            ("A001", "Alpha", "2026/05/11", "3.500", STATUS_DONE),
+            ("completed",),
+        ),
         ("", "end", ("B002", "Beta", "", "", STATUS_WAITING), ("processing",)),
         ("", "end", ("C003", "Gamma", "", "", STATUS_ERROR_PROCESSING), ("error",)),
     ]
@@ -110,7 +134,9 @@ def test_update_grid_status_labels_writes_current_summary_and_progress():
 
     grid_refresh_actions.update_grid_status_labels(app)
 
-    assert app.grid_status_label.config_calls == [{"text": "총 3행 | 완료: 1 | 대기: 1 | 오류: 1"}]
+    assert app.grid_status_label.config_calls == [
+        {"text": "총 3행 | 완료: 1 | 대기: 1 | 오류: 1"}
+    ]
     assert app.grid_progress_label.config_calls == [{"text": "진행률: 33.3%"}]
 
 
@@ -129,21 +155,52 @@ def test_update_grid_status_labels_allows_missing_progress_label():
 
     grid_refresh_actions.update_grid_status_labels(app)
 
-    assert app.grid_status_label.config_calls == [{"text": "총 3행 | 완료: 1 | 대기: 1 | 오류: 1"}]
+    assert app.grid_status_label.config_calls == [
+        {"text": "총 3행 | 완료: 1 | 대기: 1 | 오류: 1"}
+    ]
+
+
+def test_refresh_grid_tags_configures_status_colors():
+    app = FakeApp()
+
+    grid_refresh_actions.refresh_grid_tags(app)
+
+    assert app.grid_tree.tag_configs == [
+        ("processing", {"background": "#warn", "foreground": "#dark"}),
+        ("completed", {"background": "#success", "foreground": "#dark"}),
+        ("error", {"background": "#danger", "foreground": "#white"}),
+    ]
+
+
+def test_refresh_grid_tags_noops_without_grid_tree():
+    app = FakeApp()
+    app.grid_tree = None
+
+    grid_refresh_actions.refresh_grid_tags(app)
 
 
 def test_legacy_app_grid_refresh_methods_delegate(ocr_module, monkeypatch):
     app = object.__new__(ocr_module.CheckCaptureOCRApp)
     calls = []
 
-    monkeypatch.setattr(ocr_module, "refresh_grid_action", lambda actual_app: calls.append(("refresh", actual_app)))
+    monkeypatch.setattr(
+        ocr_module,
+        "refresh_grid_tags_action",
+        lambda actual_app: calls.append(("tags", actual_app)),
+    )
+    monkeypatch.setattr(
+        ocr_module,
+        "refresh_grid_action",
+        lambda actual_app: calls.append(("refresh", actual_app)),
+    )
     monkeypatch.setattr(
         ocr_module,
         "update_grid_status_labels_action",
         lambda actual_app: calls.append(("status", actual_app)),
     )
 
+    app.refresh_grid_tags()
     app.refresh_grid_ui()
     app.update_grid_status_labels()
 
-    assert calls == [("refresh", app), ("status", app)]
+    assert calls == [("tags", app), ("refresh", app), ("status", app)]

@@ -62,11 +62,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 287 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 289 tests,
 `compileall` passed, and benchmark dry-runs passed after fixture-audit and live
 run-comparison tooling. The latest package gate uses the 2026-05-11 clean
-PyInstaller release build after settings-action extraction plus real
-package smoke at about `596.387 MB` with startup `3.219` seconds and settings-file
+PyInstaller release build after grid-tag styling extraction plus real
+package smoke at about `596.387 MB` with startup `3.203` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -130,6 +130,12 @@ glue into `checkocr2/ui/settings_actions.py`; focused tests pass for saved-path
 restore, missing-settings defaults, preset/theme refresh, advanced reset,
 quick-save success, error messagebox behavior, and legacy wrapper compatibility.
 Source GUI smoke and real package smoke both pass for this slice.
+
+The latest grid-tag styling slice moved Treeview tag color configuration into
+`checkocr2/ui/grid_refresh_actions.py`; focused tests pass for tag names, theme
+color keys, fallback colors, no-grid no-op behavior, legacy wrapper delegation,
+and theme-manager caller compatibility. Source GUI smoke and real package smoke
+both pass for this slice.
 
 ## Commands To Re-Run Before Release
 
