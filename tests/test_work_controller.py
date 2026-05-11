@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 def test_work_controller_start_stop_skip_and_reset(ocr_module):
+    assert ocr_module.WorkController.__module__ == "checkocr2.work_controller"
     controller = ocr_module.WorkController()
 
     assert controller.is_stopped is False

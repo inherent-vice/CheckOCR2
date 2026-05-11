@@ -68,6 +68,7 @@ from checkocr2.ui.panels.timing_panel import create_timing_panel
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 from checkocr2.ui.start_validation import ERROR, validate_ocr_start
 from checkocr2.ui.toolbar import create_simple_toolbar
+from checkocr2.work_controller import WorkController
 from checkocr2.worker import start_daemon_worker
 from checkocr2.workflow import (
     CapturedImages,
@@ -230,40 +231,6 @@ class ThemeManager:
             self.logger.info(f"테마 변경됨: {self.available_themes[theme_key]['name']}")
         else:
             self.logger.warning(f"알 수 없는 테마 키: {theme_key}")
-
-############################################
-# 작업 제어 시스템
-############################################
-class WorkController:
-    def __init__(self):
-        self.is_stopped = False
-        self.is_running = False
-        self.skip_current = False
-        self.current_item = ""
-        self.stop_event = threading.Event() # 중단 신호용 이벤트
-
-    def start_work(self):
-        self.is_stopped = False
-        self.is_running = True
-        self.skip_current = False
-        self.stop_event.clear() # 이벤트 초기화
-
-    def stop_work(self):
-        self.is_stopped = True
-        self.is_running = False
-        self.stop_event.set() # 이벤트 설정하여 중단 신호
-        return "작업이 중단되었습니다"
-
-    def skip_current_item(self):
-        self.skip_current = True
-        return f"현재 항목 '{self.current_item}'을 건너뛰었습니다"
-
-    def reset(self):
-        self.is_stopped = False
-        self.is_running = False
-        self.skip_current = False
-        self.current_item = ""
-        self.stop_event.clear()
 
 ############################################
 # 영역 시각화 오버레이 창
