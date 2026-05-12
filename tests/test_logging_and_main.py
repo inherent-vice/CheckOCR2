@@ -35,6 +35,23 @@ def test_setup_logging_replaces_handlers(tmp_path):
     assert log_path.exists()
 
 
+def test_setup_logging_defaults_to_rotating_appdata_log(tmp_path, monkeypatch):
+    events = queue.Queue()
+    appdata = tmp_path / "appdata"
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.setenv("APPDATA", str(appdata))
+
+    logger = setup_logging(events, max_bytes=128, backup_count=2)
+    logger.info("hello")
+
+    assert (appdata / "CheckOCR2" / "logs" / "ocr_app.log").exists()
+    assert not (cwd / "ocr_app.log").exists()
+    assert logger.handlers[0].maxBytes == 128
+    assert logger.handlers[0].backupCount == 2
+
+
 def test_package_main_constructs_app(monkeypatch):
     import checkocr2.app as app_module
     import checkocr2.main as main_module

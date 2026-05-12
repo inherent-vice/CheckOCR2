@@ -23,6 +23,9 @@ the Korean parallel-agent plan and workstream split, use
 - Runtime settings are stored under `%APPDATA%\CheckOCR2\settings.json`; the
   repo keeps `settings.example.json` only. Legacy fallback and preset timestamp
   compatibility live in `checkocr2/settings_compat.py`.
+- Default runtime logs are stored under
+  `%APPDATA%\CheckOCR2\logs\ocr_app.log` with rotation; ordinary app launches
+  should not create `ocr_app.log` in the repository root.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
@@ -70,7 +73,7 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 424 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 425 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
@@ -108,6 +111,13 @@ of `INFO`, `WARNING`, `ERROR`, and `SUCCESS` messages, Tk log-handler
 forwarding, queue dispatch, and log panel construction. The GUI parity
 checklist now leaves only the real live OCR run and packaged build/icon
 evidence unchecked.
+
+The latest logging safety slice moves the default file handler to the per-user
+APPDATA logs directory and verifies rotation settings plus no repo-root log
+creation. Focused verification passed with `python -m pytest
+tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-logging-appdata`
+and `python -m ruff check checkocr2\logging_config.py
+tests\test_logging_and_main.py tests\test_log_actions.py`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
