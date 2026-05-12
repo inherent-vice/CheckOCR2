@@ -56,6 +56,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `workflow.py`: row processing workflow outside Tkinter.
 - `workflow_event_bridge.py`: conversion from workflow events to legacy Tk
   queue events, including row timing tracking.
+- `workflow_legacy_adapters.py`: legacy capture/OCR adapters used by the Tk
+  workflow controller.
 - `worker.py`: background thread helper.
 - `run_report.py`: JSON timing/error report writer.
 - `workflow_run_setup.py`: OCR run setup for delays, capture coordinates,

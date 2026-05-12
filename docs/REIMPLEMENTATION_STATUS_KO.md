@@ -21,11 +21,11 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 378개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 383개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
-- 최신 기록 기준 패키지는 약 `596.397 MB`, real package smoke startup은
-  `4.156`초다.
+- 최신 기록 기준 패키지는 약 `596.399 MB`, real package smoke startup은
+  `4.281`초다.
 
 ## 반드시 유지할 GUI 동작
 
@@ -61,8 +61,9 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   `image_processing.py`는 crop 검증, 재사용 가능한 이미지 소스 처리, 업스케일
   크기/변경 상태 계산을 담당한다.
 - 워크플로/상태/리포트: `workflow.py`, `workflow_event_bridge.py`,
-  `workflow_run_setup.py`, `worker.py`, `work_controller.py`,
-  `runtime_state.py`, `run_report.py`, `events.py`, `table_model.py`.
+  `workflow_legacy_adapters.py`, `workflow_run_setup.py`, `worker.py`,
+  `work_controller.py`, `runtime_state.py`, `run_report.py`, `events.py`,
+  `table_model.py`.
 - UI action/helper: 메뉴, 툴바, 패널, 공통 section frame, 대화상자, 오버레이,
   queue dispatch,
   runtime status, settings, preset, folder, coordinate, grid, log, keyboard,

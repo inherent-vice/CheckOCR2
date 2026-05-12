@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 378 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 383 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after workflow event-bridge extraction plus real package
-smoke at about `596.397 MB` with startup `4.156` seconds and settings-file
+release build after workflow legacy-adapter extraction plus real package
+smoke at about `596.399 MB` with startup `4.281` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -257,6 +257,13 @@ The latest workflow event-bridge slice moved workflow event forwarding,
 into `checkocr2/workflow_event_bridge.py`; focused tests preserve processing,
 complete, error, non-grid, and malformed-grid behavior. Source GUI smoke and
 real package smoke both pass for this slice.
+
+The latest workflow legacy-adapter slice moved the capture and EasyOCR workflow
+adapters into `checkocr2/workflow_legacy_adapters.py`; focused tests preserve
+capture arguments, timing copy and `setdefault` semantics, missing-image
+behavior, OCR tracking reset, confidence metadata copy semantics, and
+`OcrResult` timing identity. Source GUI smoke and real package smoke both pass
+for this slice.
 
 ## Commands To Re-Run Before Release
 

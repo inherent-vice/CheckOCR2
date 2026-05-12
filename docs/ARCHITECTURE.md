@@ -52,6 +52,8 @@ working.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
 - `checkocr2/workflow_event_bridge.py`: workflow event to legacy Tk queue
   bridge, including row total timing and current row tracking.
+- `checkocr2/workflow_legacy_adapters.py`: legacy capture and EasyOCR adapters
+  used by the Tk controller when running the Tk-free workflow.
 - `checkocr2/worker.py`: daemon worker helper.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/workflow_run_setup.py`: per-run delay, coordinate, detail-image

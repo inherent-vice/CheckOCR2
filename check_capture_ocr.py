@@ -181,8 +181,6 @@ from checkocr2.ui.theme import ThemeManager
 from checkocr2.ui.window_actions import center_window as center_window_action
 from checkocr2.work_controller import WorkController
 from checkocr2.workflow import (
-    CapturedImages,
-    OcrResult,
     WorkflowOptions,
     WorkflowRunner,
 )
@@ -190,6 +188,10 @@ from checkocr2.workflow import (
     finalize_processing_states as finalize_workflow_processing_states,
 )
 from checkocr2.workflow_event_bridge import WorkflowEventBridge
+from checkocr2.workflow_legacy_adapters import (
+    LegacyAutomationAdapter,
+    LegacyEasyOcrAdapter,
+)
 from checkocr2.workflow_run_setup import prepare_workflow_run
 
 
@@ -246,38 +248,9 @@ class OCRWorkflowManager:
             self._current_run_report_path = run_setup.report_path
             self._current_run_report = run_setup.report
 
-            class TkAutomationAdapter:
-                def capture(_adapter_self, row, context):
-                    capture_started = perf_counter()
-                    date_img_src, rate_img_src = self._capture_screenshots_internal(
-                        row.code, save_folder, coords, paste_d, load_d, save_detail_images_bool
-                    )
-                    capture_timing = dict(self._last_capture_timing)
-                    capture_timing.setdefault("capture_adapter_ms", self._elapsed_ms(capture_started))
-                    row_timing_by_index.setdefault(context.index, {})["capture_timing_ms"] = capture_timing
-                    if date_img_src is None or rate_img_src is None:
-                        return None
-                    return CapturedImages(date_img_src, rate_img_src, metadata={"timing_ms": capture_timing})
-
-            class EasyOcrAdapter:
-                def read(_adapter_self, images, row, context):
-                    ocr_started = perf_counter()
-                    self._last_ocr_timings = {}
-                    self._last_ocr_confidences = {}
-                    date_result, rate_result = self._process_single_ocr_internal(
-                        images.date_image,
-                        images.rate_image,
-                        save_detail_images_bool,
-                    )
-                    ocr_timing = dict(self._last_ocr_timings)
-                    ocr_timing.setdefault("ocr_adapter_ms", self._elapsed_ms(ocr_started))
-                    timing = row_timing_by_index.setdefault(context.index, {})
-                    timing["ocr_timing_ms"] = ocr_timing
-                    if self._last_ocr_confidences:
-                        row_metadata_by_index.setdefault(context.index, {})["ocr_confidence"] = dict(
-                            self._last_ocr_confidences
-                        )
-                    return OcrResult(date_result, rate_result, metadata={"timing_ms": timing})
+            def clear_ocr_tracking():
+                self._last_ocr_timings = {}
+                self._last_ocr_confidences = {}
 
             event_bridge = WorkflowEventBridge(
                 self.message_queue,
@@ -287,8 +260,27 @@ class OCRWorkflowManager:
             )
 
             runner = WorkflowRunner(
-                TkAutomationAdapter(),
-                EasyOcrAdapter(),
+                LegacyAutomationAdapter(
+                    self._capture_screenshots_internal,
+                    save_folder,
+                    coords,
+                    paste_d,
+                    load_d,
+                    save_detail_images_bool,
+                    lambda: self._last_capture_timing,
+                    row_timing_by_index,
+                    self._elapsed_ms,
+                ),
+                LegacyEasyOcrAdapter(
+                    self._process_single_ocr_internal,
+                    save_detail_images_bool,
+                    clear_ocr_tracking,
+                    lambda: self._last_ocr_timings,
+                    lambda: self._last_ocr_confidences,
+                    row_timing_by_index,
+                    row_metadata_by_index,
+                    self._elapsed_ms,
+                ),
                 stop_token=self.work_controller,
                 event_sink=event_bridge.emit,
             )
