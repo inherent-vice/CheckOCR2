@@ -70,7 +70,7 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 420 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 424 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
@@ -102,6 +102,12 @@ preview payloads, option persistence, preset lifecycle, OCR start validation,
 KBP skip, stopped events, report finalization, and export summaries. The
 remaining GUI parity gap is now the real 1-2 row live run plus any manual
 packaged icon/build evidence not covered by the existing smoke reports.
+
+The latest log parity slice records focused coverage for log-widget insertion
+of `INFO`, `WARNING`, `ERROR`, and `SUCCESS` messages, Tk log-handler
+forwarding, queue dispatch, and log panel construction. The GUI parity
+checklist now leaves only the real live OCR run and packaged build/icon
+evidence unchecked.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts

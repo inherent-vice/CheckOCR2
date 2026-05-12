@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import pytest
+
 from checkocr2.ui import log_actions
 
 
 class FakeLogTextWidget:
-    def __init__(self, *, exists=True, tags=("INFO", "WARNING", "ERROR")):
+    def __init__(self, *, exists=True, tags=("INFO", "WARNING", "ERROR", "SUCCESS")):
         self.exists = exists
         self.tags = tags
         self.config_calls = []
@@ -41,6 +43,16 @@ def test_append_log_text_writes_message_with_existing_level_tag():
     assert widget.config_calls == [{"state": "normal"}, {"state": "disabled"}]
     assert widget.inserts == [("end", "hello\n", "WARNING")]
     assert widget.seen == ["end"]
+
+
+@pytest.mark.parametrize("level_name", ["INFO", "WARNING", "ERROR", "SUCCESS"])
+def test_append_log_text_writes_operator_message_levels(level_name):
+    widget = FakeLogTextWidget()
+    app = FakeApp(widget)
+
+    log_actions.append_log_text(app, f"{level_name} message", level_name)
+
+    assert widget.inserts == [("end", f"{level_name} message\n", level_name)]
 
 
 def test_append_log_text_falls_back_to_info_for_unknown_tag():
