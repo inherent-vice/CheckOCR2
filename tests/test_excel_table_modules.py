@@ -27,6 +27,7 @@ from checkocr2.table_model import (
     delete_rows,
     format_grid_progress_text,
     format_grid_status_text,
+    grid_cell_text,
     grid_row_tags,
     grid_row_values,
     rates_for_copy,
@@ -163,6 +164,41 @@ def test_excel_io_loads_korean_grid_headers(tmp_path):
     assert missing == []
     assert rows == [
         {CODE_COL: "A001", NAME_COL: "알파", DATE_COL: "", RATE_COL: "", STATUS_COL: STATUS_WAITING}
+    ]
+
+
+def test_excel_io_loads_blank_cells_as_empty_strings(tmp_path):
+    source = tmp_path / "blank_cells.xlsx"
+    pd.DataFrame(
+        [
+            {"code": "A001", "name": None},
+            {"code": None, "name": "Blank Code"},
+        ]
+    ).to_excel(source, index=False)
+
+    rows, missing = load_grid_rows(source)
+
+    assert missing == []
+    assert rows[0][NAME_COL] == ""
+    assert rows[1][CODE_COL] == ""
+    assert rows[0][NAME_COL] != "nan"
+    assert rows[1][CODE_COL] != "nan"
+
+
+def test_table_model_normalizes_nan_values_for_grid_and_export():
+    row = {
+        CODE_COL: float("nan"),
+        NAME_COL: None,
+        DATE_COL: "2026/05/08",
+        RATE_COL: float("nan"),
+        STATUS_COL: STATUS_STOPPED,
+    }
+
+    assert grid_cell_text(float("nan")) == ""
+    assert row_for_copy(row) == f"\t\t2026/05/08\t\t{STATUS_STOPPED}"
+    assert grid_row_values(row) == ("", "", "2026/05/08", "", STATUS_STOPPED)
+    assert rows_for_export([row]) == [
+        {CODE_COL: "", NAME_COL: "", DATE_COL: "2026/05/08", RATE_COL: "", STATUS_COL: ""}
     ]
 
 

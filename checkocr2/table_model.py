@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from numbers import Real
 from typing import Any
 
 from .events import GridUpdate
@@ -78,11 +80,11 @@ def delete_rows(rows: list[dict[str, str]], indices_to_delete: list[int]) -> Non
 def row_for_copy(row: dict[str, str]) -> str:
     return "\t".join(
         [
-            row.get(CODE_COL, ""),
-            row.get(NAME_COL, ""),
-            row.get(DATE_COL, ""),
-            row.get(RATE_COL, ""),
-            row.get(STATUS_COL, ""),
+            grid_cell_text(row.get(CODE_COL, "")),
+            grid_cell_text(row.get(NAME_COL, "")),
+            grid_cell_text(row.get(DATE_COL, "")),
+            grid_cell_text(row.get(RATE_COL, "")),
+            grid_cell_text(row.get(STATUS_COL, "")),
         ]
     )
 
@@ -93,7 +95,7 @@ def rows_for_copy(rows: list[dict[str, str]], indices: list[int]) -> ClipboardSe
 
 
 def rates_for_copy(rows: list[dict[str, str]], indices: list[int]) -> ClipboardSelection:
-    copied_rates = [str(rows[index].get(RATE_COL, "")) for index in indices if 0 <= index < len(rows)]
+    copied_rates = [grid_cell_text(rows[index].get(RATE_COL, "")) for index in indices if 0 <= index < len(rows)]
     return ClipboardSelection(text="\n".join(copied_rates), count=len(copied_rates))
 
 
@@ -128,11 +130,11 @@ def status_is_error(status: str) -> bool:
 
 def grid_row_values(row: dict[str, str]) -> tuple[str, str, str, str, str]:
     return (
-        row[CODE_COL],
-        row[NAME_COL],
-        row[DATE_COL],
-        row[RATE_COL],
-        row[STATUS_COL],
+        grid_cell_text(row[CODE_COL]),
+        grid_cell_text(row[NAME_COL]),
+        grid_cell_text(row[DATE_COL]),
+        grid_cell_text(row[RATE_COL]),
+        grid_cell_text(row[STATUS_COL]),
     )
 
 
@@ -177,13 +179,25 @@ def rows_for_export(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     export_rows: list[dict[str, str]] = []
     for row in rows:
         export_row = {
-            CODE_COL: row.get(CODE_COL, ""),
-            NAME_COL: row.get(NAME_COL, ""),
-            DATE_COL: row.get(DATE_COL, ""),
-            RATE_COL: row.get(RATE_COL, ""),
-            STATUS_COL: row.get(STATUS_COL, ""),
+            CODE_COL: grid_cell_text(row.get(CODE_COL, "")),
+            NAME_COL: grid_cell_text(row.get(NAME_COL, "")),
+            DATE_COL: grid_cell_text(row.get(DATE_COL, "")),
+            RATE_COL: grid_cell_text(row.get(RATE_COL, "")),
+            STATUS_COL: grid_cell_text(row.get(STATUS_COL, "")),
         }
         if export_row[STATUS_COL] == STATUS_STOPPED:
             export_row[STATUS_COL] = ""
         export_rows.append(export_row)
     return export_rows
+
+
+def grid_cell_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, Real):
+        try:
+            if math.isnan(float(value)):
+                return ""
+        except (OverflowError, ValueError):
+            pass
+    return str(value)

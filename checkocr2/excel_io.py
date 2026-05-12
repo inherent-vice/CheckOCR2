@@ -45,9 +45,9 @@ def load_grid_rows(file_path: str | os.PathLike[str]) -> tuple[list[dict[str, st
         code_col = col_map.get(CODE_COL)
         name_col = col_map.get(NAME_COL)
         if code_col and code_col in source_row:
-            row[CODE_COL] = str(source_row[code_col])
+            row[CODE_COL] = _excel_cell_text(source_row[code_col])
         if name_col and name_col in source_row:
-            row[NAME_COL] = str(source_row[name_col])
+            row[NAME_COL] = _excel_cell_text(source_row[name_col])
         rows.append(row)
     return rows, missing
 
@@ -62,3 +62,9 @@ def export_grid_rows(rows: list[dict[str, str]], output_path: str | os.PathLike[
     except Exception as exc:
         raise ExcelIOError(f"Excel file could not be written: {exc}") from exc
     return output
+
+
+def _excel_cell_text(value: object) -> str:
+    if pd.isna(value):
+        return ""
+    return str(value)

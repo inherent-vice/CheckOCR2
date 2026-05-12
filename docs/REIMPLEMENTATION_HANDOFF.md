@@ -73,7 +73,7 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 429 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 431 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
@@ -129,6 +129,12 @@ calendar-aware validation. Existing normalized dates still pass, while invalid
 calendar dates now follow the same invalid-date analysis path. Focused
 verification passed with `python -m pytest tests\test_package_helpers.py
 tests\test_ocr_field_analysis.py --basetemp $env:TEMP\checkocr2-date-validation`.
+
+The latest Excel/data safety slice normalizes imported blank cells and
+in-memory NaN values to empty strings across grid copy/render/export paths, so
+the UI and output workbook do not surface literal `"nan"` text. Focused
+verification passed with `python -m pytest tests\test_excel_table_modules.py
+tests\test_data_manager.py --basetemp $env:TEMP\checkocr2-excel-nan`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
