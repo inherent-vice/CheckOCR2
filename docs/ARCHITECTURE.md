@@ -63,6 +63,8 @@ working.
 - `checkocr2/ocr_workflow_manager.py`: legacy OCR workflow manager adapter that
   assembles run setup, adapters, report finalization, and queue-compatible
   events for the Tk shell while keeping the class out of `check_capture_ocr.py`.
+  Export-result dialogs are injected by `checkocr2/app.py`, so the manager does
+  not import Tk messagebox directly.
 - `checkocr2/workflow_event_bridge.py`: workflow event to legacy Tk queue
   bridge, including row total timing and current row tracking.
 - `checkocr2/workflow_legacy_adapters.py`: legacy capture and EasyOCR adapters

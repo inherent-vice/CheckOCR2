@@ -75,11 +75,11 @@ completion status and the remaining hard blockers, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 433 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 435 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1044x788` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
-plus real package smoke at about `596.408 MB` with startup `1.188` seconds,
+plus real package smoke at about `596.408 MB` with startup `3.704` seconds,
 window size `1044x788`, clean GUI exit code `0`, settings-file verification
 under isolated `APPDATA`, and packaged icon extraction evidence.
 
@@ -150,9 +150,15 @@ workflow dependency seams in the extracted module. Focused verification passed
 with `python -m pytest tests\test_ocr_workflow_manager.py
 tests\test_async_ocr_initialization.py tests\test_completion_actions.py
 --basetemp $env:TEMP\checkocr2-ocr-manager-extract`. The full slice gate also
-passed with `ruff`, 433-test `pytest`, `compileall`, benchmark dry-runs, matrix
+passed with `ruff`, 435-test `pytest`, `compileall`, benchmark dry-runs, matrix
 dry-run, and source GUI smoke reaching `Ready` with a `1044x788` window and
 clean exit.
+
+The latest workflow-manager cleanup slice removes the direct Tk `messagebox`
+import from `checkocr2/ocr_workflow_manager.py`. Export dialogs are injected by
+`CheckCaptureOCRApp` when it constructs the manager, and focused tests pin the
+injected callback path plus the absence of a workflow-manager `messagebox`
+module dependency.
 
 The newest app-shell reduction slice moves `CheckCaptureOCRApp` into
 `checkocr2/app.py` and turns `check_capture_ocr.py` into a thin compatibility
@@ -169,12 +175,20 @@ tests\test_options_actions.py tests\test_presets.py
 tests\test_runtime_status_actions.py tests\test_section_frame.py
 tests\test_settings_actions.py tests\test_window_actions.py --basetemp
 $env:TEMP\checkocr2-app-shell-extract`. The full source/package gate passed
-with `ruff`, 433-test `pytest`, `compileall`, benchmark dry-runs, matrix
+with `ruff`, 435-test `pytest`, `compileall`, benchmark dry-runs, matrix
 dry-run, all three source launchers reaching `Ready` with a `1044x788` window
 and clean exit, clean PyInstaller build, and real package smoke at
-`596.408 MB`, `1.188` seconds startup, build date
-`2026-05-12T09:56:37+00:00`, isolated settings-file verification, and clean
+`596.408 MB`, `3.704` seconds startup, build date
+`2026-05-12T10:21:36+00:00`, isolated settings-file verification, and clean
 packaged GUI exit.
+
+The current manager-dialog slice removes the direct Tk messagebox import from
+`checkocr2/ocr_workflow_manager.py`. `checkocr2/app.py` injects export success
+and error dialog callables when it constructs the manager, preserving GUI
+behavior while keeping the manager closer to an adapter seam. Focused
+verification passed with `python -m pytest tests\test_ocr_workflow_manager.py
+tests\test_completion_actions.py tests\test_async_ocr_initialization.py
+--basetemp $env:TEMP\checkocr2-manager-dialogs`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts

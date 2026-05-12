@@ -26,12 +26,15 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 - `CheckCaptureOCRApp`는 이제 `checkocr2/app.py`에 있으며,
   `check_capture_ocr.py`는 기존 실행 파일명과 import를 위한 얇은 호환
   런처다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 433개, `compileall`, OCR benchmark
+- `checkocr2/ocr_workflow_manager.py`는 export 완료/오류 dialog 함수를
+  `checkocr2/app.py`에서 주입받으며, 더 이상 Tk messagebox를 직접 import하지
+  않는다.
+- 최신 기록 기준 검증은 `ruff`, `pytest` 435개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
   GUI exit을 검사한다. 확인된 창 크기는 `1044x788`이고, 최신 패키지는 약
-  `596.408 MB`, real package smoke startup은 `1.188`초다.
+  `596.408 MB`, real package smoke startup은 `3.704`초다.
 
 ## 반드시 유지할 GUI 동작
 

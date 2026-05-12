@@ -182,7 +182,16 @@ class CheckCaptureOCRApp(tk.Tk):
         self.theme_manager = ThemeManager(self)
         self.work_controller = WorkController()
         self.data_manager = DataManager(self, self.logger, self.message_queue)
-        self.ocr_workflow_manager = OCRWorkflowManager(self, self.logger, self.message_queue, self.work_controller, self.settings_manager, self.data_manager)
+        self.ocr_workflow_manager = OCRWorkflowManager(
+            self,
+            self.logger,
+            self.message_queue,
+            self.work_controller,
+            self.settings_manager,
+            self.data_manager,
+            show_export_error=messagebox.showerror,
+            show_export_info=messagebox.showinfo,
+        )
 
         self.worker_thread = None
         self.ocr_init_thread = None

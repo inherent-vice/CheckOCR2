@@ -51,6 +51,30 @@ def make_workflow_manager(ocr_module):
     return manager, events
 
 
+def test_workflow_manager_accepts_injected_export_dialogs(
+    ocr_module,
+    ocr_workflow_module,
+):
+    show_error = object()
+    show_info = object()
+    manager, _events = make_workflow_manager(ocr_module)
+
+    injected = ocr_module.OCRWorkflowManager(
+        app_ref=manager.app,
+        logger=manager.logger,
+        message_queue=manager.message_queue,
+        work_controller=manager.work_controller,
+        settings_manager=manager.settings_manager,
+        data_manager=manager.data_manager,
+        show_export_error=show_error,
+        show_export_info=show_info,
+    )
+
+    assert injected.show_export_error is show_error
+    assert injected.show_export_info is show_info
+    assert not hasattr(ocr_workflow_module, "messagebox")
+
+
 def test_date_text_cleaning_characterizes_existing_formats(ocr_module):
     manager, _events = make_workflow_manager(ocr_module)
 

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from time import perf_counter
-from tkinter import messagebox
 
 import numpy as np
 from PIL import Image
@@ -48,13 +48,26 @@ from checkocr2.workflow_run_setup import prepare_workflow_run
 
 
 class OCRWorkflowManager:
-    def __init__(self, app_ref, logger, message_queue, work_controller, settings_manager, data_manager):
+    def __init__(
+        self,
+        app_ref,
+        logger,
+        message_queue,
+        work_controller,
+        settings_manager,
+        data_manager,
+        *,
+        show_export_error: Callable[..., object] | None = None,
+        show_export_info: Callable[..., object] | None = None,
+    ):
         self.app = app_ref # CheckCaptureOCRApp 참조
         self.logger = logger
         self.message_queue = message_queue
         self.work_controller = work_controller
         self.settings_manager = settings_manager
         self.data_manager = data_manager # DataManager 인스턴스
+        self.show_export_error = show_export_error
+        self.show_export_info = show_export_info
         self.ocr_reader = None
         self._current_run_report = None
         self._current_run_report_path = None
@@ -296,8 +309,8 @@ class OCRWorkflowManager:
             summary_message,
             report_manager=self,
             reset_work_state=False,
-            showerror=messagebox.showerror,
-            showinfo=messagebox.showinfo,
+            showerror=getattr(self, "show_export_error", None),
+            showinfo=getattr(self, "show_export_info", None),
         )
 
     def _apply_image_upscaling(self, image_source, enable_upscaling, upscaling_factor, upscaling_method):

@@ -406,6 +406,8 @@ def test_legacy_finalize_export_methods_delegate(ocr_module, ocr_workflow_module
     app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
     manager = ocr_module.OCRWorkflowManager.__new__(ocr_module.OCRWorkflowManager)
     manager.app = app
+    manager.show_export_error = lambda *args, **kwargs: None
+    manager.show_export_info = lambda *args, **kwargs: None
     calls = []
 
     monkeypatch.setattr(
@@ -427,12 +429,12 @@ def test_legacy_finalize_export_methods_delegate(ocr_module, ocr_workflow_module
     assert calls[1][0] == (app, "out2", "in2.xlsx", "summary2")
     assert calls[1][1]["report_manager"] is manager
     assert calls[1][1]["reset_work_state"] is False
-    assert {"showerror", "showinfo"}.issubset(calls[1][1])
+    assert calls[1][1]["showerror"] is manager.show_export_error
+    assert calls[1][1]["showinfo"] is manager.show_export_info
 
 
 def test_legacy_manager_finalize_export_uses_app_and_manager_report(
     ocr_module,
-    monkeypatch,
     tmp_path,
 ):
     output_workbook = tmp_path / "source_updated.xlsx"
@@ -461,16 +463,8 @@ def test_legacy_manager_finalize_export_uses_app_and_manager_report(
     )
     infos = []
     errors = []
-    monkeypatch.setattr(
-        ocr_module.messagebox,
-        "showinfo",
-        lambda *args, **kwargs: infos.append((args, kwargs)),
-    )
-    monkeypatch.setattr(
-        ocr_module.messagebox,
-        "showerror",
-        lambda *args, **kwargs: errors.append((args, kwargs)),
-    )
+    manager.show_export_info = lambda *args, **kwargs: infos.append((args, kwargs))
+    manager.show_export_error = lambda *args, **kwargs: errors.append((args, kwargs))
 
     manager._finalize_export_and_complete(
         str(tmp_path), str(tmp_path / "source.xlsx"), "done"
