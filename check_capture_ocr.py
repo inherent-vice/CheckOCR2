@@ -1,4 +1,3 @@
-import os
 import queue
 import threading
 import tkinter as tk
@@ -33,13 +32,7 @@ from checkocr2.ocr_text import (
     is_valid_rate_format,
 )
 from checkocr2.paths import clean_folder_path
-from checkocr2.run_report import (
-    create_run_report,
-    finalize_run_report,
-    record_row_reports,
-    report_output_path,
-    write_run_report,
-)
+from checkocr2.run_report import finalize_run_report, record_row_reports, write_run_report
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings_compat import UnifiedSettingsManager
@@ -197,6 +190,7 @@ from checkocr2.workflow import (
 from checkocr2.workflow import (
     finalize_processing_states as finalize_workflow_processing_states,
 )
+from checkocr2.workflow_run_setup import prepare_workflow_run
 
 
 ############################################
@@ -232,36 +226,26 @@ class OCRWorkflowManager:
                 self.message_queue.put(("stopped", None))
                 return
 
-            paste_d = ui_settings['delays']['paste']
-            load_d = ui_settings['delays']['loading']
-            coords = {
-                'click': ui_settings['click_point'],
-                'all': ui_settings['all_area'],
-                'date': ui_settings['date_area'],
-                'rate': ui_settings['rate_area'],
-            }
-            
             input_excel_file = self.app.input_excel_path.get()
-            if input_excel_file:
-                base_name = os.path.splitext(os.path.basename(input_excel_file))[0]
-                save_folder = os.path.join(output_dir_str, base_name)
-            else:
-                save_folder = os.path.join(output_dir_str, "ocr_images")
-
-            os.makedirs(save_folder, exist_ok=True)
+            run_setup = prepare_workflow_run(
+                ui_settings,
+                output_dir_str,
+                input_excel_file,
+                len(self.data_manager.excel_data),
+                save_detail_images_bool,
+            )
+            paste_d = run_setup.paste_delay
+            load_d = run_setup.load_delay
+            coords = run_setup.coords
+            save_folder = run_setup.save_folder
             self._last_capture_timing = {}
             self._last_ocr_timings = {}
             self._last_ocr_confidences = {}
             row_timing_by_index = {}
             row_metadata_by_index = {}
             row_started_by_index = {}
-            self._current_run_report_path = report_output_path(output_dir_str, input_excel_file)
-            self._current_run_report = create_run_report(
-                output_dir=output_dir_str,
-                input_excel_path=input_excel_file or "",
-                total_items=len(self.data_manager.excel_data),
-                save_detail_images=save_detail_images_bool,
-            )
+            self._current_run_report_path = run_setup.report_path
+            self._current_run_report = run_setup.report
 
             class TkAutomationAdapter:
                 def capture(_adapter_self, row, context):

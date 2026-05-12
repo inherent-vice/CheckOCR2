@@ -52,6 +52,8 @@ working.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
 - `checkocr2/worker.py`: daemon worker helper.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
+- `checkocr2/workflow_run_setup.py`: per-run delay, coordinate, detail-image
+  folder, and run-report setup for the legacy OCR workflow manager.
 - `checkocr2/runtime_state.py`: explicit GUI runtime state to button-state map.
 - `checkocr2/build_metadata.py`: release metadata and dependency hash helpers.
 - `checkocr2/work_controller.py`: processing run/stop/skip state and stop

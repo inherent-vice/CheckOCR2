@@ -92,6 +92,9 @@ test or a manual verification note.
 - Mitigated: screen copy/click/paste-wait/screenshot capture logic now lives in
   `checkocr2/capture_adapter.py`, with the legacy manager method reduced to a
   compatibility wrapper.
+- Mitigated: OCR run setup now lives in `checkocr2/workflow_run_setup.py`,
+  preserving delay, coordinate, detail-image folder, and run-report metadata
+  behavior while making the setup independently testable.
 
 ## Target Architecture
 
@@ -126,6 +129,7 @@ checkocr2/
   capture_adapter.py                  # screen copy/click/screenshot capture
   screen_automation.py                # pyautogui and clipboard adapter
   workflow.py                         # OCR orchestration without Tk imports
+  workflow_run_setup.py               # per-run paths/options/report setup
   worker.py                           # thread/cancel/event bridge
   ui/
     main_window.py

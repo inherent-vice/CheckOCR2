@@ -521,6 +521,88 @@ def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypa
     assert "update_ms" in report["rows"][0]["timing_ms"]
 
 
+def test_execute_workflow_forwards_prepared_run_setup_to_capture(
+    ocr_module,
+    monkeypatch,
+    tmp_path,
+):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.ocr_reader = object()
+    manager.data_manager.excel_data = [
+        {
+            CODE_COL: "A001",
+            NAME_COL: "Alpha",
+            DATE_COL: "",
+            RATE_COL: "",
+            STATUS_COL: "",
+        }
+    ]
+    input_excel_path = str(tmp_path / "source workbook.xlsx")
+
+    class DummyVar:
+        def get(self):
+            return input_excel_path
+
+    class DummyApp:
+        input_excel_path = DummyVar()
+
+    capture_calls = []
+    date_image = object()
+    rate_image = object()
+
+    def capture(stock_code, save_folder, coords, paste_d, load_d, save_details):
+        capture_calls.append(
+            {
+                "stock_code": stock_code,
+                "save_folder": save_folder,
+                "coords": coords,
+                "paste_d": paste_d,
+                "load_d": load_d,
+                "save_details": save_details,
+            }
+        )
+        return date_image, rate_image
+
+    process_calls = []
+
+    def process_single_ocr(date_img, rate_img, save_details):
+        process_calls.append((date_img, rate_img, save_details))
+        return "2026/05/08", "3.500"
+
+    manager.app = DummyApp()
+    monkeypatch.setattr(manager, "_capture_screenshots_internal", capture)
+    monkeypatch.setattr(manager, "_process_single_ocr_internal", process_single_ocr)
+    ui_settings = {
+        "delays": {"paste": 0.35, "loading": 1.25},
+        "click_point": (3, 4),
+        "all_area": (0, 0, 20, 20),
+        "date_area": (1, 2, 10, 11),
+        "rate_area": (12, 13, 20, 21),
+    }
+
+    manager.execute_ocr_workflow_threaded(ui_settings, str(tmp_path), save_detail_images_bool=True)
+
+    expected_save_folder = str(tmp_path / "source workbook")
+    assert capture_calls == [
+        {
+            "stock_code": "A001",
+            "save_folder": expected_save_folder,
+            "coords": {
+                "click": (3, 4),
+                "all": (0, 0, 20, 20),
+                "date": (1, 2, 10, 11),
+                "rate": (12, 13, 20, 21),
+            },
+            "paste_d": 0.35,
+            "load_d": 1.25,
+            "save_details": True,
+        }
+    ]
+    assert process_calls == [(date_image, rate_image, True)]
+    assert Path(expected_save_folder).is_dir()
+    assert manager._current_run_report_path == tmp_path / "source workbook_run_report.json"
+
+
 def test_execute_workflow_writes_detail_one_confidence_to_run_report(
     ocr_module,
     monkeypatch,
