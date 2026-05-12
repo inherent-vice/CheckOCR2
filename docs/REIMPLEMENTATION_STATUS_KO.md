@@ -112,6 +112,8 @@ entrypoint와 built EXE의 dated 자동 launch/package 증거, `1000x600` 최소
 - `scripts\audit_ocr_fixtures.py`는 현재 `ready_for_baseline=false` 상태다.
 - 같은 Excel 입력 기준 최소 10행 baseline/candidate live run report 비교가
   아직 없다.
+- 실제 GUI smoke는 `scripts\prepare_live_smoke_workspace.py`로 원본 Excel
+  대신 복사본 workbook과 hash manifest를 만든 뒤 수행해야 한다.
 - 따라서 wait-time 단축, OCR 엔진 교체, confidence threshold, allowlist,
   preprocessing 기본값 변경은 아직 승격하면 안 된다.
 
@@ -134,14 +136,16 @@ entrypoint와 built EXE의 dated 자동 launch/package 증거, `1000x600` 최소
 4. 현재 EasyOCR baseline과 matrix 결과를 `.analysis_tmp/`에 기록한다.
 5. `detail=1`, field allowlist, confidence threshold, preprocessing,
    wait-time 후보를 기본값 변경 없이 실험한다.
-6. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
-7. `scripts\check_ocr_evidence_bundle.py`로 audit, benchmark, matrix, live
+6. `scripts\prepare_live_smoke_workspace.py --rows 10`으로 live 비교용 복사본
+   workbook을 만든다.
+7. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
+8. `scripts\check_ocr_evidence_bundle.py`로 audit, benchmark, matrix, live
    comparison artifact가 dry-run/zero-case/not-ready/coverage-changed/rejected
    live 상태가 아닌지 확인한다. 선택 후보 matrix는
    `--require-no-matrix-regressions`로 더 엄격하게 검사한다.
-8. 정확도 회귀가 없고 속도 또는 패키지 크기 이득이 있는 후보만 채택한다.
-9. 남은 controller/UI glue는 작은 단위로 계속 분리하고 매번 smoke를 돌린다.
-10. 패키지 크기 최적화는 한 번에 하나의 dependency/PyInstaller 변경만 적용한다.
+9. 정확도 회귀가 없고 속도 또는 패키지 크기 이득이 있는 후보만 채택한다.
+10. 남은 controller/UI glue는 작은 단위로 계속 분리하고 매번 smoke를 돌린다.
+11. 패키지 크기 최적화는 한 번에 하나의 dependency/PyInstaller 변경만 적용한다.
 
 ## 검증 명령
 
@@ -162,6 +166,7 @@ OCR 후보 검증:
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
+python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 10
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
 python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```

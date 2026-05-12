@@ -115,6 +115,14 @@ of `INFO`, `WARNING`, `ERROR`, and `SUCCESS` messages, Tk log-handler
 forwarding, queue dispatch, and log panel construction. The GUI parity
 checklist now leaves only the real live OCR run unchecked.
 
+The latest live-smoke workspace slice adds `scripts/prepare_live_smoke_workspace.py`
+and `tests/test_prepare_live_smoke_workspace_script.py`. It creates an ignored
+copied input workbook, source/smoke workbook hashes, and expected output/report
+paths before a small real GUI smoke, so the operator does not target the
+production workbook directly. Focused verification passed with `python -m
+pytest tests\test_prepare_live_smoke_workspace_script.py --basetemp
+$env:TEMP\checkocr2-live-smoke-workspace`.
+
 The latest typed-queue boundary slice adds `LegacyQueueMessage` parsing in
 `checkocr2/events.py` and routes `checkocr2/ui/queue_dispatcher.py` through it.
 Legacy tuple payloads and unknown-message no-op behavior are preserved, while

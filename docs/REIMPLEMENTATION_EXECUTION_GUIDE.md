@@ -64,13 +64,15 @@ plan is complete.
    `.analysis_tmp/`.
 3. Create candidate runs for waits, preprocessing, `detail=1`, confidence
    thresholds, field allowlists, or OCR backends without changing defaults.
-4. Run a same-input 10-row live OCR comparison between baseline and candidate
+4. Use `scripts\prepare_live_smoke_workspace.py` to create a copied workbook
+   target before a small real GUI smoke or same-input live comparison.
+5. Run a same-input 10-row live OCR comparison between baseline and candidate
    run reports.
-5. Adopt or promote a candidate only after fixture and live comparison evidence
+6. Adopt or promote a candidate only after fixture and live comparison evidence
    shows no output regression and a speed or package-size gain.
-6. Continue package-size cleanup one measured PyInstaller/dependency change at
+7. Continue package-size cleanup one measured PyInstaller/dependency change at
    a time, followed by a clean build and package smoke.
-7. Continue small controller extractions that do not alter UI layout. Good
+8. Continue small controller extractions that do not alter UI layout. Good
    targets are remaining final controller-only branches that can be tested with
    fakes.
 
@@ -90,6 +92,7 @@ For wait-time or live-speed candidates, also require the same-input live P95
 threshold:
 
 ```powershell
+python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 10
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
 ```
 

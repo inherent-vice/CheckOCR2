@@ -403,9 +403,9 @@ behavior.
 
 Latest code verification on 2026-05-12:
 
-- `python -m ruff check .`: passed after adding the reviewed OCR fixture promotion gate.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 451 passed after adding the live-smoke workspace guard.
-- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after adding the reviewed OCR fixture promotion gate.
+- `python -m ruff check .`: passed after the typed queue boundary and live-smoke workspace guard changes.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 451 passed after the typed queue boundary and live-smoke workspace guard changes.
+- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after the typed queue boundary and live-smoke workspace guard changes.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python -m pytest tests\test_promote_ocr_fixtures_script.py tests\test_prepare_ocr_fixtures_script.py tests\test_audit_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-promote-fixtures`: 20 passed for draft preparation, explicit promotion confirmation, same-folder `ground_truth.csv` output, draft-marker rejection, audit-gated promotion, and fixture audit behavior.
 - `python -m pytest tests\test_prepare_live_smoke_workspace_script.py --basetemp $env:TEMP\checkocr2-live-smoke-workspace`: 4 passed for copied live-smoke workbook creation, source/smoke hashing, expected output/report paths, safe output targeting, overwrite protection, and CLI output.

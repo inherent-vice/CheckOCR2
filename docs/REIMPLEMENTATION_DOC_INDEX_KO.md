@@ -29,8 +29,13 @@
   실행 조립은 `checkocr2/workflow_execution.py`로 분리되었다.
 - OCR run setup, event bridge, legacy adapters, report finalization은 각각
   package module로 분리되어 focused pytest 증거가 있다.
+- `events.py`는 legacy queue message를 typed parser로 해석하고,
+  `ui/queue_dispatcher.py`는 기존 tuple payload를 유지한 채 그 parser를
+  통과한 메시지만 dispatch한다.
 - `scripts/promote_ocr_fixtures.py`가 추가되어 수동 검토 완료 fixture draft만
   audit gate 통과 후 `ground_truth.csv`로 승격한다.
+- `scripts/prepare_live_smoke_workspace.py`가 추가되어 실제 GUI smoke 전에
+  원본 Excel이 아닌 ignored 복사본과 hash manifest를 만든다.
 - 최신 기록 기준 source/package smoke는 `1044x788` 창, clean exit,
   isolated settings, strict package smoke startup `1.125s`, package size
   `596.409 MB`를 확인했다.
@@ -50,6 +55,8 @@
    source GUI smoke 순서로 검증한다.
 2. OCR 성능 변경 전에는 crop fixture를 만들고
    `scripts\check_ocr_evidence_bundle.py --require-live-comparison`을 통과시킨다.
-3. controller/UI glue extraction은 한 번에 하나의 module boundary만 이동한다.
-4. 패키지 영향 변경은 clean PyInstaller build와 real package smoke를 다시
+3. 실제 GUI smoke나 live 비교 전에는
+   `scripts\prepare_live_smoke_workspace.py`로 복사본 workbook을 만든다.
+4. controller/UI glue extraction은 한 번에 하나의 module boundary만 이동한다.
+5. 패키지 영향 변경은 clean PyInstaller build와 real package smoke를 다시
    통과시킨다.

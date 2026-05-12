@@ -65,15 +65,17 @@ slice만 merge하고 전체 게이트를 다시 실행한다.
 3. 현재 EasyOCR baseline과 matrix 결과를 기록한다.
 4. `detail=1`, field allowlist, confidence threshold, preprocessing,
    wait-time 후보를 기본값 변경 없이 실험한다.
-5. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
-6. `scripts\check_ocr_evidence_bundle.py`로 not-ready, dry-run, zero-case,
+5. `scripts\prepare_live_smoke_workspace.py --rows 10`으로 live 비교용 복사본
+   workbook과 hash manifest를 만든다.
+6. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
+7. `scripts\check_ocr_evidence_bundle.py`로 not-ready, dry-run, zero-case,
    coverage-changed, rejected live-comparison artifact를 fail-closed로
    차단한다. 선택 후보 matrix는 `--require-no-matrix-regressions`로 더
    엄격하게 검사한다.
-7. 정확도 회귀가 없고 P95 처리시간 또는 패키지 크기가 의미 있게 개선된
+8. 정확도 회귀가 없고 P95 처리시간 또는 패키지 크기가 의미 있게 개선된
    후보만 기본값 승격 대상으로 올린다.
-8. 남은 controller/UI glue를 작은 단위로 계속 추출한다.
-9. 패키지 크기 최적화는 변경마다 clean build와 real package smoke를 통과시킨다.
+9. 남은 controller/UI glue를 작은 단위로 계속 추출한다.
+10. 패키지 크기 최적화는 변경마다 clean build와 real package smoke를 통과시킨다.
 
 ## 검증 명령
 
@@ -94,6 +96,7 @@ OCR 후보 또는 속도 후보 검증:
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
+python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 10
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
 python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
