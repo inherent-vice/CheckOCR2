@@ -373,6 +373,60 @@ def test_ocr_runtime_option_wrappers_delegate_to_package_helpers(ocr_module, mon
     ]
 
 
+def test_extract_text_preserves_legacy_ocr_module_alias_injection(ocr_module, monkeypatch):
+    manager, events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings(
+        {
+            "upscaling_enabled": False,
+            "ocr_detail_level": 1,
+            "min_date_confidence": 0.8,
+        }
+    )
+    calls = []
+
+    class FakeReader:
+        def readtext(self, image, detail=0, **kwargs):
+            calls.append(("read", image, detail, kwargs))
+            return ["reader-result"]
+
+    monkeypatch.setattr(
+        ocr_module,
+        "np",
+        SimpleNamespace(array=lambda image: calls.append(("array", image.size)) or "legacy-array"),
+    )
+    monkeypatch.setattr(
+        ocr_module,
+        "extract_text_with_confidence",
+        lambda results, detail: calls.append(("extract", results, detail)) or ("2026-05-08", 0.4),
+    )
+    monkeypatch.setattr(
+        ocr_module,
+        "confidence_is_accepted",
+        lambda confidence, threshold: calls.append(("accept", confidence, threshold)) or False,
+    )
+    monkeypatch.setattr(
+        ocr_module,
+        "normalize_confidence_threshold",
+        lambda threshold: calls.append(("normalize", threshold)) or 0.8,
+    )
+    manager.ocr_reader = FakeReader()
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        Image.new("RGB", (8, 8), "white"),
+        manager._analyze_date_results_internal,
+        "날짜",
+        save_details=False,
+    )
+
+    assert result == ""
+    assert ("array", (8, 8)) in calls
+    assert ("read", "legacy-array", 1, {}) in calls
+    assert ("extract", ["reader-result"], 1) in calls
+    assert ("accept", 0.4, 0.8) in calls
+    assert ("normalize", 0.8) in calls
+    assert any(event[0] == "log" and "confidence below threshold" in event[1] for event in list(events.queue))
+
+
 def test_extract_text_uses_temp_cleanup_helper_for_string_sources(
     ocr_module,
     monkeypatch,
@@ -405,6 +459,34 @@ def test_extract_text_uses_temp_cleanup_helper_for_string_sources(
     assert result == "2026/05/08"
     assert cleanup_calls == [(str(image_path), False, "날짜")]
     assert ("log", "cleanup log", "DEBUG") in list(events.queue)
+
+
+def test_extract_text_records_timing_before_cleanup_failure(ocr_module, monkeypatch, tmp_path):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings({"upscaling_enabled": False})
+    image_path = tmp_path / "ABC_date.png"
+    Image.new("RGB", (8, 8), "white").save(image_path)
+
+    class FakeReader:
+        def readtext(self, image, detail=0, **kwargs):
+            return ["2026-05-08"]
+
+    def fail_cleanup(*_args, **_kwargs):
+        raise RuntimeError("cleanup failed")
+
+    manager.ocr_reader = FakeReader()
+    monkeypatch.setattr(ocr_module, "cleanup_temp_ocr_image", fail_cleanup)
+
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        manager._extract_text_with_ocr_attempts_internal(
+            str(image_path),
+            manager._analyze_date_results_internal,
+            "날짜",
+            save_details=False,
+        )
+
+    assert "date_image_load_ms" in manager._last_ocr_timings
+    assert "date_total_ms" in manager._last_ocr_timings
 
 
 def test_capture_screenshots_saves_full_area_only_when_detail_enabled(

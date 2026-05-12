@@ -19,6 +19,7 @@ from checkocr2.ocr_engine import (
     read_ocr_text,
 )
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
+from checkocr2.ocr_field_extraction import extract_ocr_field_text
 from checkocr2.ocr_reader_lifecycle import initialize_easyocr_reader_with_fallback
 from checkocr2.ocr_runtime_options import (
     minimum_confidence,
@@ -377,70 +378,33 @@ class OCRWorkflowManager:
     def _extract_text_with_ocr_attempts_internal(self, image_source, analysis_function, field_name, save_details):
         if self.work_controller.is_stopped: return ""
         field_key = "date" if "date" in getattr(analysis_function, "__name__", "") else "rate"
-        extract_started = perf_counter()
-        try:
-            image_load_started = perf_counter()
-            original_img = Image.open(image_source) if isinstance(image_source, str) else image_source
-            self._last_ocr_timings[f"{field_key}_image_load_ms"] = self._elapsed_ms(image_load_started)
-            if original_img is None:
-                self.message_queue.put(("log", f"{field_name} 이미지 소스 로드 실패: {image_source}", "WARNING"))
-                return ""
-
-            if self.work_controller.is_stopped: return ""
-            
-            # 업스케일링 설정 가져오기
-            enable_upscaling = self.settings_manager.get_advanced('upscaling_enabled', True)
-            upscaling_factor = self.settings_manager.get_advanced('upscaling_factor', 2.0)
-            upscaling_method = self.settings_manager.get_advanced('upscaling_method', 'LANCZOS')
-            
-            # 업스케일링 적용
-            preprocess_started = perf_counter()
-            processed_img = self._apply_image_upscaling(original_img, enable_upscaling, upscaling_factor, upscaling_method)
-            
-            # 업스케일링된 이미지를 numpy 배열로 변환하여 OCR 수행
-            img_array = np.array(processed_img)
-            self._last_ocr_timings[f"{field_key}_preprocess_ms"] = self._elapsed_ms(preprocess_started)
-            ocr_started = perf_counter()
-            ocr_detail = self._ocr_detail_level()
-            ocr_results = read_ocr_text(self.ocr_reader, img_array, detail=ocr_detail)
-            self._last_ocr_timings[f"{field_key}_ocr_ms"] = self._elapsed_ms(ocr_started)
-            all_text, confidence = extract_text_with_confidence(ocr_results, ocr_detail)
-            if confidence is not None:
-                self._last_ocr_confidences[f"{field_key}_confidence"] = round(confidence, 4)
-            min_confidence = self._minimum_confidence(field_key)
-            if ocr_detail == 1 and not confidence_is_accepted(confidence, min_confidence):
-                threshold = normalize_confidence_threshold(min_confidence)
-                self.message_queue.put(
-                    (
-                        "log",
-                        f"[{field_name}] OCR confidence below threshold: {confidence} < {threshold}",
-                        "WARNING",
-                    )
-                )
-                return ""
-            
-            # 업스케일링 정보 포함한 로그 메시지
-            scale_info = f" (업스케일링: {upscaling_factor}x {upscaling_method})" if enable_upscaling and upscaling_factor > 1.0 else ""
-            self.message_queue.put(("log", f"[{field_name}] OCR 결과{scale_info}: '{all_text}'", "INFO"))
-            
-            parse_started = perf_counter()
-            parsed_text = analysis_function(all_text, field_name)
-            self._last_ocr_timings[f"{field_key}_parse_ms"] = self._elapsed_ms(parse_started)
-            return parsed_text
-        except (OSError, RuntimeError, TypeError, ValueError, OCREngineError) as e:
-            self.message_queue.put(("log", f"{field_name} 추출 중 오류: {e}", "ERROR"))
-            self.logger.exception(f"{field_name} 추출 중 예외 발생")
-            return ""
-        finally:
-            self._last_ocr_timings[f"{field_key}_total_ms"] = self._elapsed_ms(extract_started)
-            cleanup = cleanup_temp_ocr_image(
-                image_source,
-                save_details=save_details,
-                field_name=field_name,
-            )
-            if cleanup.log_event is not None:
-                message, level = cleanup.log_event
-                self.message_queue.put(("log", message, level))
+        result = extract_ocr_field_text(
+            image_source,
+            reader=self.ocr_reader,
+            field_key=field_key,
+            field_name=field_name,
+            save_details=save_details,
+            get_advanced=self.settings_manager.get_advanced,
+            get_detail_level=self._ocr_detail_level,
+            get_min_confidence=self._minimum_confidence,
+            is_stopped=lambda: self.work_controller.is_stopped,
+            emit_log=lambda message, level: self.message_queue.put(("log", message, level)),
+            analyze_text=analysis_function,
+            apply_upscaling=self._apply_image_upscaling,
+            logger=self.logger,
+            record_timing=lambda name, value: self._last_ocr_timings.__setitem__(name, value),
+            record_confidence=lambda value: self._last_ocr_confidences.__setitem__(
+                f"{field_key}_confidence",
+                value,
+            ),
+            array_factory=np.array,
+            read_ocr_text_func=read_ocr_text,
+            extract_text_with_confidence_func=extract_text_with_confidence,
+            confidence_is_accepted_func=confidence_is_accepted,
+            normalize_confidence_threshold_func=normalize_confidence_threshold,
+            cleanup_temp_ocr_image_func=cleanup_temp_ocr_image,
+        )
+        return result.value
 
     def _ocr_detail_level(self):
         return ocr_detail_level(self.settings_manager)

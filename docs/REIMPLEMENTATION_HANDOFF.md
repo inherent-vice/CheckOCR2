@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 387 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 392 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after the `OcrRow.from_dict()` mapping-compatibility slice plus
-real package smoke at about `596.400 MB` with startup `4.984` seconds and settings-file
+release build after the OCR field-extraction slice plus real package smoke at
+about `596.402 MB` with startup `3.204` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
@@ -77,6 +77,12 @@ The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 working while making the typed workflow row snapshot compatible with mutable and
 read-only mapping rows. Focused verification has passed for `ruff`, `mypy` on
 `models.py`/`workflow.py`, and package-helper/workflow tests.
+
+The current OCR extraction slice moves the single-field OCR read sequence into
+`checkocr2/ocr_field_extraction.py`. The legacy manager wrapper still owns the
+same method name and dependency injection points, while the package helper owns
+image-load/preprocess/OCR/parse/total timings, confidence metadata, rejection
+warnings, OCR result logs, temp cleanup logs, and blank-field error handling.
 
 The newest structural slices extract coordinate capture/preview action glue
 into `checkocr2/ui/coordinate_actions.py` and Excel/output-folder action glue

@@ -132,6 +132,7 @@ checkocr2/
   excel_io.py                         # Excel read/write only
   image_processing.py                 # crop validation, upscaling, preprocessing metadata
   ocr_field_analysis.py               # date/rate OCR field decisions and log text
+  ocr_field_extraction.py             # single-field OCR read, timing, confidence, cleanup
   ocr_engine.py                       # EasyOCR/RapidOCR/etc adapter boundary
   ocr_reader_lifecycle.py             # EasyOCR reader startup/fallback lifecycle
   ocr_runtime_options.py              # detail/confidence runtime option lookup
