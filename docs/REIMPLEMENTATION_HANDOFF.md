@@ -77,7 +77,7 @@ completion status and the remaining hard blockers, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 444 tests, and
+Latest code gate result: `ruff` passed, `pytest` passed with 451 tests, and
 `compileall` passed. The latest source GUI fast-OCR smoke reached `Ready` with a
 `1044x788` window against the `1000x600` minimum gate. The latest package gate
 uses the 2026-05-12 clean PyInstaller release build plus strict real package
@@ -114,6 +114,16 @@ The latest log parity slice records focused coverage for log-widget insertion
 of `INFO`, `WARNING`, `ERROR`, and `SUCCESS` messages, Tk log-handler
 forwarding, queue dispatch, and log panel construction. The GUI parity
 checklist now leaves only the real live OCR run unchecked.
+
+The latest typed-queue boundary slice adds `LegacyQueueMessage` parsing in
+`checkocr2/events.py` and routes `checkocr2/ui/queue_dispatcher.py` through it.
+Legacy tuple payloads and unknown-message no-op behavior are preserved, while
+current queue message types now have a typed parser at the Tk dispatch edge.
+Focused verification passed with `python -m pytest tests\test_queue_dispatcher.py
+tests\test_workflow_event_bridge.py tests\test_excel_table_modules.py --basetemp
+$env:TEMP\checkocr2-typed-queue-boundary` and `python -m pytest
+tests\test_ocr_actions.py tests\test_completion_actions.py
+tests\test_grid_update_actions.py --basetemp $env:TEMP\checkocr2-typed-queue-ui`.
 
 The latest logging safety slice moves the default file handler to the per-user
 APPDATA logs directory and verifies rotation settings plus no repo-root log

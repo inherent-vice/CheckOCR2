@@ -4,7 +4,13 @@ import queue
 
 import pytest
 
-from checkocr2.events import FinalizeExportRequest, parse_legacy_finalize_export
+from checkocr2.events import (
+    FinalizeExportRequest,
+    UiEvent,
+    UiEventType,
+    parse_legacy_finalize_export,
+    parse_legacy_queue_message,
+)
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.ui.queue_dispatcher import process_legacy_message_queue, queue_check_interval
 
@@ -87,6 +93,44 @@ def test_process_legacy_message_queue_dispatches_ui_events_in_order():
     assert app.grid_updates == [{"row": 1}]
     assert app.finalized == [("out", "input.xlsx", "2/3")]
     assert app.message_queue.empty()
+
+
+def test_parse_legacy_queue_message_accepts_tuples_and_ui_events():
+    message = parse_legacy_queue_message(("log", "hello", "INFO"))
+
+    assert message.msg_type == "log"
+    assert message.known_type == UiEventType.LOG
+    assert message.payload == ("hello", "INFO")
+
+    typed = parse_legacy_queue_message(UiEvent(UiEventType.COMPLETE, ("done",)))
+    assert typed.msg_type == "complete"
+    assert typed.known_type == UiEventType.COMPLETE
+    assert typed.payload == ("done",)
+
+
+def test_parse_legacy_queue_message_preserves_unknown_types_for_noop_dispatch():
+    message = parse_legacy_queue_message(("future_message", 1, 2))
+
+    assert message.msg_type == "future_message"
+    assert message.known_type is None
+    assert message.payload == (1, 2)
+
+    with pytest.raises(ValueError, match="requires a message type"):
+        parse_legacy_queue_message(())
+
+    with pytest.raises(TypeError, match="message type must be a string"):
+        parse_legacy_queue_message((123, "bad"))
+
+
+def test_process_legacy_message_queue_ignores_unknown_message_type():
+    app = FakeApp()
+    app.message_queue.put(("future_message", "payload"))
+
+    processed = process_legacy_message_queue(app, show_error=lambda _title, _msg: None)
+
+    assert processed == 1
+    assert app.logger.logs == []
+    assert app.completed == []
 
 
 def test_process_legacy_message_queue_reports_bad_finalize_payload():

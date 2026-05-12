@@ -74,13 +74,14 @@ test or a manual verification note.
   with runtime settings stored under `%APPDATA%\CheckOCR2\settings.json`.
 - Mitigated: output folder cleanup and UNC normalization now use
   `checkocr2/paths.py` instead of the workflow manager.
-- Partially mitigated: queue events, rows, and settings have typed seams, but
-  legacy tuple dispatch remains at the Tk controller edge. OCR-start validation
-  messages, grid status label summaries, grid render value/tag decisions, and
-  grid clipboard text generation are now isolated behind tested helpers; legacy
-  `grid_update` row mutation is also parsed through `events.py` and tested in
-  `table_model.py`, and final-export queue payload validation is typed in
-  `events.py`.
+- Mitigated at the Tk edge: queue events, rows, and settings have typed seams.
+  Legacy tuple messages are still accepted for compatibility, but
+  `queue_dispatcher.py` now parses each queue item through `events.py` before
+  dispatch. OCR-start validation messages, grid status label summaries, grid
+  render value/tag decisions, and grid clipboard text generation are isolated
+  behind tested helpers; legacy `grid_update` row mutation is parsed through
+  `events.py` and tested in `table_model.py`, and final-export queue payload
+  validation is typed in `events.py`.
 - Partially mitigated: broad exception handlers have been narrowed around GUI,
   file, OCR, and export boundaries; remaining broad catches are adapter and
   top-level workflow safety boundaries.

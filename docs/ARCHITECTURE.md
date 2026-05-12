@@ -25,8 +25,8 @@ working.
 - `checkocr2/models.py`: shared column names, status constants, and simple
   data models. `OcrRow.from_dict()` accepts generic mappings so legacy grid
   dictionaries and workflow row snapshots share one conversion path.
-- `checkocr2/events.py`: typed queue/UI event contracts plus legacy
-  grid-update and final-export payload parsing.
+- `checkocr2/events.py`: typed queue/UI event contracts plus legacy queue
+  message, grid-update, and final-export payload parsing.
 - `checkocr2/paths.py`: output path generation, UNC normalization, and folder
   helpers.
 - `checkocr2/excel_io.py`: Excel import/export logic.
@@ -145,7 +145,8 @@ working.
 - `checkocr2/ui/options_actions.py`: options-panel behavior for showing or
   hiding OCR upscaling detail controls and persisting advanced settings.
 - `checkocr2/ui/queue_dispatcher.py`: legacy Tk queue message dispatch for
-  logs, dialogs, grid updates, OCR-ready state, and final export completion.
+  logs, dialogs, grid updates, OCR-ready state, and final export completion,
+  after parsing raw queue tuples through the typed event contract.
 - `checkocr2/ui/runtime_status_actions.py`: runtime-state button updates,
   OCR-ready state mapping, and package-smoke status payload writing for the Tk
   shell.

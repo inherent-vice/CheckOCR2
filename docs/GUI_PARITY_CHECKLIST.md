@@ -29,6 +29,7 @@ Latest automated evidence:
 | File/folder and grid behavior | `python -m pytest tests\test_folder_actions.py tests\test_excel_table_modules.py tests\test_data_manager.py tests\test_grid_panel.py tests\test_grid_actions.py tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py --basetemp $env:TEMP\checkocr2-file-grid-parity3` | `61 passed` on 2026-05-12. Covers Excel browse filters, output-folder autofill/browse/open for local and UNC paths, Korean Excel headers, blank Excel cells and NaN values staying empty in grid/export paths, `_updated.xlsx`, `OCR_Results`, grid columns, row add/paste/delete/clear, cell editing, context menu, grid shortcuts, and status tags. |
 | Coordinates, options, presets, and workflow gates | `python -m pytest tests\test_coordinate_actions.py tests\test_coordinates_panel.py tests\test_settings_binding.py tests\test_settings_actions.py tests\test_settings_compat.py tests\test_settings_store_lifecycle.py tests\test_options_actions.py tests\test_options_panel.py tests\test_presets.py tests\test_preset_panel.py tests\test_start_validation.py tests\test_workflow_module.py tests\test_workflow_report_finalization.py tests\test_completion_actions.py --basetemp $env:TEMP\checkocr2-coordinate-options-workflow-parity` | `72 passed` on 2026-05-12. Covers coordinate relocation and preview payloads, overlay `Esc`, option persistence, preset save/apply/delete/lifecycle, OCR start validation, KBP skip, processing/stopped events, workflow report finalization, and export completion summaries. |
 | Log panel and queue dispatch | `python -m pytest tests\test_log_actions.py tests\test_log_panel.py tests\test_logging_and_main.py tests\test_queue_dispatcher.py --basetemp $env:TEMP\checkocr2-log-core-parity` | `18 passed` on 2026-05-12. Covers `INFO`, `WARNING`, `ERROR`, and `SUCCESS` log-widget insertion, APPDATA rotating file logging, Tk log-handler forwarding, queue dispatch, and log panel construction. |
+| Live-smoke workspace safety | `python -m pytest tests\test_prepare_live_smoke_workspace_script.py --basetemp $env:TEMP\checkocr2-live-smoke-workspace` | `4 passed` on 2026-05-12. Covers creating an ignored copied-input workbook, source/smoke hashes, expected `_updated.xlsx` and run-report paths, output placement safety, overwrite protection, and CLI output. This prepares the smoke safely but does not replace the real 1-2 row live run. |
 
 ## Launch And Window
 
@@ -105,7 +106,9 @@ Latest automated evidence:
 - [x] Completion summary appears after export.
 - [x] Log panel receives OCR, warning, error, and completion messages.
 - [ ] A 1-2 row live smoke run can complete without mutating production
-  workbooks unexpectedly.
+  workbooks unexpectedly. Use
+  `python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 2`
+  first to create an ignored copied input workbook and hash manifest.
 
 ## Packaging Smoke
 

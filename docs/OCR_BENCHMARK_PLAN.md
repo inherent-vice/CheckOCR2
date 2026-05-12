@@ -115,6 +115,15 @@ Before reducing fixed waits or changing OCR defaults, run the same 10 or more
 rows twice and compare the generated run reports:
 
 ```powershell
+python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 2
+```
+
+For the 1-2 row GUI smoke, use the generated `live_smoke_input.xlsx` and
+`.analysis_tmp\live_smoke` output folder so the original workbook is not the
+run target. The manifest records source and smoke workbook hashes plus expected
+`_updated.xlsx` and run-report paths.
+
+```powershell
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp/live_ocr_compare.json
 ```
 

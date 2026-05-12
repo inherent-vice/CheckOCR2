@@ -11,6 +11,7 @@ class UiEventType(StrEnum):
     LOG = "log"
     LOG_DISPLAY = "log_display"
     ERROR_MESSAGEBOX = "error_messagebox"
+    OCR_READY = "ocr_ready"
     GRID_UPDATE = "grid_update"
     STOPPED = "stopped"
     COMPLETE = "complete"
@@ -24,6 +25,13 @@ class UiEvent:
 
     def as_legacy_tuple(self) -> tuple[Any, ...]:
         return (self.type.value, *self.payload)
+
+
+@dataclass(frozen=True)
+class LegacyQueueMessage:
+    msg_type: str
+    payload: tuple[Any, ...] = ()
+    known_type: UiEventType | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +62,27 @@ def parse_legacy_grid_update(data: object) -> GridUpdate:
     if not isinstance(row_index, int):
         raise TypeError("grid update row index must be an integer")
     return GridUpdate(update_type, row_index, tuple(data[2:]))
+
+
+def parse_legacy_queue_message(message: object) -> LegacyQueueMessage:
+    if isinstance(message, UiEvent):
+        return LegacyQueueMessage(
+            msg_type=message.type.value,
+            payload=message.payload,
+            known_type=message.type,
+        )
+    if not isinstance(message, tuple | list):
+        raise TypeError("legacy queue message must be a sequence")
+    if not message:
+        raise ValueError("legacy queue message requires a message type")
+    msg_type = message[0]
+    if not isinstance(msg_type, str):
+        raise TypeError("legacy queue message type must be a string")
+    try:
+        known_type = UiEventType(msg_type)
+    except ValueError:
+        known_type = None
+    return LegacyQueueMessage(msg_type=msg_type, payload=tuple(message[1:]), known_type=known_type)
 
 
 def parse_legacy_finalize_export(data: object) -> FinalizeExportRequest:

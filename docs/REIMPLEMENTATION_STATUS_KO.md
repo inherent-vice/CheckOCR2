@@ -29,7 +29,7 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 - `checkocr2/ocr_workflow_manager.py`는 export 완료/오류 dialog 함수를
   `checkocr2/app.py`에서 주입받으며, 더 이상 Tk messagebox를 직접 import하지
   않는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 444개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 451개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
@@ -84,6 +84,9 @@ entrypoint와 built EXE의 dated 자동 launch/package 증거, `1000x600` 최소
   `workflow_run_setup.py`, `worker.py`, `workflow_report_finalization.py`,
   `work_controller.py`, `runtime_state.py`, `run_report.py`, `events.py`,
   `table_model.py`.
+  `events.py`는 legacy queue message, grid update, final export payload를
+  typed parser로 해석하고, `ui/queue_dispatcher.py`는 기존 tuple payload를
+  유지하면서 이 parser를 통과한 메시지만 dispatch한다.
   `workflow_execution.py`는 legacy manager의 실행 조립을 맡아 run setup,
   queue event bridge, capture/OCR adapter, `WorkflowRunner` 호출, stop log,
   성공 run-report finalization을 한 곳에서 처리한다.

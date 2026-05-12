@@ -26,7 +26,7 @@ OCR engines until these gates pass with real data.
 | Preserve all supported launch paths | `python check_capture_ocr.py`; `python Check_Capture_Excel_V6.1_배포.py`; `python -m checkocr2.main` | Source GUI smokes recorded in `docs/GUI_PARITY_CHECKLIST.md`; all reached `Ready`, verified isolated settings, `1044x788` window, and clean exit. | Done |
 | Keep root launcher compatible while package owns app shell | `check_capture_ocr.py`, `checkocr2/app.py`, `checkocr2/main.py`, `tests/test_logging_and_main.py` | `CheckCaptureOCRApp` lives in `checkocr2.app`; root import aliases the package app module; regression test pins both. | Done |
 | Move legacy workflow manager out of root shell | `checkocr2/ocr_workflow_manager.py`, `tests/test_ocr_workflow_manager.py` | Manager class lives under `checkocr2`; export dialogs are injected from the app shell instead of importing Tk messagebox directly; focused and full tests passed after extraction. | Done |
-| Keep GUI parity for menus, toolbar, shortcuts, file/grid flows, coordinates, options, presets, logs, and workflow summaries | `docs/GUI_PARITY_CHECKLIST.md` and listed focused pytest commands | Checklist records automated evidence for all listed areas except real live OCR run. | Partial |
+| Keep GUI parity for menus, toolbar, shortcuts, file/grid flows, coordinates, options, presets, logs, and workflow summaries | `docs/GUI_PARITY_CHECKLIST.md` and listed focused pytest commands | Checklist records automated evidence for all listed areas except real live OCR run. A live-smoke workspace guard exists, but it is not a substitute for the real 1-2 row run. | Partial |
 | Keep runtime settings and logs out of repo root | `checkocr2/settings.py`, `checkocr2/logging_config.py`, `tests/test_logging_and_main.py` | Tests verify APPDATA settings/log placement and no repo-root `ocr_app.log` creation. | Done |
 | Keep worker, stop-state, Excel blank, date validation, and exception safety fixes | `tests/test_worker.py`, `tests/test_work_controller.py`, `tests/test_excel_table_modules.py`, `tests/test_ocr_field_analysis.py` | Full suite currently includes these regressions and passes. | Done |
 | Keep package release gate green | Clean PyInstaller build plus `scripts/package_smoke.py ... --ocr-ready-mode real ... --require-clean-exit` | Strict package smoke: `596.409 MB`, startup `1.125s`, build date `2026-05-12T10:50:04+00:00`, `Ready`, isolated settings, clean exit. | Done |
@@ -63,7 +63,8 @@ Observed results:
    reviewed file with `scripts\promote_ocr_fixtures.py --confirm-reviewed`.
 4. Pass `scripts\audit_ocr_fixtures.py`.
 5. Run real baseline and matrix benchmarks against the audited fixtures.
-6. Produce baseline and candidate same-input live run reports, then pass
+6. Use `scripts\prepare_live_smoke_workspace.py` for the 1-2 row GUI smoke,
+   then produce baseline and candidate same-input live run reports and pass
    `scripts\compare_run_reports.py`.
 7. Run `scripts\check_ocr_evidence_bundle.py --require-live-comparison`; only
    then consider OCR default, wait-time, confidence, preprocessing, or engine

@@ -63,6 +63,9 @@ Date: 2026-05-12
   as mutable or read-only mappings.
 - Added explicit GUI states: `Starting`, `OCR Loading`, `Ready`, `Running`,
   `Stopping`, and `Error`.
+- Added typed legacy queue-message parsing in `checkocr2/events.py` and routed
+  `checkocr2/ui/queue_dispatcher.py` through that parser while preserving raw
+  legacy tuple payload behavior at the Tk edge.
 - Routed OCR row processing through a workflow seam while preserving existing
   capture/OCR behavior and GUI queue events.
 - Moved the legacy `OCRWorkflowManager` class into
@@ -335,6 +338,9 @@ Date: 2026-05-12
   `ground_truth_draft.csv` to `ground_truth.csv` only after explicit reviewer
   confirmation, no draft markers, nonblank normalized expected values, readable
   crops, duplicate checks, and the fixture audit gate all pass.
+- Added `scripts/prepare_live_smoke_workspace.py` to create an ignored copied
+  input workbook, source/smoke hashes, and expected output/report paths before a
+  1-2 row live GUI smoke, reducing production workbook mutation risk.
 - Added `docs/OCR_FIXTURE_WORKFLOW.md` to document the safe crop draft,
   manual-review, audit, benchmark, and live-comparison sequence.
 - Added `scripts/compare_run_reports.py` to compare same-input live run reports
@@ -382,6 +388,7 @@ Before OCR tuning or release decisions that depend on OCR accuracy, also run:
 ```powershell
 python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json
+python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 2
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json
 ```
 
@@ -397,11 +404,14 @@ behavior.
 Latest code verification on 2026-05-12:
 
 - `python -m ruff check .`: passed after adding the reviewed OCR fixture promotion gate.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 444 passed after adding the reviewed OCR fixture promotion gate.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 451 passed after adding the live-smoke workspace guard.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after adding the reviewed OCR fixture promotion gate.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python -m pytest tests\test_promote_ocr_fixtures_script.py tests\test_prepare_ocr_fixtures_script.py tests\test_audit_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-promote-fixtures`: 20 passed for draft preparation, explicit promotion confirmation, same-folder `ground_truth.csv` output, draft-marker rejection, audit-gated promotion, and fixture audit behavior.
+- `python -m pytest tests\test_prepare_live_smoke_workspace_script.py --basetemp $env:TEMP\checkocr2-live-smoke-workspace`: 4 passed for copied live-smoke workbook creation, source/smoke hashing, expected output/report paths, safe output targeting, overwrite protection, and CLI output.
 - `python -m pytest tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py tests\test_check_ocr_evidence_bundle_script.py --basetemp $env:TEMP\checkocr2-ocr-gates`: 20 passed for benchmark, matrix, and evidence-bundle gates after adding fixture promotion.
+- `python -m pytest tests\test_queue_dispatcher.py tests\test_workflow_event_bridge.py tests\test_excel_table_modules.py --basetemp $env:TEMP\checkocr2-typed-queue-boundary`: 24 passed after adding typed legacy queue-message parsing at the Tk dispatch edge.
+- `python -m pytest tests\test_ocr_actions.py tests\test_completion_actions.py tests\test_grid_update_actions.py --basetemp $env:TEMP\checkocr2-typed-queue-ui`: 30 passed for queue-adjacent OCR action, completion, and grid-update behavior after typed queue parsing.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
 - `python -m pytest tests\test_menu.py tests\test_toolbar.py tests\test_keyboard_actions.py tests\test_icons.py --basetemp $env:TEMP\checkocr2-parity-menu-toolbar-shortcuts-icons`: 9 passed for GUI parity evidence on menu cascades/commands, toolbar title/start/stop/theme selector, keyboard shortcuts, F5 run/stop dispatch, and preferred ICO/PNG source icon application.
 - `python -m pytest tests\test_folder_actions.py tests\test_excel_table_modules.py tests\test_data_manager.py tests\test_grid_panel.py tests\test_grid_actions.py tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py --basetemp $env:TEMP\checkocr2-file-grid-parity3`: 61 passed for GUI parity evidence on Excel browse/load/export, output-folder local/UNC behavior, Korean Excel headers, blank Excel cell normalization, `_updated.xlsx` output naming, `OCR_Results` sheet naming, grid columns, row add/paste/delete/clear, cell editing, context menu commands, grid shortcuts, and status tags.
@@ -558,6 +568,8 @@ that warning non-blocking while package smoke remains green.
 - Run a same-input 10-row live OCR comparison with
   `scripts\compare_run_reports.py` before reducing wait times or changing OCR
   defaults.
+- Use `scripts\prepare_live_smoke_workspace.py` before a 1-2 row GUI live smoke
+  so the run targets an ignored copied workbook and records hash evidence.
 - Run `scripts\check_ocr_evidence_bundle.py` after fixture audit, baseline,
   matrix, and live-comparison reports to prevent dry-run or failed artifacts
   from being treated as promotion evidence.

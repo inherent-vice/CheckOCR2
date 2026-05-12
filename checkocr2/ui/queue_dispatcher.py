@@ -7,7 +7,12 @@ import queue
 from collections.abc import Callable, Sequence
 from typing import Any, Protocol
 
-from checkocr2.events import parse_legacy_finalize_export
+from checkocr2.events import (
+    LegacyQueueMessage,
+    UiEventType,
+    parse_legacy_finalize_export,
+    parse_legacy_queue_message,
+)
 from checkocr2.runtime_state import RuntimeState
 
 
@@ -54,8 +59,8 @@ def process_legacy_message_queue(
     processed = 0
     try:
         while True:
-            msg_type, *data = app.message_queue.get_nowait()
-            dispatch_legacy_message(app, msg_type, data, show_error=show_error)
+            message = parse_legacy_queue_message(app.message_queue.get_nowait())
+            dispatch_legacy_message(app, message, show_error=show_error)
             processed += 1
     except queue.Empty:
         return processed
@@ -63,29 +68,29 @@ def process_legacy_message_queue(
 
 def dispatch_legacy_message(
     app: QueueDispatcherHost,
-    msg_type: str,
-    data: Sequence[Any],
+    message: LegacyQueueMessage,
     *,
     show_error: ShowError,
 ) -> None:
-    if msg_type == "log":
+    data = message.payload
+    if message.known_type == UiEventType.LOG:
         dispatch_log_message(app, data)
-    elif msg_type == "log_display":
+    elif message.known_type == UiEventType.LOG_DISPLAY:
         level_name, formatted_message = data[0], data[1]
         app._update_log_text_widget(formatted_message, level_name)
-    elif msg_type == "error_messagebox":
+    elif message.known_type == UiEventType.ERROR_MESSAGEBOX:
         title, message = data[0], data[1]
         show_error(title, message)
-    elif msg_type == "ocr_ready":
+    elif message.known_type == UiEventType.OCR_READY:
         dispatch_ocr_ready_message(app, data)
-    elif msg_type == "complete":
+    elif message.known_type == UiEventType.COMPLETE:
         summary_message = data[0] if data else ""
         app._on_work_complete_ui_only(summary_message)
-    elif msg_type == "stopped":
+    elif message.known_type == UiEventType.STOPPED:
         app._on_work_stopped()
-    elif msg_type == "grid_update":
+    elif message.known_type == UiEventType.GRID_UPDATE:
         app._handle_grid_update(data[0])
-    elif msg_type == "finalize_export_and_complete":
+    elif message.known_type == UiEventType.FINALIZE_EXPORT_AND_COMPLETE:
         dispatch_finalize_export_message(app, data)
 
 
@@ -113,7 +118,7 @@ def dispatch_finalize_export_message(app: QueueDispatcherHost, data: Sequence[An
     try:
         request = parse_legacy_finalize_export(data)
     except (TypeError, ValueError):
-        app.logger.error("잘못된 finalize_export_and_complete 메시지 형식: %s", data)
+        app.logger.error("잘못된 finalize_export_and_complete 메시지 형식: %s", list(data))
         return
 
     summary = app._generate_ocr_summary_internal(request.processed_count, request.total_items)
