@@ -623,6 +623,7 @@ def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypa
     assert "capture_timing_ms" in report["rows"][0]["timing_ms"]
     assert "ocr_timing_ms" in report["rows"][0]["timing_ms"]
     assert "update_ms" in report["rows"][0]["timing_ms"]
+    assert report["rows"][0]["timing_ms"]["row_total_ms"] > 0
 
 
 def test_execute_workflow_forwards_prepared_run_setup_to_capture(

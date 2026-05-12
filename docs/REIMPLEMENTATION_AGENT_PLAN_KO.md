@@ -19,7 +19,7 @@
   컨트롤러, OCR 초기화 포함 주요 UI action/helper가 분리되어 있다.
 - 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
   legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 397개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 404개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 패키지 크기는 약 `596.403 MB`, package smoke startup은
@@ -60,10 +60,14 @@ slice만 merge하고 전체 게이트를 다시 실행한다.
 4. `detail=1`, field allowlist, confidence threshold, preprocessing,
    wait-time 후보를 기본값 변경 없이 실험한다.
 5. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
-6. 정확도 회귀가 없고 P95 처리시간 또는 패키지 크기가 의미 있게 개선된
+6. `scripts\check_ocr_evidence_bundle.py`로 not-ready, dry-run, zero-case,
+   coverage-changed, rejected live-comparison artifact를 fail-closed로
+   차단한다. 선택 후보 matrix는 `--require-no-matrix-regressions`로 더
+   엄격하게 검사한다.
+7. 정확도 회귀가 없고 P95 처리시간 또는 패키지 크기가 의미 있게 개선된
    후보만 기본값 승격 대상으로 올린다.
-7. 남은 controller/UI glue를 작은 단위로 계속 추출한다.
-8. 패키지 크기 최적화는 변경마다 clean build와 real package smoke를 통과시킨다.
+8. 남은 controller/UI glue를 작은 단위로 계속 추출한다.
+9. 패키지 크기 최적화는 변경마다 clean build와 real package smoke를 통과시킨다.
 
 ## 검증 명령
 
@@ -85,6 +89,7 @@ python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_aud
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 패키지 영향 변경 게이트:
@@ -99,7 +104,8 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 - `tests\fixtures\ocr_crops\ground_truth.csv`가 아직 없어 fixture audit는 준비
   전 상태다.
 - 동일 입력 10행 live OCR 비교가 아직 없다.
-- `docs/GUI_PARITY_CHECKLIST.md`는 자동 green gate가 아니라 수동 체크리스트다.
+- `docs/GUI_PARITY_CHECKLIST.md`는 세 Python entrypoint와 built EXE의 dated
+  자동 launch/package 증거를 기록하지만, 전체 자동 green gate는 아니다.
 - package-affecting 변경은 항상 clean PyInstaller build와 real OCR package smoke가
   필요하다.
 

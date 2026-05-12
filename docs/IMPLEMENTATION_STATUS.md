@@ -70,6 +70,10 @@ Date: 2026-05-12
   combinations and summarize candidate regressions against a fixed baseline.
 - Added field-specific EasyOCR allowlist benchmarking for date/rate crops,
   exposed through `--allowlist-mode field` and matrix `--allowlist-modes`.
+- Added `scripts/check_ocr_evidence_bundle.py` to fail closed when OCR evidence
+  artifacts are not-ready, dry-run, zero-case, coverage-changed, or
+  live-comparison rejected. Exploratory matrix regressions are warnings unless
+  `--require-no-matrix-regressions` is used for selected-candidate bundles.
 - Added runtime EasyOCR `detail=1` support behind `ocr_detail_level`, with
   optional date/rate confidence thresholds and run-report confidence fields.
 - Moved date/rate OCR field result decisions and legacy debug-log event text
@@ -354,7 +358,7 @@ behavior.
 Latest code verification on 2026-05-12:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-ocr-pair-processing`: 397 passed after the OCR pair-processing slice, OCR field-extraction slice, the `OcrRow.from_dict()` mapping-compatibility slice, and previous workflow report-finalization, workflow legacy-adapter, workflow event-bridge, OCR workflow run-setup, OCR temp-cleanup, OCR runtime-options, OCR reader lifecycle, OCR initialization action, OCR field-analysis, settings compatibility adapter, OCR upscaling helper, section-frame builder, window-centering action, app lifecycle action, processing-state finalization action, final-export completion action, final-export parser, grid-update row mutation, grid status/render, grid-action, grid context-menu, grid-edit action, grid-refresh action, grid-tag styling, grid-update action, keyboard-action, runtime-status action, settings-action, log-action, OCR run/stop and input-validation action, options-action, work-completion and summary action, coordinate capture/preview action, Excel load/output-folder action, source GUI smoke, screen-capture adapter, OCR-start validation, preset controller, dialog, file-dialog path, application-icon, main-window layout, package-smoke status, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary, DataManager extraction, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-evidence-bundle`: 404 passed after the OCR evidence-bundle gate, GUI parity evidence update, OCR pair-processing slice, OCR field-extraction slice, the `OcrRow.from_dict()` mapping-compatibility slice, and previous workflow report-finalization, workflow legacy-adapter, workflow event-bridge, OCR workflow run-setup, OCR temp-cleanup, OCR runtime-options, OCR reader lifecycle, OCR initialization action, OCR field-analysis, settings compatibility adapter, OCR upscaling helper, section-frame builder, window-centering action, app lifecycle action, processing-state finalization action, final-export completion action, final-export parser, grid-update row mutation, grid status/render, grid-action, grid context-menu, grid-edit action, grid-refresh action, grid-tag styling, grid-update action, keyboard-action, runtime-status action, settings-action, log-action, OCR run/stop and input-validation action, options-action, work-completion and summary action, coordinate capture/preview action, Excel load/output-folder action, source GUI smoke, screen-capture adapter, OCR-start validation, preset controller, dialog, file-dialog path, application-icon, main-window layout, package-smoke status, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary, DataManager extraction, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -493,10 +497,15 @@ that warning non-blocking while package smoke remains green.
 - Run a same-input 10-row live OCR comparison with
   `scripts\compare_run_reports.py` before reducing wait times or changing OCR
   defaults.
+- Run `scripts\check_ocr_evidence_bundle.py` after fixture audit, baseline,
+  matrix, and live-comparison reports to prevent dry-run or failed artifacts
+  from being treated as promotion evidence.
 - Benchmark candidate engines only after fixture baselines exist.
 - Continue package-size cleanup only one measured PyInstaller/dependency change
   at a time, with clean build and package smoke after each removal.
 - Continue extracting UI panels/dialogs/controller helpers only while targeted
   tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
-  remains broader than the automated source smoke; keep adding dated evidence
-  or granular tests before treating every checklist item as a green gate.
+  now records dated automated launch/package evidence for the three Python
+  entrypoints and built EXE, but remains broader than those smokes; keep adding
+  manual evidence or granular tests before treating every checklist item as a
+  green gate.

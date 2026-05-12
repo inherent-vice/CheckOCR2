@@ -119,6 +119,24 @@ not treated as normal field comparisons. Use `--allow-output-changes` only for a
 manual review run where changed OCR output is expected and will be checked
 against source data.
 
+## Evidence Bundle Gate
+
+After the fixture audit, baseline benchmark, matrix benchmark, and live
+comparison have all been produced, run the bundle gate:
+
+```powershell
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
+```
+
+This command is intentionally fail-closed. It rejects not-ready fixture audits,
+dry-run or zero-case benchmarks, matrix candidates with changed coverage or
+rejected live comparisons. Matrix accuracy, blank, false-positive, and P95
+regressions are reported as warnings because exploratory matrices often contain
+bad candidates by design. Add `--require-no-matrix-regressions` when the matrix
+contains only selected promotion candidates. Omit `--require-live-comparison`
+only when auditing fixture OCR accuracy without making wait-time or
+runtime-default changes.
+
 ## Acceptance Gate
 
 Adopt a candidate only when exact normalized date/rate accuracy does not

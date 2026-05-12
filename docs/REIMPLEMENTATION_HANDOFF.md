@@ -47,6 +47,11 @@ the Korean parallel-agent plan and workstream split, use
   reporting.
 - Fixture audit and live run comparison scripts now gate real OCR evidence
   before OCR-default or wait-time changes.
+- `scripts/check_ocr_evidence_bundle.py` is the final OCR evidence guard: it
+  rejects not-ready audit reports, dry-run or zero-case benchmark artifacts,
+  matrix coverage failures, and rejected live comparisons. Matrix regressions
+  are warnings by default and become failures with
+  `--require-no-matrix-regressions`.
 - `scripts/source_gui_smoke.py` now provides repeatable source-launch, Ready,
   isolated `APPDATA`, and settings-file smoke evidence for each Python
   entrypoint.
@@ -65,7 +70,7 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 397 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 404 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
 release build after the OCR pair-processing slice plus real package smoke at
@@ -323,22 +328,28 @@ installed outside the release environment.
   a manually reviewed `ground_truth.csv`, then pass the fixture audit script.
 - Run a same-input 10-row live OCR comparison through the run-report comparator
   before reducing wait defaults or changing OCR defaults.
+- Run the OCR evidence bundle gate after audit, baseline, matrix, and live
+  comparison artifacts exist.
 - Benchmark alternate OCR engines only after the fixture baseline exists.
 - Continue trimming PyInstaller hidden imports only when each removal is
   followed by a clean build and package smoke.
 - Continue GUI/dialog/worker/controller-helper extraction only while targeted
   tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
-  is still broader than the automated source smoke; keep adding dated evidence
-  or granular tests before treating every checklist item as a green gate.
+  now records dated automated launch/package evidence for the three Python
+  entrypoints and built EXE, but is still broader than those smokes; keep
+  adding manual evidence or granular tests before treating every checklist item
+  as a green gate.
 
 ## Recommended Next Order
 
 1. Build representative date/rate crop fixtures and pass the fixture audit.
 2. Record the EasyOCR baseline and matrix reports under `.analysis_tmp/`.
 3. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
-4. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
+4. Run `scripts\check_ocr_evidence_bundle.py` to reject dry-run, zero-case,
+   coverage-changed, or rejected live-comparison artifacts.
+5. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
    confidence thresholds, and field allowlists.
-5. Tune waits or OCR defaults only if accuracy does not regress.
+6. Tune waits or OCR defaults only if accuracy does not regress.
 6. Reduce packaging size through one PyInstaller or dependency change at a time.
 7. Add dated parity-checklist evidence for UI areas not covered by source
    smoke.

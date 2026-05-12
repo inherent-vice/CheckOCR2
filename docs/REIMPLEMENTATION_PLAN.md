@@ -426,6 +426,7 @@ Write scope:
 - `checkocr2/ocr_engine.py`
 - `checkocr2/image_processing.py`
 - `scripts/benchmark_ocr.py`
+- `scripts/check_ocr_evidence_bundle.py`
 - `tests/fixtures/ocr_crops/`
 
 ### TDD/Test Agent

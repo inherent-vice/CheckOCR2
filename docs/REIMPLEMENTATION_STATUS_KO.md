@@ -21,7 +21,7 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 397개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 404개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 패키지는 약 `596.403 MB`, real package smoke startup은
@@ -38,7 +38,8 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 - OCR 시작/중지, 행별 상태 갱신, 최종 export, run report 생성.
 
 이 항목을 건드리는 변경은 `docs/GUI_PARITY_CHECKLIST.md` 기준으로 수동
-확인 또는 자동 테스트 증거를 남긴다.
+확인 또는 자동 테스트 증거를 남긴다. 현재 체크리스트에는 세 Python
+entrypoint와 built EXE의 dated 자동 launch/package 증거가 기록되어 있다.
 
 ## 분리 완료된 주요 구조
 
@@ -114,9 +115,13 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 5. `detail=1`, field allowlist, confidence threshold, preprocessing,
    wait-time 후보를 기본값 변경 없이 실험한다.
 6. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
-7. 정확도 회귀가 없고 속도 또는 패키지 크기 이득이 있는 후보만 채택한다.
-8. 남은 controller/UI glue는 작은 단위로 계속 분리하고 매번 smoke를 돌린다.
-9. 패키지 크기 최적화는 한 번에 하나의 dependency/PyInstaller 변경만 적용한다.
+7. `scripts\check_ocr_evidence_bundle.py`로 audit, benchmark, matrix, live
+   comparison artifact가 dry-run/zero-case/not-ready/coverage-changed/rejected
+   live 상태가 아닌지 확인한다. 선택 후보 matrix는
+   `--require-no-matrix-regressions`로 더 엄격하게 검사한다.
+8. 정확도 회귀가 없고 속도 또는 패키지 크기 이득이 있는 후보만 채택한다.
+9. 남은 controller/UI glue는 작은 단위로 계속 분리하고 매번 smoke를 돌린다.
+10. 패키지 크기 최적화는 한 번에 하나의 dependency/PyInstaller 변경만 적용한다.
 
 ## 검증 명령
 
@@ -138,6 +143,7 @@ python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_aud
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 패키지 영향 변경 게이트:

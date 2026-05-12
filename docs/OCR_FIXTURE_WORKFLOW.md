@@ -67,8 +67,12 @@ crops with at least 50 date and 50 rate cases.
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 Adopt a candidate only when audited fixture accuracy does not regress, blank and
 failure counts do not increase, and same-input live P95 timing improves when a
-speed claim is being made.
+speed claim is being made. The evidence bundle gate is the final guard against
+mistaking dry-run, zero-case, not-ready, coverage-changed, or rejected live
+comparison artifacts for usable OCR evidence; use
+`--require-no-matrix-regressions` for strict selected-candidate bundles.

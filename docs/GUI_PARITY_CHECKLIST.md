@@ -6,18 +6,29 @@ architecture.
 
 ## Evidence Status
 
-As of 2026-05-11, this checklist is still a manual parity checklist.
+As of 2026-05-12, this checklist is still only partly automated.
 `scripts/source_gui_smoke.py` records repeatable source-launch, Ready-state,
-and isolated settings-file evidence for all three Python entrypoints, and
-package smoke covers the built EXE. The remaining unchecked items below still
-need either manual evidence or more granular automated parity tests before the
-whole checklist can be treated as a green gate.
+window-title, and isolated settings-file evidence for all three Python
+entrypoints. `scripts/package_smoke.py` covers the built EXE, package metadata,
+real OCR-ready startup, package size, and isolated settings-file behavior. The
+remaining unchecked items below still need either manual evidence or more
+granular automated parity tests before the whole checklist can be treated as a
+green gate.
+
+Latest automated evidence:
+
+| Scope | Command | Evidence |
+| --- | --- | --- |
+| Canonical source launcher | `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, `runtime_state="Ready"`, `ocr_ready=true`, and startup `1.016s`. |
+| Compatibility launcher | `python scripts\source_gui_smoke.py --entrypoint "python Check_Capture_Excel_V6.1_배포.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, `runtime_state="Ready"`, `ocr_ready=true`, and startup `1.016s`. |
+| Package bootstrap launcher | `python scripts\source_gui_smoke.py --entrypoint "python -m checkocr2.main" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, `runtime_state="Ready"`, `ocr_ready=true`, and startup `1.016s`. |
+| Built EXE | `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, real OCR `Ready`, package size `596.403 MB`, and startup `3.219s`. |
 
 ## Launch And Window
 
-- [ ] `python check_capture_ocr.py` opens the app.
-- [ ] `python Check_Capture_Excel_V6.1_배포.py` opens the app.
-- [ ] Window title is `📊 Check Capture OCR V6.1`.
+- [x] `python check_capture_ocr.py` opens the app.
+- [x] `python Check_Capture_Excel_V6.1_배포.py` opens the app.
+- [x] Window title is `📊 Check Capture OCR V6.1`.
 - [ ] App icon is applied when `eye_ocr_02_scanline.ico` exists.
 - [ ] Initial geometry remains roughly `1200x850`, with minimum size
   `1000x600`.
@@ -93,7 +104,8 @@ whole checklist can be treated as a green gate.
 ## Packaging Smoke
 
 - [ ] `python -m PyInstaller build_app.spec` completes.
-- [ ] `dist/CheckCaptureOCR_V6.1/CheckCaptureOCR_V6.1.exe` opens.
-- [ ] Packaged window title and icon are correct.
-- [ ] Packaged app reaches OCR-ready state.
+- [x] `dist/CheckCaptureOCR_V6.1/CheckCaptureOCR_V6.1.exe` opens.
+- [x] Packaged window title is correct.
+- [ ] Packaged icon is correct.
+- [x] Packaged app reaches OCR-ready state.
 - [ ] Packaged app exits cleanly.
