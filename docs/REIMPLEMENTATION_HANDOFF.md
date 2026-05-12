@@ -65,12 +65,18 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 386 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 387 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after workflow report-finalization extraction plus real package
-smoke at about `596.400 MB` with startup `3.797` seconds and settings-file
+release build after the `OcrRow.from_dict()` mapping-compatibility slice plus
+real package smoke at about `596.400 MB` with startup `4.984` seconds and settings-file
 verification under isolated `APPDATA`.
+
+The current small model-seam slice widens `OcrRow.from_dict()` from concrete
+`dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
+working while making the typed workflow row snapshot compatible with mutable and
+read-only mapping rows. Focused verification has passed for `ruff`, `mypy` on
+`models.py`/`workflow.py`, and package-helper/workflow tests.
 
 The newest structural slices extract coordinate capture/preview action glue
 into `checkocr2/ui/coordinate_actions.py` and Excel/output-folder action glue
@@ -270,6 +276,10 @@ finalization into `checkocr2/workflow_report_finalization.py`; focused tests
 preserve processing-state finalization, row-report recording, stopped/error
 summary values, and report state already finalized at flush time. Source GUI
 smoke and real package smoke both pass for this slice.
+
+The latest model compatibility slice widened `OcrRow.from_dict()` to
+`Mapping[str, Any]`; the new regression coverage confirms read-only mappings
+round-trip into `OcrRow` without requiring a concrete dictionary.
 
 ## Commands To Re-Run Before Release
 

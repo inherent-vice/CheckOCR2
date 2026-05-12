@@ -20,7 +20,8 @@ working.
 - `checkocr2/settings_compat.py`: legacy `UnifiedSettingsManager` adapter for
   fallback defaults and preset timestamp compatibility.
 - `checkocr2/models.py`: shared column names, status constants, and simple
-  data models.
+  data models. `OcrRow.from_dict()` accepts generic mappings so legacy grid
+  dictionaries and workflow row snapshots share one conversion path.
 - `checkocr2/events.py`: typed queue/UI event contracts plus legacy
   grid-update and final-export payload parsing.
 - `checkocr2/paths.py`: output path generation, UNC normalization, and folder

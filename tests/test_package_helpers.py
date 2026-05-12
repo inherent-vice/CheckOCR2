@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from types import MappingProxyType
 
 import pytest
 from PIL import Image
@@ -39,6 +40,25 @@ def test_ocr_row_round_trips_legacy_grid_dict():
         STATUS_COL: STATUS_WAITING,
     }
     assert OcrRow.from_dict(as_dict) == row
+
+
+def test_ocr_row_from_dict_accepts_read_only_mapping():
+    row = MappingProxyType(
+        {
+            CODE_COL: "KR2",
+            NAME_COL: "ReadOnly",
+            DATE_COL: "2026/05/09",
+            RATE_COL: "4.250",
+            STATUS_COL: STATUS_WAITING,
+        }
+    )
+
+    assert OcrRow.from_dict(row) == OcrRow(
+        code="KR2",
+        name="ReadOnly",
+        date="2026/05/09",
+        rate="4.250",
+    )
 
 
 def test_path_helpers_preserve_windows_unc_behavior():

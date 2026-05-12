@@ -17,11 +17,13 @@
   어댑터, 화면 자동화, 캡처 어댑터, 워크플로, 런 리포트, 테이블 모델,
   런타임 상태, 작업 컨트롤러, OCR 초기화 포함 주요 UI action/helper가
   분리되어 있다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 386개, `compileall`, OCR benchmark
+- 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
+  legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
+- 최신 기록 기준 검증은 `ruff`, `pytest` 387개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 패키지 크기는 약 `596.400 MB`, package smoke startup은
-  `3.797`초다.
+  `4.984`초다.
 - 실제 OCR crop fixture와 동일 입력 10행 live 비교가 아직 없으므로 OCR
   기본값, wait-time, OCR 엔진 교체는 기본값으로 승격하지 않는다.
 

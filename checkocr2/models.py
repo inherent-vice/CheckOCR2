@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -89,7 +90,7 @@ class OcrRow:
     status: str = STATUS_WAITING
 
     @classmethod
-    def from_dict(cls, row: dict[str, Any]) -> OcrRow:
+    def from_dict(cls, row: Mapping[str, Any]) -> OcrRow:
         return cls(
             code=str(row.get(CODE_COL, "") or ""),
             name=str(row.get(NAME_COL, "") or ""),
