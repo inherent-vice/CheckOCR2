@@ -11,6 +11,8 @@ out of `check_capture_ocr.py` into tested package modules.
 This is an execution guide, not a replacement for
 `docs/REIMPLEMENTATION_PLAN.md`. The plan describes the long-term roadmap; this
 document describes how to continue safely from the current state.
+Use `docs/REIMPLEMENTATION_COMPLETION_AUDIT.md` before claiming the overall
+plan is complete.
 
 ## Current Baseline
 

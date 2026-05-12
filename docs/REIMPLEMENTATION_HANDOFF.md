@@ -14,7 +14,9 @@ behavior.
 For the current execution rules, next safe work slices, agent coordination, and
 commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`. For
 the Korean parallel-agent plan and workstream split, use
-`docs/REIMPLEMENTATION_AGENT_PLAN_KO.md`.
+`docs/REIMPLEMENTATION_AGENT_PLAN_KO.md`. For the current prompt-to-artifact
+completion status and the remaining hard blockers, use
+`docs/REIMPLEMENTATION_COMPLETION_AUDIT.md`.
 
 ## Current Verified State
 
@@ -421,6 +423,9 @@ installed outside the release environment.
 
 ## Evidence Gates Not Yet Cleared
 
+- The full completion audit is tracked in
+  `docs/REIMPLEMENTATION_COMPLETION_AUDIT.md`; it currently marks the plan as
+  **not complete** because the real OCR evidence chain is missing.
 - Create real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with
   a manually reviewed `ground_truth.csv`, then pass the fixture audit script.
 - Run a same-input 10-row live OCR comparison through the run-report comparator
