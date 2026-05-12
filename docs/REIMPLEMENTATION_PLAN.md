@@ -45,20 +45,21 @@ test or a manual verification note.
 
 ## Main Risks And Current Status
 
-- Still open: `check_capture_ocr.py` owns some GUI construction, worker
-  lifecycle, and release-compatible controller behavior. WorkController state
-  has moved into `checkocr2/work_controller.py`; theme management has moved
-  into `checkocr2/ui/theme.py`; overlay windows have moved into
+- Mitigated: `checkocr2/app.py` now owns the Tk shell and release-compatible
+  controller wrappers, while `check_capture_ocr.py` is a thin compatibility
+  launcher/import alias. WorkController state has moved into
+  `checkocr2/work_controller.py`; theme management has moved into
+  `checkocr2/ui/theme.py`; overlay windows have moved into
   `checkocr2/ui/overlays.py`; grid data management has moved into
   `checkocr2/data_manager.py`; settings UI binding has moved into
   `checkocr2/ui/settings_binding.py`; current settings load/save/reset actions
   have moved into `checkocr2/ui/settings_actions.py`; preset controller
-  behavior has moved into `checkocr2/ui/presets.py`; low-risk panels, menu/toolbar,
-  shortcut/about dialogs, Excel load/output-folder actions, coordinate
-  capture/preview actions, grid refresh/tag actions, lifecycle actions, window
-  geometry actions, OCR run/stop and input-validation actions, options actions,
-  completion/export/summary/state-finalization actions, and legacy queue
-  dispatch have been extracted incrementally.
+  behavior has moved into `checkocr2/ui/presets.py`; low-risk panels,
+  menu/toolbar, shortcut/about dialogs, Excel load/output-folder actions,
+  coordinate capture/preview actions, grid refresh/tag actions, lifecycle
+  actions, window geometry actions, OCR run/stop and input-validation actions,
+  options actions, completion/export/summary/state-finalization actions, and
+  legacy queue dispatch have been extracted incrementally.
 - Mitigated: EasyOCR now initializes after the UI appears, on a background
   worker, and OCR start is blocked until the reader is ready.
 - Still open: OCR workflow is sequential and uses fixed wait times. Current

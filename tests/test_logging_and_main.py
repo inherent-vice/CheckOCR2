@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import logging
 import queue
 
@@ -69,9 +70,19 @@ def test_package_main_constructs_app(monkeypatch):
             calls.append(("mainloop",))
 
     monkeypatch.setattr(app_module, "CheckCaptureOCRApp", FakeApp)
-    monkeypatch.setattr(main_module, "CheckCaptureOCRApp", FakeApp)
 
     main_module.main()
 
     assert calls[0][0:2] == ("protocol", "WM_DELETE_WINDOW")
     assert calls[-1] == ("mainloop",)
+    assert main_module.main is app_module.main
+
+
+def test_root_launcher_import_aliases_package_app():
+    import checkocr2.app as app_module
+
+    root_module = importlib.import_module("check_capture_ocr")
+
+    assert root_module is app_module
+    assert root_module.CheckCaptureOCRApp is app_module.CheckCaptureOCRApp
+    assert root_module.CheckCaptureOCRApp.__module__ == "checkocr2.app"

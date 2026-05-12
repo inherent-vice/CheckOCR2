@@ -159,6 +159,8 @@ from checkocr2.ui.theme import ThemeManager
 from checkocr2.ui.window_actions import center_window as center_window_action
 from checkocr2.work_controller import WorkController
 
+__all__ = ["CheckCaptureOCRApp", "main"]
+
 
 class CheckCaptureOCRApp(tk.Tk):
     def __init__(self):

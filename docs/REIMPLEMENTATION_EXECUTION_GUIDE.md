@@ -31,8 +31,9 @@ document describes how to continue safely from the current state.
   OCR run/stop/input-validation actions, options actions,
   work-completion/export/summary/state-finalization actions, several panels,
   and work-control state now have package-level seams and tests.
-- `check_capture_ocr.py` still owns the remaining Tk shell, some controller
-  glue, and release-compatible behavior.
+- `checkocr2/app.py` owns the Tk shell and release-compatible controller
+  wrappers. `check_capture_ocr.py` is now a thin compatibility launcher/import
+  alias for existing scripts, tests, and package entrypoints.
 
 ## Implementation Rules
 
