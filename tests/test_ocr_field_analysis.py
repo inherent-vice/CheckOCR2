@@ -29,6 +29,16 @@ def test_analyze_date_field_preserves_valid_and_invalid_logs():
     )
 
 
+def test_analyze_date_field_rejects_invalid_calendar_date():
+    result = analyze_date_field("2026-02-30", "날짜")
+
+    assert result.value == ""
+    assert result.log_events == (
+        ("[날짜] 원본 텍스트: '2026-02-30'", "DEBUG"),
+        ("[날짜] 유효하지 않은 날짜 형식: '2026/02/30' (원본: '2026-02-30')", "DEBUG"),
+    )
+
+
 @pytest.mark.parametrize("raw_text", ["", "   ", None])
 def test_analyze_rate_field_preserves_empty_text_log(raw_text):
     result = analyze_rate_field(raw_text, "금리")

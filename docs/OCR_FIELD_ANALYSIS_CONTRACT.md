@@ -55,6 +55,9 @@ returns an empty value:
 [날짜] 유효하지 않은 날짜 형식: '<cleaned>' (원본: '<raw>')
 ```
 
+Date validity is calendar-aware, not only format-aware. A normalized candidate
+such as `2026/02/30` is rejected through this invalid-date path.
+
 Valid rate input logs the raw text, logs the normalized rate, and returns the
 normalized value:
 

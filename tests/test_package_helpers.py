@@ -22,7 +22,7 @@ from checkocr2.models import (
     OcrRow,
     Region,
 )
-from checkocr2.ocr_text import clean_date_text, clean_rate_text
+from checkocr2.ocr_text import clean_date_text, clean_rate_text, is_valid_date_format
 from checkocr2.paths import clean_folder_path, sanitize_filename, updated_workbook_path
 from checkocr2.settings import SettingsStore
 
@@ -171,6 +171,12 @@ def test_ocr_text_helpers_match_existing_normalization():
     assert clean_rate_text("3.5%") == "3.500"
     assert clean_rate_text("12,500") == "12.500"
     assert clean_rate_text("10·25") == "10.250"
+
+
+def test_ocr_date_validation_rejects_non_calendar_dates():
+    assert is_valid_date_format("2024/02/29") is True
+    assert is_valid_date_format("2024/02/30") is False
+    assert is_valid_date_format("2024/13/01") is False
 
 
 def test_settings_store_migrates_legacy_file_to_user_path(tmp_path):

@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 
 
 def is_valid_date_format(value: str) -> bool:
-    return bool(re.fullmatch(r"\d{4}/\d{2}/\d{2}", value))
+    if not re.fullmatch(r"\d{4}/\d{2}/\d{2}", value):
+        return False
+    try:
+        datetime.strptime(value, "%Y/%m/%d")
+    except ValueError:
+        return False
+    return True
 
 
 def is_valid_rate_format(value: str) -> bool:
