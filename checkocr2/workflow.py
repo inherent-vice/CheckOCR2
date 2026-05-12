@@ -270,19 +270,43 @@ class WorkflowRunner:
         self._emit(stopped_event())
 
     def _is_stopped(self) -> bool:
+        snapshot = self._stop_token_snapshot()
+        if snapshot is not None and hasattr(snapshot, "is_stopped"):
+            return bool(snapshot.is_stopped)
         return bool(getattr(self.stop_token, "is_stopped", False))
 
     def _skip_requested(self) -> bool:
+        snapshot = self._stop_token_snapshot()
+        if snapshot is not None and hasattr(snapshot, "skip_current"):
+            return bool(snapshot.skip_current)
         return bool(getattr(self.stop_token, "skip_current", False))
 
     def _set_skip_current(self, value: bool) -> None:
-        if self.stop_token is not None and hasattr(self.stop_token, "skip_current"):
+        if self.stop_token is None:
+            return
+        set_skip_current = getattr(self.stop_token, "set_skip_current", None)
+        if callable(set_skip_current):
+            set_skip_current(value)
+        elif hasattr(self.stop_token, "skip_current"):
             self.stop_token.skip_current = value
 
     def _set_current_item(self, row: OcrRow) -> None:
-        if self.stop_token is not None and hasattr(self.stop_token, "current_item"):
-            current_item = f"{row.code} ({row.name})" if row.code or row.name else ""
+        if self.stop_token is None:
+            return
+        current_item = f"{row.code} ({row.name})" if row.code or row.name else ""
+        set_current_item = getattr(self.stop_token, "set_current_item", None)
+        if callable(set_current_item):
+            set_current_item(current_item)
+        elif hasattr(self.stop_token, "current_item"):
             self.stop_token.current_item = current_item
+
+    def _stop_token_snapshot(self) -> Any | None:
+        if self.stop_token is None:
+            return None
+        snapshot = getattr(self.stop_token, "snapshot", None)
+        if callable(snapshot):
+            return snapshot()
+        return None
 
     def legacy_tuples(self) -> list[tuple[Any, ...]]:
         return [event.as_legacy_tuple() for event in self.events]

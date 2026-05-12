@@ -73,7 +73,7 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 425 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 427 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
@@ -118,6 +118,13 @@ creation. Focused verification passed with `python -m pytest
 tests\test_logging_and_main.py --basetemp $env:TEMP\checkocr2-logging-appdata`
 and `python -m ruff check checkocr2\logging_config.py
 tests\test_logging_and_main.py tests\test_log_actions.py`.
+
+The latest workflow safety slice adds locked `WorkController` mutations and a
+snapshot view for stop/skip/current-item state. `WorkflowRunner` now uses the
+controller setter/snapshot API when present while retaining compatibility with
+plain stop-token objects. Focused verification passed with `python -m pytest
+tests\test_work_controller.py tests\test_workflow_module.py --basetemp
+$env:TEMP\checkocr2-work-controller-lock`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
