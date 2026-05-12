@@ -95,6 +95,9 @@ test or a manual verification note.
 - Mitigated: OCR run setup now lives in `checkocr2/workflow_run_setup.py`,
   preserving delay, coordinate, detail-image folder, and run-report metadata
   behavior while making the setup independently testable.
+- Mitigated: workflow-to-Tk queue bridging now lives in
+  `checkocr2/workflow_event_bridge.py`, preserving legacy event forwarding,
+  current row tracking, and row-total timing.
 
 ## Target Architecture
 
@@ -129,6 +132,7 @@ checkocr2/
   capture_adapter.py                  # screen copy/click/screenshot capture
   screen_automation.py                # pyautogui and clipboard adapter
   workflow.py                         # OCR orchestration without Tk imports
+  workflow_event_bridge.py            # workflow event to Tk queue/timing bridge
   workflow_run_setup.py               # per-run paths/options/report setup
   worker.py                           # thread/cancel/event bridge
   ui/

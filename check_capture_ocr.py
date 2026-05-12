@@ -9,7 +9,6 @@ from PIL import Image
 
 from checkocr2.capture_adapter import capture_screenshots
 from checkocr2.data_manager import DataManager
-from checkocr2.events import parse_legacy_grid_update
 from checkocr2.exceptions import OCREngineError
 from checkocr2.image_processing import cleanup_temp_ocr_image, upscale_image_source
 from checkocr2.logging_config import setup_logging
@@ -190,6 +189,7 @@ from checkocr2.workflow import (
 from checkocr2.workflow import (
     finalize_processing_states as finalize_workflow_processing_states,
 )
+from checkocr2.workflow_event_bridge import WorkflowEventBridge
 from checkocr2.workflow_run_setup import prepare_workflow_run
 
 
@@ -243,7 +243,6 @@ class OCRWorkflowManager:
             self._last_ocr_confidences = {}
             row_timing_by_index = {}
             row_metadata_by_index = {}
-            row_started_by_index = {}
             self._current_run_report_path = run_setup.report_path
             self._current_run_report = run_setup.report
 
@@ -280,25 +279,18 @@ class OCRWorkflowManager:
                         )
                     return OcrResult(date_result, rate_result, metadata={"timing_ms": timing})
 
-            def emit_to_tk_queue(event):
-                legacy_event = event.as_legacy_tuple()
-                if legacy_event[0] == "grid_update":
-                    grid_update = parse_legacy_grid_update(legacy_event[1])
-                    row_index = grid_update.row_index
-                    if grid_update.update_type == "processing":
-                        row_started_by_index[row_index] = perf_counter()
-                        self.data_manager.current_processing_index = row_index
-                    elif grid_update.update_type in {"complete", "error"} and row_index in row_started_by_index:
-                        row_timing_by_index.setdefault(row_index, {})["row_total_ms"] = self._elapsed_ms(
-                            row_started_by_index[row_index]
-                        )
-                self.message_queue.put(legacy_event)
+            event_bridge = WorkflowEventBridge(
+                self.message_queue,
+                self.data_manager,
+                row_timing_by_index,
+                self._elapsed_ms,
+            )
 
             runner = WorkflowRunner(
                 TkAutomationAdapter(),
                 EasyOcrAdapter(),
                 stop_token=self.work_controller,
-                event_sink=emit_to_tk_queue,
+                event_sink=event_bridge.emit,
             )
             result = runner.process_rows(
                 self.data_manager.excel_data,

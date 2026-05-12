@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 372 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 378 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after OCR workflow run-setup extraction plus real package
-smoke at about `596.396 MB` with startup `3.282` seconds and settings-file
+release build after workflow event-bridge extraction plus real package
+smoke at about `596.397 MB` with startup `4.156` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -251,6 +251,12 @@ run-report path, and initial run-report metadata into
 `checkocr2/workflow_run_setup.py`; focused tests preserve the helper contract
 and the legacy workflow-manager call-site wiring. Source GUI smoke and real
 package smoke both pass for this slice.
+
+The latest workflow event-bridge slice moved workflow event forwarding,
+`grid_update` parsing, current processing index updates, and row-total timing
+into `checkocr2/workflow_event_bridge.py`; focused tests preserve processing,
+complete, error, non-grid, and malformed-grid behavior. Source GUI smoke and
+real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

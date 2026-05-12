@@ -50,6 +50,8 @@ working.
   crop-save, and capture timing orchestration for date/rate OCR images.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
+- `checkocr2/workflow_event_bridge.py`: workflow event to legacy Tk queue
+  bridge, including row total timing and current row tracking.
 - `checkocr2/worker.py`: daemon worker helper.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/workflow_run_setup.py`: per-run delay, coordinate, detail-image
