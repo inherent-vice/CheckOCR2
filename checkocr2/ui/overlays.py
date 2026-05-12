@@ -17,6 +17,13 @@ def apply_overlay_icon(window: tk.Toplevel, master: Any) -> None:
         pass
 
 
+def close_overlay_on_escape(window: Any, event: Any) -> str | None:
+    if getattr(event, "keysym", None) == "Escape":
+        window.destroy()
+        return "break"
+    return None
+
+
 class AreaVisualizationOverlay(tk.Toplevel):
     def __init__(self, master: Any, areas_info: dict[str, Any], theme_manager: Any, auto_close: bool = True) -> None:
         super().__init__(master)
@@ -79,8 +86,7 @@ class AreaVisualizationOverlay(tk.Toplevel):
         self.canvas.create_text(screen_width // 2, 50, text=info_text, fill=text_color, font=("Arial", 16, "bold"))
 
     def on_key_press(self, event: Any) -> None:
-        if event.keysym == "Escape":
-            self.destroy()
+        close_overlay_on_escape(self, event)
 
 
 class DragCaptureOverlay(tk.Toplevel):
@@ -107,7 +113,7 @@ class DragCaptureOverlay(tk.Toplevel):
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
         self.canvas.bind("<B1-Motion>", self.on_move_press)
         self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
-        self.bind("<KeyPress-Escape>", lambda _event: self.destroy())
+        self.bind("<KeyPress-Escape>", lambda event: close_overlay_on_escape(self, event))
 
     def on_button_press(self, event: Any) -> None:
         self.start_x, self.start_y = event.x, event.y
@@ -150,7 +156,7 @@ class PointCaptureOverlay(tk.Toplevel):
 
         self.click_x, self.click_y = None, None
         self.canvas.bind("<ButtonPress-1>", self.on_click)
-        self.bind("<KeyPress-Escape>", lambda _event: self.destroy())
+        self.bind("<KeyPress-Escape>", lambda event: close_overlay_on_escape(self, event))
 
     def on_click(self, event: Any) -> None:
         self.click_x, self.click_y = event.x, event.y

@@ -70,7 +70,7 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 419 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 420 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
@@ -95,6 +95,13 @@ local and UNC output-folder open behavior, `_updated.xlsx` output naming, and
 the `OCR_Results` export sheet. The checklist now marks file/folder workflow
 and grid behavior items as automated while leaving capture/options/OCR live-run
 items open.
+
+The latest coordinate/options/workflow parity slice adds a direct overlay
+`Esc` close helper test and records focused evidence for coordinate relocation,
+preview payloads, option persistence, preset lifecycle, OCR start validation,
+KBP skip, stopped events, report finalization, and export summaries. The
+remaining GUI parity gap is now the real 1-2 row live run plus any manual
+packaged icon/build evidence not covered by the existing smoke reports.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts

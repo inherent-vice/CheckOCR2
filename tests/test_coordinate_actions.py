@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from checkocr2.ui import coordinate_actions
+from checkocr2.ui.overlays import close_overlay_on_escape
 
 
 class FakeVar:
@@ -127,6 +128,17 @@ def test_show_area_preview_passes_current_areas_to_overlay():
             True,
         )
     ]
+
+
+def test_close_overlay_on_escape_destroys_only_for_escape_key():
+    destroyed = []
+    window = SimpleNamespace(destroy=lambda: destroyed.append(True))
+
+    assert close_overlay_on_escape(window, SimpleNamespace(keysym="Return")) is None
+    assert destroyed == []
+
+    assert close_overlay_on_escape(window, SimpleNamespace(keysym="Escape")) == "break"
+    assert destroyed == [True]
 
 
 def test_legacy_app_coordinate_methods_delegate(ocr_module, monkeypatch):

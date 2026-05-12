@@ -26,6 +26,7 @@ Latest automated evidence:
 | Built EXE | `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, real OCR `Ready`, package size `596.405 MB`, startup `4.641s`, window size `1216x889`, and clean GUI exit code `0`. |
 | Menu, toolbar, shortcuts, source icon helper | `python -m pytest tests\test_menu.py tests\test_toolbar.py tests\test_keyboard_actions.py tests\test_icons.py --basetemp $env:TEMP\checkocr2-parity-menu-toolbar-shortcuts-icons` | `9 passed` on 2026-05-12. Covers menu cascades and commands, toolbar title/start/stop/theme selector, `F5`, `Esc`, `F1`, `Ctrl+S`, `Ctrl+L`, `Ctrl+O`, and preferred ICO/PNG application. |
 | File/folder and grid behavior | `python -m pytest tests\test_folder_actions.py tests\test_excel_table_modules.py tests\test_data_manager.py tests\test_grid_panel.py tests\test_grid_actions.py tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py --basetemp $env:TEMP\checkocr2-file-grid-parity2` | `59 passed` on 2026-05-12. Covers Excel browse filters, output-folder autofill/browse/open for local and UNC paths, Korean Excel headers, `_updated.xlsx`, `OCR_Results`, grid columns, row add/paste/delete/clear, cell editing, context menu, grid shortcuts, and status tags. |
+| Coordinates, options, presets, and workflow gates | `python -m pytest tests\test_coordinate_actions.py tests\test_coordinates_panel.py tests\test_settings_binding.py tests\test_settings_actions.py tests\test_settings_compat.py tests\test_settings_store_lifecycle.py tests\test_options_actions.py tests\test_options_panel.py tests\test_presets.py tests\test_preset_panel.py tests\test_start_validation.py tests\test_workflow_module.py tests\test_workflow_report_finalization.py tests\test_completion_actions.py --basetemp $env:TEMP\checkocr2-coordinate-options-workflow-parity` | `72 passed` on 2026-05-12. Covers coordinate relocation and preview payloads, overlay `Esc`, option persistence, preset save/apply/delete/lifecycle, OCR start validation, KBP skip, processing/stopped events, workflow report finalization, and export completion summaries. |
 
 ## Launch And Window
 
@@ -60,24 +61,24 @@ Latest automated evidence:
 
 ## Capture Controls
 
-- [ ] Click point selection overlay works and saves coordinates.
-- [ ] Full area selection overlay works and saves coordinates.
-- [ ] Date area selection overlay works and saves coordinates.
-- [ ] Rate area selection overlay works and saves coordinates.
-- [ ] Area preview shows click point, full area, date area, and rate area.
-- [ ] Overlay `Esc` closes the overlay without crashing.
+- [x] Click point selection overlay works and saves coordinates.
+- [x] Full area selection overlay works and saves coordinates.
+- [x] Date area selection overlay works and saves coordinates.
+- [x] Rate area selection overlay works and saves coordinates.
+- [x] Area preview shows click point, full area, date area, and rate area.
+- [x] Overlay `Esc` closes the overlay without crashing.
 
 ## Options And Presets
 
-- [ ] Paste delay and loading delay values persist.
-- [ ] Detailed image saving option persists.
-- [ ] KBP skip option persists and still marks KBP rows complete with blank
+- [x] Paste delay and loading delay values persist.
+- [x] Detailed image saving option persists.
+- [x] KBP skip option persists and still marks KBP rows complete with blank
   date/rate values.
-- [ ] OCR upscaling enablement persists.
-- [ ] Upscaling factor persists.
-- [ ] Upscaling method persists.
-- [ ] Preset save, apply, and delete all work.
-- [ ] Existing presets migrate and remain selectable.
+- [x] OCR upscaling enablement persists.
+- [x] Upscaling factor persists.
+- [x] Upscaling method persists.
+- [x] Preset save, apply, and delete all work.
+- [x] Existing presets migrate and remain selectable.
 
 ## Grid Behavior
 
@@ -94,12 +95,12 @@ Latest automated evidence:
 
 ## OCR Run Behavior
 
-- [ ] Start is blocked when no rows are loaded.
-- [ ] Start is blocked when output folder is invalid.
-- [ ] Start is blocked until OCR engine is ready.
-- [ ] Row status changes to processing while a row is active.
-- [ ] Stop request ends the run and marks remaining rows as stopped.
-- [ ] Completion summary appears after export.
+- [x] Start is blocked when no rows are loaded.
+- [x] Start is blocked when output folder is invalid.
+- [x] Start is blocked until OCR engine is ready.
+- [x] Row status changes to processing while a row is active.
+- [x] Stop request ends the run and marks remaining rows as stopped.
+- [x] Completion summary appears after export.
 - [ ] Log panel receives OCR, warning, error, and completion messages.
 - [ ] A 1-2 row live smoke run can complete without mutating production
   workbooks unexpectedly.
