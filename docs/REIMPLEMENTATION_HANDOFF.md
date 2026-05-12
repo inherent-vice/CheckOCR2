@@ -81,7 +81,7 @@ Latest code gate result: `ruff` passed, `pytest` passed with 437 tests, and
 `compileall` passed. The latest source GUI fast-OCR smoke reached `Ready` with a
 `1044x788` window against the `1000x600` minimum gate. The latest package gate
 uses the 2026-05-12 clean PyInstaller release build plus strict real package
-smoke at about `596.409 MB` with startup `4.187` seconds, build date
+smoke at about `596.409 MB` with startup `1.109` seconds, build date
 `2026-05-12T10:50:04+00:00`, window size `1044x788`, clean GUI exit code `0`,
 settings-file verification under isolated `APPDATA`, and packaged icon
 extraction evidence.
@@ -189,7 +189,7 @@ $env:TEMP\checkocr2-app-shell-extract`. The full source/package gate passed
 with `ruff`, 437-test `pytest`, `compileall`, benchmark dry-runs, matrix
 dry-run, all three source launchers reaching `Ready` with a `1044x788` window
 and clean exit, clean PyInstaller build, and real package smoke at
-`596.409 MB`, `4.187` seconds startup, build date
+`596.409 MB`, `1.109` seconds startup, build date
 `2026-05-12T10:50:04+00:00`, isolated settings-file verification, and clean
 packaged GUI exit.
 
