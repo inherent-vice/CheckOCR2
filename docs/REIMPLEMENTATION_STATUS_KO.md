@@ -21,12 +21,12 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 408개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 416개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
-- 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`을 검사한다.
-  확인된 창 크기는 `1216x889`이고, 최신 패키지는 약 `596.404 MB`, real
-  package smoke startup은 `1.657`초다.
+- 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
+  GUI exit을 검사한다. 확인된 창 크기는 `1216x889`이고, 최신 패키지는 약
+  `596.405 MB`, real package smoke startup은 `4.641`초다.
 
 ## 반드시 유지할 GUI 동작
 
@@ -40,8 +40,8 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 
 이 항목을 건드리는 변경은 `docs/GUI_PARITY_CHECKLIST.md` 기준으로 수동
 확인 또는 자동 테스트 증거를 남긴다. 현재 체크리스트에는 세 Python
-entrypoint와 built EXE의 dated 자동 launch/package 증거, 그리고
-`1000x600` 최소 창 크기 증거가 기록되어 있다.
+entrypoint와 built EXE의 dated 자동 launch/package 증거, `1000x600` 최소
+창 크기 증거, clean GUI exit 증거가 기록되어 있다.
 
 ## 분리 완료된 주요 구조
 
@@ -135,7 +135,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
-python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --min-window-width 1000 --min-window-height 600
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --min-window-width 1000 --min-window-height 600 --require-clean-exit
 ```
 
 OCR 후보 검증:
@@ -152,7 +152,7 @@ python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixtu
 
 ```powershell
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit
 ```
 
 ## 커밋과 보안 규칙

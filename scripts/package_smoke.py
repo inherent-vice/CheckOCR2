@@ -2,7 +2,7 @@
 
 The script launches the provided EXE, waits for the main Tk window title, emits
 a JSON status report to stdout, reads packaged build metadata when present, and
-then terminates the process it launched.
+then either requests a clean GUI exit or terminates the process it launched.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ DEFAULT_TITLE_FRAGMENT = "Check Capture OCR"
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_POLL_INTERVAL_SECONDS = 0.5
 DEFAULT_TERMINATE_TIMEOUT_SECONDS = 5.0
+DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS = 5.0
 DEFAULT_OCR_READY_TIMEOUT_SECONDS = 20.0
 DEFAULT_OCR_READY_MODE = "fast"
 OCR_READY_MODES = ("fast", "real")
@@ -58,6 +59,7 @@ class SmokeProcess(Protocol):
 
 
 WindowLister = Callable[[], Iterable[WindowInfo]]
+WindowCloser = Callable[[WindowInfo], bool]
 ProcessLauncher = Callable[[Path], SmokeProcess]
 
 
@@ -100,6 +102,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=positive_float,
         default=DEFAULT_TERMINATE_TIMEOUT_SECONDS,
         help="Seconds to wait after terminating before killing the process",
+    )
+    parser.add_argument(
+        "--require-clean-exit",
+        action="store_true",
+        help="Close the matched main window and fail unless the app exits cleanly",
+    )
+    parser.add_argument(
+        "--clean-exit-timeout",
+        type=positive_float,
+        default=DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS,
+        help="Seconds to wait after requesting a GUI close",
     )
     parser.add_argument(
         "--require-package-metadata",
@@ -304,6 +317,63 @@ def validate_window_size(
     return None
 
 
+def post_window_close(window: WindowInfo) -> bool:
+    if sys.platform != "win32":
+        return False
+
+    from ctypes import wintypes
+
+    user32 = ctypes.windll.user32
+    user32.PostMessageW.argtypes = [
+        wintypes.HWND,
+        wintypes.UINT,
+        wintypes.WPARAM,
+        wintypes.LPARAM,
+    ]
+    user32.PostMessageW.restype = wintypes.BOOL
+    wm_close = 0x0010
+    return bool(user32.PostMessageW(window.hwnd, wm_close, 0, 0))
+
+
+def request_clean_window_exit(
+    process: SmokeProcess,
+    window: WindowInfo,
+    timeout_seconds: float,
+    close_window: WindowCloser = post_window_close,
+) -> dict[str, bool | int | str | None]:
+    existing_return_code = process.poll()
+    if existing_return_code is not None:
+        return {
+            "requested": False,
+            "closed": False,
+            "exit_code": existing_return_code,
+            "error": "Process exited before GUI close could be requested",
+        }
+
+    if not close_window(window):
+        return {
+            "requested": False,
+            "closed": False,
+            "exit_code": None,
+            "error": "Unable to request GUI window close",
+        }
+
+    try:
+        exit_code = process.wait(timeout=timeout_seconds)
+        return {
+            "requested": True,
+            "closed": True,
+            "exit_code": exit_code,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "requested": True,
+            "closed": False,
+            "exit_code": None,
+            "error": "Timed out waiting for process to exit after GUI close",
+        }
+
+
 def wait_for_ocr_ready(
     process: SmokeProcess,
     status_path: Path,
@@ -416,6 +486,9 @@ def run_package_smoke(
     appdata_dir: Path | None = None,
     min_window_width: int | None = None,
     min_window_height: int | None = None,
+    require_clean_exit: bool = False,
+    clean_exit_timeout_seconds: float = DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS,
+    close_window: WindowCloser = post_window_close,
 ) -> tuple[int, SmokeReport]:
     exe_path = exe_path.expanduser()
     if not exe_path.exists():
@@ -471,6 +544,8 @@ def run_package_smoke(
         "max_startup_seconds": max_startup_seconds,
         "min_window_width": min_window_width,
         "min_window_height": min_window_height,
+        "clean_exit_required": require_clean_exit,
+        "clean_exit_timeout_seconds": clean_exit_timeout_seconds,
         "ocr_ready_required": require_ocr_ready,
         "ocr_ready_mode": ocr_ready_mode if require_ocr_ready else None,
         "settings_file_required": require_settings_file,
@@ -624,6 +699,27 @@ def run_package_smoke(
                         {
                             "status": "ocr_ready_timeout",
                             "error": "Timed out waiting for OCR Ready status",
+                        }
+                    )
+                    exit_code = 1
+            if require_clean_exit and exit_code == 0:
+                clean_exit_report = request_clean_window_exit(
+                    process,
+                    window,
+                    clean_exit_timeout_seconds,
+                    close_window=close_window,
+                )
+                report["clean_exit"] = clean_exit_report
+                if (
+                    not clean_exit_report.get("closed")
+                    or clean_exit_report.get("exit_code") != 0
+                ):
+                    report.update(
+                        {
+                            "status": "clean_exit_failed",
+                            "error": clean_exit_report.get(
+                                "error", "Process did not exit cleanly"
+                            ),
                         }
                     )
                     exit_code = 1
@@ -903,12 +999,15 @@ def main(argv: list[str] | None = None) -> int:
         timeout_seconds=args.timeout,
         poll_interval_seconds=args.poll_interval,
         terminate_timeout_seconds=args.terminate_timeout,
+        require_clean_exit=args.require_clean_exit,
+        clean_exit_timeout_seconds=args.clean_exit_timeout,
         require_package_metadata=args.require_package_metadata,
         require_ocr_ready=args.require_ocr_ready,
         ocr_ready_timeout_seconds=args.ocr_ready_timeout,
         ocr_ready_mode=args.ocr_ready_mode,
         max_package_size_mb=args.max_package_size_mb,
         max_startup_seconds=args.max_startup_seconds,
+        close_window=post_window_close,
         require_settings_file=args.require_settings_file,
         isolated_appdata=args.isolated_appdata,
         appdata_dir=args.appdata_dir,

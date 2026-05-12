@@ -53,8 +53,8 @@ the Korean parallel-agent plan and workstream split, use
   are warnings by default and become failures with
   `--require-no-matrix-regressions`.
 - `scripts/source_gui_smoke.py` now provides repeatable source-launch, Ready,
-  window-title, minimum-window-size, isolated `APPDATA`, and settings-file
-  smoke evidence for each Python entrypoint.
+  window-title, minimum-window-size, clean-exit, isolated `APPDATA`, and
+  settings-file smoke evidence for each Python entrypoint.
 - Legacy broad exception handling has been reduced to typed catches in
   file/settings/OCR/folder/icon/status paths; remaining broad catches are the
   top-level workflow and adapter safety boundaries.
@@ -62,27 +62,27 @@ the Korean parallel-agent plan and workstream split, use
   before reaching the GUI boundary, with tests for corrupt workbooks, Excel
   writer failures, and OCR reader failures.
 - Package smoke verifies build metadata, OCR-ready startup, package size,
-  startup budget, minimum window size, isolated settings-file load, and absence
-  of forbidden GUI/contrib OpenCV metadata.
+  startup budget, minimum window size, clean GUI exit, isolated settings-file
+  load, and absence of forbidden GUI/contrib OpenCV metadata.
 - PyInstaller no longer broadly collects all Torch submodules; targeted Torch
   imports plus PyInstaller's Torch hooks are verified by clean build, fast
   startup smoke, and real packaged EasyOCR initialization smoke. Optional
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 408 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 416 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
-plus real package smoke at about `596.404 MB` with startup `1.657` seconds,
-window size `1216x889`, and settings-file verification under isolated
-`APPDATA`.
+plus real package smoke at about `596.405 MB` with startup `4.641` seconds,
+window size `1216x889`, clean GUI exit code `0`, and settings-file verification
+under isolated `APPDATA`.
 
 The current GUI parity verification slice extends source and package smokes to
-capture the main Tk window rectangle and fail when it is below the documented
-`1000x600` minimum. Focused script tests and live source/package smoke preserve
-the existing startup title, Ready-state, settings-file, package metadata, and
-real OCR readiness checks while adding window-size evidence.
+capture the main Tk window rectangle and request a GUI close through the matched
+window handle. Focused script tests and live source/package smoke preserve the
+existing startup title, Ready-state, settings-file, package metadata, and real
+OCR readiness checks while adding window-size and clean-exit evidence.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
@@ -313,11 +313,11 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
-python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --min-window-width 1000 --min-window-height 600
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --min-window-width 1000 --min-window-height 600 --require-clean-exit
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit
 ```
 
 Before OCR tuning or release decisions that depend on OCR accuracy, also run

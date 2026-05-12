@@ -2,7 +2,8 @@
 
 The script launches a Python entrypoint such as ``python check_capture_ocr.py``,
 waits for the Tk window title, optionally waits for the GUI Ready status file,
-prints a JSON report, and terminates the launched process.
+prints a JSON report, and either requests a clean GUI exit or terminates the
+launched process.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from scripts.package_smoke import (  # noqa: E402
+    DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS,
     DEFAULT_OCR_READY_MODE,
     DEFAULT_OCR_READY_TIMEOUT_SECONDS,
     DEFAULT_POLL_INTERVAL_SECONDS,
@@ -32,11 +34,14 @@ from scripts.package_smoke import (  # noqa: E402
     SmokeProcess,
     SmokeReport,
     TemporarySmokeEnvironment,
+    WindowCloser,
     WindowLister,
     iter_window_titles,
     positive_float,
     positive_int,
+    post_window_close,
     remove_appdata_dir,
+    request_clean_window_exit,
     terminate_process,
     validate_smoke_settings_file,
     validate_window_size,
@@ -83,6 +88,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=positive_float,
         default=DEFAULT_TERMINATE_TIMEOUT_SECONDS,
         help="Seconds to wait after terminating before killing the process",
+    )
+    parser.add_argument(
+        "--require-clean-exit",
+        action="store_true",
+        help="Close the matched main window and fail unless the app exits cleanly",
+    )
+    parser.add_argument(
+        "--clean-exit-timeout",
+        type=positive_float,
+        default=DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS,
+        help="Seconds to wait after requesting a GUI close",
     )
     parser.add_argument(
         "--require-ready",
@@ -172,11 +188,14 @@ def run_source_gui_smoke(
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
     poll_interval_seconds: float = DEFAULT_POLL_INTERVAL_SECONDS,
     terminate_timeout_seconds: float = DEFAULT_TERMINATE_TIMEOUT_SECONDS,
+    require_clean_exit: bool = False,
+    clean_exit_timeout_seconds: float = DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS,
     require_ready: bool = False,
     ocr_ready_timeout_seconds: float = DEFAULT_OCR_READY_TIMEOUT_SECONDS,
     ocr_ready_mode: str = DEFAULT_OCR_READY_MODE,
     process_launcher: SourceProcessLauncher = launch_source_entrypoint,
     list_windows: WindowLister = iter_window_titles,
+    close_window: WindowCloser = post_window_close,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
     require_settings_file: bool = False,
@@ -253,6 +272,8 @@ def run_source_gui_smoke(
         "appdata_dir": str(appdata_dir) if appdata_dir is not None else None,
         "min_window_width": min_window_width,
         "min_window_height": min_window_height,
+        "clean_exit_required": require_clean_exit,
+        "clean_exit_timeout_seconds": clean_exit_timeout_seconds,
     }
 
     try:
@@ -309,6 +330,27 @@ def run_source_gui_smoke(
                     sleep=sleep,
                     clock=clock,
                 )
+            if require_clean_exit and exit_code == 0:
+                clean_exit_report = request_clean_window_exit(
+                    process,
+                    window,
+                    clean_exit_timeout_seconds,
+                    close_window=close_window,
+                )
+                report["clean_exit"] = clean_exit_report
+                if (
+                    not clean_exit_report.get("closed")
+                    or clean_exit_report.get("exit_code") != 0
+                ):
+                    report.update(
+                        {
+                            "status": "clean_exit_failed",
+                            "error": clean_exit_report.get(
+                                "error", "Process did not exit cleanly"
+                            ),
+                        }
+                    )
+                    exit_code = 1
         elif wait_status == "process_exited":
             report.update(
                 {
@@ -420,12 +462,15 @@ def main(argv: list[str] | None = None) -> int:
         timeout_seconds=args.timeout,
         poll_interval_seconds=args.poll_interval,
         terminate_timeout_seconds=args.terminate_timeout,
+        require_clean_exit=args.require_clean_exit,
+        clean_exit_timeout_seconds=args.clean_exit_timeout,
         require_ready=args.require_ready,
         require_settings_file=args.require_settings_file,
         isolated_appdata=args.isolated_appdata,
         appdata_dir=args.appdata_dir,
         ocr_ready_timeout_seconds=args.ocr_ready_timeout,
         ocr_ready_mode=args.ocr_ready_mode,
+        close_window=post_window_close,
         min_window_width=args.min_window_width,
         min_window_height=args.min_window_height,
     )

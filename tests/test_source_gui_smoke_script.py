@@ -9,9 +9,15 @@ from scripts import package_smoke, source_gui_smoke
 
 
 class FakeProcess:
-    def __init__(self, pid: int = 100, return_code: int | None = None) -> None:
+    def __init__(
+        self,
+        pid: int = 100,
+        return_code: int | None = None,
+        wait_timeout_once: bool = False,
+    ) -> None:
         self.pid = pid
         self.return_code = return_code
+        self.wait_timeout_once = wait_timeout_once
         self.terminated = False
         self.killed = False
 
@@ -27,6 +33,9 @@ class FakeProcess:
         self.return_code = -9
 
     def wait(self, timeout: float | None = None) -> int:
+        if self.wait_timeout_once:
+            self.wait_timeout_once = False
+            raise subprocess.TimeoutExpired("python", timeout)
         if self.return_code is None:
             self.return_code = 0
         return self.return_code
@@ -51,6 +60,9 @@ def test_parse_args_accepts_string_entrypoint_and_requirements():
             "--isolated-appdata",
             "--require-ready",
             "--require-settings-file",
+            "--require-clean-exit",
+            "--clean-exit-timeout",
+            "2",
             "--min-window-width",
             "1000",
             "--min-window-height",
@@ -62,6 +74,8 @@ def test_parse_args_accepts_string_entrypoint_and_requirements():
     assert args.isolated_appdata is True
     assert args.require_ready is True
     assert args.require_settings_file is True
+    assert args.require_clean_exit is True
+    assert args.clean_exit_timeout == 2.0
     assert args.min_window_width == 1000
     assert args.min_window_height == 600
 
@@ -171,6 +185,149 @@ def test_run_source_gui_smoke_rejects_small_window_size(tmp_path):
     assert exit_code == 1
     assert report["status"] == "window_size_too_small"
     assert "below minimum 1000" in report["error"]
+
+
+def test_run_source_gui_smoke_can_require_clean_exit(tmp_path):
+    process = FakeProcess(pid=100)
+    close_calls = []
+
+    exit_code, report = source_gui_smoke.run_source_gui_smoke(
+        "python check_capture_ocr.py",
+        cwd=tmp_path,
+        require_clean_exit=True,
+        process_launcher=lambda _command, _cwd: process,
+        close_window=lambda window: close_calls.append(window.hwnd) or True,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["clean_exit"] == {
+        "requested": True,
+        "closed": True,
+        "exit_code": 0,
+    }
+    assert report["termination"] == {
+        "terminated": False,
+        "killed": False,
+        "exit_code": 0,
+    }
+    assert close_calls == [10]
+    assert process.terminated is False
+
+
+def test_run_source_gui_smoke_reports_clean_exit_timeout(tmp_path):
+    process = FakeProcess(pid=100, wait_timeout_once=True)
+
+    exit_code, report = source_gui_smoke.run_source_gui_smoke(
+        "python check_capture_ocr.py",
+        cwd=tmp_path,
+        require_clean_exit=True,
+        process_launcher=lambda _command, _cwd: process,
+        close_window=lambda _window: True,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "clean_exit_failed"
+    assert report["clean_exit"] == {
+        "requested": True,
+        "closed": False,
+        "exit_code": None,
+        "error": "Timed out waiting for process to exit after GUI close",
+    }
+    assert report["termination"] == {
+        "terminated": True,
+        "killed": False,
+        "exit_code": 0,
+    }
+
+
+def test_run_source_gui_smoke_reports_clean_exit_request_failure(tmp_path):
+    process = FakeProcess(pid=100)
+
+    exit_code, report = source_gui_smoke.run_source_gui_smoke(
+        "python check_capture_ocr.py",
+        cwd=tmp_path,
+        require_clean_exit=True,
+        process_launcher=lambda _command, _cwd: process,
+        close_window=lambda _window: False,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "clean_exit_failed"
+    assert report["clean_exit"] == {
+        "requested": False,
+        "closed": False,
+        "exit_code": None,
+        "error": "Unable to request GUI window close",
+    }
+    assert report["termination"] == {
+        "terminated": True,
+        "killed": False,
+        "exit_code": 0,
+    }
+
+
+def test_run_source_gui_smoke_rejects_already_exited_process_as_clean_exit(tmp_path):
+    process = FakeProcess(pid=100, return_code=0)
+    close_calls = []
+
+    exit_code, report = source_gui_smoke.run_source_gui_smoke(
+        "python check_capture_ocr.py",
+        cwd=tmp_path,
+        require_clean_exit=True,
+        process_launcher=lambda _command, _cwd: process,
+        close_window=lambda window: close_calls.append(window.hwnd) or True,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "clean_exit_failed"
+    assert report["clean_exit"] == {
+        "requested": False,
+        "closed": False,
+        "exit_code": 0,
+        "error": "Process exited before GUI close could be requested",
+    }
+    assert close_calls == []
 
 
 def test_run_source_gui_smoke_requires_ready_for_settings_file():

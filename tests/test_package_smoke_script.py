@@ -201,6 +201,128 @@ def test_run_package_smoke_rejects_small_window_size(tmp_path):
     assert "below minimum 1000" in report["error"]
 
 
+def test_run_package_smoke_can_require_clean_exit(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+    close_calls = []
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_clean_exit=True,
+        clean_exit_timeout_seconds=2.0,
+        process_launcher=lambda _path: process,
+        close_window=lambda window: close_calls.append(window.hwnd) or True,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["clean_exit_required"] is True
+    assert report["clean_exit"] == {
+        "requested": True,
+        "closed": True,
+        "exit_code": 0,
+    }
+    assert report["termination"] == {
+        "terminated": False,
+        "killed": False,
+        "exit_code": 0,
+    }
+    assert close_calls == [10]
+    assert process.terminated is False
+    assert process.killed is False
+
+
+def test_run_package_smoke_reports_clean_exit_timeout(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100, wait_timeout_once=True)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_clean_exit=True,
+        process_launcher=lambda _path: process,
+        close_window=lambda _window: True,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "clean_exit_failed"
+    assert report["clean_exit"] == {
+        "requested": True,
+        "closed": False,
+        "exit_code": None,
+        "error": "Timed out waiting for process to exit after GUI close",
+    }
+    assert report["termination"] == {
+        "terminated": True,
+        "killed": False,
+        "exit_code": 0,
+    }
+
+
+def test_run_package_smoke_reports_clean_exit_request_failure(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_clean_exit=True,
+        process_launcher=lambda _path: process,
+        close_window=lambda _window: False,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "clean_exit_failed"
+    assert report["clean_exit"] == {
+        "requested": False,
+        "closed": False,
+        "exit_code": None,
+        "error": "Unable to request GUI window close",
+    }
+    assert report["termination"] == {
+        "terminated": True,
+        "killed": False,
+        "exit_code": 0,
+    }
+
+
+def test_run_package_smoke_rejects_already_exited_process_as_clean_exit(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100, return_code=0)
+    close_calls = []
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_clean_exit=True,
+        process_launcher=lambda _path: process,
+        close_window=lambda window: close_calls.append(window.hwnd) or True,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "clean_exit_failed"
+    assert report["clean_exit"] == {
+        "requested": False,
+        "closed": False,
+        "exit_code": 0,
+        "error": "Process exited before GUI close could be requested",
+    }
+    assert close_calls == []
+
+
 def test_run_package_smoke_accepts_package_size_within_budget(tmp_path):
     exe_path = touch_exe(tmp_path)
     process = FakeProcess(pid=100)
