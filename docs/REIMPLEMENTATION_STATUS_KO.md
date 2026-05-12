@@ -34,7 +34,7 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
   GUI exit을 검사한다. 확인된 창 크기는 `1044x788`이고, 최신 패키지는 약
-  `596.408 MB`, strict real package smoke startup은 `1.094`초다.
+  `596.408 MB`, strict real package smoke startup은 `1.110`초다.
 
 ## 반드시 유지할 GUI 동작
 
