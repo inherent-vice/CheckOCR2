@@ -73,13 +73,13 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 427 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 429 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
-plus real package smoke at about `596.405 MB` with startup `4.641` seconds,
-window size `1216x889`, clean GUI exit code `0`, and settings-file verification
-under isolated `APPDATA`.
+plus real package smoke at about `596.405 MB` with startup `4.36` seconds,
+window size `1216x889`, clean GUI exit code `0`, settings-file verification
+under isolated `APPDATA`, and packaged icon extraction evidence.
 
 The current GUI parity verification slice extends source and package smokes to
 capture the main Tk window rectangle and request a GUI close through the matched
@@ -103,14 +103,12 @@ The latest coordinate/options/workflow parity slice adds a direct overlay
 `Esc` close helper test and records focused evidence for coordinate relocation,
 preview payloads, option persistence, preset lifecycle, OCR start validation,
 KBP skip, stopped events, report finalization, and export summaries. The
-remaining GUI parity gap is now the real 1-2 row live run plus any manual
-packaged icon/build evidence not covered by the existing smoke reports.
+remaining GUI parity gap is now the real 1-2 row live run.
 
 The latest log parity slice records focused coverage for log-widget insertion
 of `INFO`, `WARNING`, `ERROR`, and `SUCCESS` messages, Tk log-handler
 forwarding, queue dispatch, and log panel construction. The GUI parity
-checklist now leaves only the real live OCR run and packaged build/icon
-evidence unchecked.
+checklist now leaves only the real live OCR run unchecked.
 
 The latest logging safety slice moves the default file handler to the per-user
 APPDATA logs directory and verifies rotation settings plus no repo-root log
@@ -125,6 +123,12 @@ controller setter/snapshot API when present while retaining compatibility with
 plain stop-token objects. Focused verification passed with `python -m pytest
 tests\test_work_controller.py tests\test_workflow_module.py --basetemp
 $env:TEMP\checkocr2-work-controller-lock`.
+
+The latest OCR correctness slice changes date validation from regex-only to
+calendar-aware validation. Existing normalized dates still pass, while invalid
+calendar dates now follow the same invalid-date analysis path. Focused
+verification passed with `python -m pytest tests\test_package_helpers.py
+tests\test_ocr_field_analysis.py --basetemp $env:TEMP\checkocr2-date-validation`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts

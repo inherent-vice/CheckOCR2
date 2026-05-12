@@ -19,12 +19,12 @@
   컨트롤러, OCR 초기화 포함 주요 UI action/helper가 분리되어 있다.
 - 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
   legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 427개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 429개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
   GUI exit을 검사한다. 확인된 창 크기는 `1216x889`이고, 최신 패키지 크기는
-  약 `596.405 MB`, package smoke startup은 `4.641`초다.
+  약 `596.405 MB`, package smoke startup은 `4.36`초다.
 - 실제 OCR crop fixture와 동일 입력 10행 live 비교가 아직 없으므로 OCR
   기본값, wait-time, OCR 엔진 교체는 기본값으로 승격하지 않는다.
 
