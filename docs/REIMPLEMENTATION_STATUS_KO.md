@@ -21,6 +21,8 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
+- `OCRWorkflowManager`는 이제 `checkocr2/ocr_workflow_manager.py`에 있으며,
+  `check_capture_ocr.py`는 기존 호출자를 위한 호환 import만 유지한다.
 - 최신 기록 기준 검증은 `ruff`, `pytest` 433개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.

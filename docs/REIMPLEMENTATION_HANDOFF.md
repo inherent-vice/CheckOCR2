@@ -141,6 +141,17 @@ threads and wires OCR worker failures to a log event plus `("stopped", None)`.
 Focused verification passed with `python -m pytest tests\test_worker.py
 tests\test_ocr_actions.py --basetemp $env:TEMP\checkocr2-worker-exception`.
 
+The latest app-shell reduction slice moves `OCRWorkflowManager` into
+`checkocr2/ocr_workflow_manager.py`. The root `check_capture_ocr.py` retains
+the compatibility import for legacy callers, while tests now monkeypatch the
+workflow dependency seams in the extracted module. Focused verification passed
+with `python -m pytest tests\test_ocr_workflow_manager.py
+tests\test_async_ocr_initialization.py tests\test_completion_actions.py
+--basetemp $env:TEMP\checkocr2-ocr-manager-extract`. The full slice gate also
+passed with `ruff`, 433-test `pytest`, `compileall`, benchmark dry-runs, matrix
+dry-run, and source GUI smoke reaching `Ready` with a `1044x788` window and
+clean exit.
+
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
 working while making the typed workflow row snapshot compatible with mutable and

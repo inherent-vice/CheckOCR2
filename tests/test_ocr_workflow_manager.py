@@ -347,17 +347,19 @@ def test_extract_text_detail_zero_ignores_confidence_threshold_for_parity(ocr_mo
     assert manager._last_ocr_confidences == {}
 
 
-def test_ocr_runtime_option_wrappers_delegate_to_package_helpers(ocr_module, monkeypatch):
+def test_ocr_runtime_option_wrappers_delegate_to_package_helpers(
+    ocr_module, ocr_workflow_module, monkeypatch
+):
     manager, _events = make_workflow_manager(ocr_module)
     calls = []
 
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "ocr_detail_level",
         lambda settings_manager: calls.append(("detail", settings_manager)) or 1,
     )
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "minimum_confidence",
         lambda settings_manager, field_key: calls.append(
             ("confidence", settings_manager, field_key)
@@ -373,7 +375,9 @@ def test_ocr_runtime_option_wrappers_delegate_to_package_helpers(ocr_module, mon
     ]
 
 
-def test_extract_text_preserves_legacy_ocr_module_alias_injection(ocr_module, monkeypatch):
+def test_extract_text_preserves_workflow_module_alias_injection(
+    ocr_module, ocr_workflow_module, monkeypatch
+):
     manager, events = make_workflow_manager(ocr_module)
     manager.settings_manager = DummySettings(
         {
@@ -390,22 +394,22 @@ def test_extract_text_preserves_legacy_ocr_module_alias_injection(ocr_module, mo
             return ["reader-result"]
 
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "np",
         SimpleNamespace(array=lambda image: calls.append(("array", image.size)) or "legacy-array"),
     )
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "extract_text_with_confidence",
         lambda results, detail: calls.append(("extract", results, detail)) or ("2026-05-08", 0.4),
     )
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "confidence_is_accepted",
         lambda confidence, threshold: calls.append(("accept", confidence, threshold)) or False,
     )
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "normalize_confidence_threshold",
         lambda threshold: calls.append(("normalize", threshold)) or 0.8,
     )
@@ -429,6 +433,7 @@ def test_extract_text_preserves_legacy_ocr_module_alias_injection(ocr_module, mo
 
 def test_extract_text_uses_temp_cleanup_helper_for_string_sources(
     ocr_module,
+    ocr_workflow_module,
     monkeypatch,
     tmp_path,
 ):
@@ -447,7 +452,7 @@ def test_extract_text_uses_temp_cleanup_helper_for_string_sources(
         return SimpleNamespace(log_event=("cleanup log", "DEBUG"))
 
     manager.ocr_reader = FakeReader()
-    monkeypatch.setattr(ocr_module, "cleanup_temp_ocr_image", fake_cleanup)
+    monkeypatch.setattr(ocr_workflow_module, "cleanup_temp_ocr_image", fake_cleanup)
 
     result = manager._extract_text_with_ocr_attempts_internal(
         str(image_path),
@@ -461,7 +466,9 @@ def test_extract_text_uses_temp_cleanup_helper_for_string_sources(
     assert ("log", "cleanup log", "DEBUG") in list(events.queue)
 
 
-def test_extract_text_records_timing_before_cleanup_failure(ocr_module, monkeypatch, tmp_path):
+def test_extract_text_records_timing_before_cleanup_failure(
+    ocr_module, ocr_workflow_module, monkeypatch, tmp_path
+):
     manager, _events = make_workflow_manager(ocr_module)
     manager.settings_manager = DummySettings({"upscaling_enabled": False})
     image_path = tmp_path / "ABC_date.png"
@@ -475,7 +482,7 @@ def test_extract_text_records_timing_before_cleanup_failure(ocr_module, monkeypa
         raise RuntimeError("cleanup failed")
 
     manager.ocr_reader = FakeReader()
-    monkeypatch.setattr(ocr_module, "cleanup_temp_ocr_image", fail_cleanup)
+    monkeypatch.setattr(ocr_workflow_module, "cleanup_temp_ocr_image", fail_cleanup)
 
     with pytest.raises(RuntimeError, match="cleanup failed"):
         manager._extract_text_with_ocr_attempts_internal(
@@ -489,12 +496,14 @@ def test_extract_text_records_timing_before_cleanup_failure(ocr_module, monkeypa
     assert "date_total_ms" in manager._last_ocr_timings
 
 
-def test_process_single_ocr_wrapper_delegates_to_pair_helper(ocr_module, monkeypatch):
+def test_process_single_ocr_wrapper_delegates_to_pair_helper(
+    ocr_module, ocr_workflow_module, monkeypatch
+):
     manager, _events = make_workflow_manager(ocr_module)
     calls = []
 
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "process_ocr_image_pair",
         lambda *args, **kwargs: calls.append((args, kwargs)) or ("date", "rate"),
     )
@@ -513,6 +522,7 @@ def test_process_single_ocr_wrapper_delegates_to_pair_helper(ocr_module, monkeyp
 
 def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     ocr_module,
+    ocr_workflow_module,
     monkeypatch,
     tmp_path,
 ):
@@ -531,10 +541,10 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
         captured_regions.append(region)
         return FakeScreenshot(region)
 
-    monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
-    monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
-    monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
-    monkeypatch.setattr(ocr_module, "screenshot", fake_screenshot)
+    monkeypatch.setattr(ocr_workflow_module, "copy_text", lambda _text: None)
+    monkeypatch.setattr(ocr_workflow_module, "click", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ocr_workflow_module, "hotkey", lambda *args: None)
+    monkeypatch.setattr(ocr_workflow_module, "screenshot", fake_screenshot)
     coords = {
         "click": (1, 1),
         "all": (0, 0, 20, 20),
@@ -578,7 +588,9 @@ def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     assert captured_regions == [(0, 0, 20, 20), (1, 2, 4, 4), (7, 8, 5, 5)]
 
 
-def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypatch, tmp_path):
+def test_execute_workflow_writes_run_report_with_row_timing(
+    ocr_module, ocr_workflow_module, monkeypatch, tmp_path
+):
     manager, _events = make_workflow_manager(ocr_module)
     manager.ocr_reader = object()
     manager.data_manager.excel_data = [
@@ -599,11 +611,19 @@ def test_execute_workflow_writes_run_report_with_row_timing(ocr_module, monkeypa
         input_excel_path = DummyVar()
 
     ocr_outputs = iter([["2026-05-08"], ["3.5"]])
-    monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
-    monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
-    monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
-    monkeypatch.setattr(ocr_module, "screenshot", lambda region: Image.new("RGB", (20, 20), "white"))
-    monkeypatch.setattr(ocr_module, "read_ocr_text", lambda *args, **kwargs: next(ocr_outputs))
+    monkeypatch.setattr(ocr_workflow_module, "copy_text", lambda _text: None)
+    monkeypatch.setattr(ocr_workflow_module, "click", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ocr_workflow_module, "hotkey", lambda *args: None)
+    monkeypatch.setattr(
+        ocr_workflow_module,
+        "screenshot",
+        lambda region: Image.new("RGB", (20, 20), "white"),
+    )
+    monkeypatch.setattr(
+        ocr_workflow_module,
+        "read_ocr_text",
+        lambda *args, **kwargs: next(ocr_outputs),
+    )
     manager.app = DummyApp()
     ui_settings = {
         "delays": {"paste": 0, "loading": 0},
@@ -710,6 +730,7 @@ def test_execute_workflow_forwards_prepared_run_setup_to_capture(
 
 def test_execute_workflow_writes_detail_one_confidence_to_run_report(
     ocr_module,
+    ocr_workflow_module,
     monkeypatch,
     tmp_path,
 ):
@@ -741,11 +762,19 @@ def test_execute_workflow_writes_detail_one_confidence_to_run_report(
         input_excel_path = DummyVar()
 
     ocr_outputs = iter([[(None, "2026-05-08", 0.91)], [(None, "3.5", 0.82)]])
-    monkeypatch.setattr(ocr_module, "copy_text", lambda _text: None)
-    monkeypatch.setattr(ocr_module, "click", lambda *args, **kwargs: None)
-    monkeypatch.setattr(ocr_module, "hotkey", lambda *args: None)
-    monkeypatch.setattr(ocr_module, "screenshot", lambda region: Image.new("RGB", (20, 20), "white"))
-    monkeypatch.setattr(ocr_module, "read_ocr_text", lambda *args, **kwargs: next(ocr_outputs))
+    monkeypatch.setattr(ocr_workflow_module, "copy_text", lambda _text: None)
+    monkeypatch.setattr(ocr_workflow_module, "click", lambda *args, **kwargs: None)
+    monkeypatch.setattr(ocr_workflow_module, "hotkey", lambda *args: None)
+    monkeypatch.setattr(
+        ocr_workflow_module,
+        "screenshot",
+        lambda region: Image.new("RGB", (20, 20), "white"),
+    )
+    monkeypatch.setattr(
+        ocr_workflow_module,
+        "read_ocr_text",
+        lambda *args, **kwargs: next(ocr_outputs),
+    )
     manager.app = DummyApp()
     ui_settings = {
         "delays": {"paste": 0, "loading": 0},

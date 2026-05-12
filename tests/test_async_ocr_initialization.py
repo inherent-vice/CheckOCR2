@@ -168,13 +168,15 @@ def test_legacy_app_ocr_initialization_method_delegates(ocr_module, monkeypatch)
     assert calls[0][1]["thread_factory"] is ocr_module.threading.Thread
 
 
-def test_legacy_workflow_manager_initialize_ocr_delegates(ocr_module, monkeypatch):
+def test_legacy_workflow_manager_initialize_ocr_delegates(
+    ocr_module, ocr_workflow_module, monkeypatch
+):
     manager, _events = make_workflow_manager_for_initialize(ocr_module)
     reader = object()
     calls = []
 
     monkeypatch.setattr(
-        ocr_module,
+        ocr_workflow_module,
         "initialize_easyocr_reader_with_fallback",
         lambda **kwargs: calls.append(kwargs) or reader,
     )

@@ -355,7 +355,7 @@ def test_legacy_app_completion_methods_delegate(ocr_module, monkeypatch):
     assert calls == [("complete", app, "summary"), ("stopped", app)]
 
 
-def test_legacy_summary_methods_delegate(ocr_module, monkeypatch):
+def test_legacy_summary_methods_delegate(ocr_module, ocr_workflow_module, monkeypatch):
     rows = [{"상태": "완료"}]
     data_manager = SimpleNamespace(excel_data=rows)
     app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
@@ -369,19 +369,29 @@ def test_legacy_summary_methods_delegate(ocr_module, monkeypatch):
         "build_ocr_summary_action",
         lambda actual_rows, total: calls.append((actual_rows, total)) or "summary",
     )
+    monkeypatch.setattr(
+        ocr_workflow_module,
+        "build_ocr_summary_action",
+        lambda actual_rows, total: calls.append((actual_rows, total)) or "summary",
+    )
 
     assert app._generate_ocr_summary_internal(99, 3) == "summary"
     assert manager._generate_ocr_summary_internal(99, 4) == "summary"
     assert calls == [(rows, 3), (rows, 4)]
 
 
-def test_legacy_finalize_processing_methods_delegate(ocr_module, monkeypatch):
+def test_legacy_finalize_processing_methods_delegate(ocr_module, ocr_workflow_module, monkeypatch):
     app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
     manager = ocr_module.OCRWorkflowManager.__new__(ocr_module.OCRWorkflowManager)
     calls = []
 
     monkeypatch.setattr(
         ocr_module,
+        "finalize_processing_states_action",
+        lambda owner: calls.append(owner),
+    )
+    monkeypatch.setattr(
+        ocr_workflow_module,
         "finalize_processing_states_action",
         lambda owner: calls.append(owner),
     )
@@ -392,7 +402,7 @@ def test_legacy_finalize_processing_methods_delegate(ocr_module, monkeypatch):
     assert calls == [app, manager]
 
 
-def test_legacy_finalize_export_methods_delegate(ocr_module, monkeypatch):
+def test_legacy_finalize_export_methods_delegate(ocr_module, ocr_workflow_module, monkeypatch):
     app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
     manager = ocr_module.OCRWorkflowManager.__new__(ocr_module.OCRWorkflowManager)
     manager.app = app
@@ -400,6 +410,11 @@ def test_legacy_finalize_export_methods_delegate(ocr_module, monkeypatch):
 
     monkeypatch.setattr(
         ocr_module,
+        "finalize_export_and_complete_action",
+        lambda *args, **kwargs: calls.append((args, kwargs)),
+    )
+    monkeypatch.setattr(
+        ocr_workflow_module,
         "finalize_export_and_complete_action",
         lambda *args, **kwargs: calls.append((args, kwargs)),
     )

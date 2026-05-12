@@ -62,6 +62,10 @@ Date: 2026-05-12
   `Stopping`, and `Error`.
 - Routed OCR row processing through a workflow seam while preserving existing
   capture/OCR behavior and GUI queue events.
+- Moved the legacy `OCRWorkflowManager` class into
+  `checkocr2/ocr_workflow_manager.py`; `check_capture_ocr.py` now keeps a
+  compatibility import while the workflow dependencies live with the extracted
+  manager module.
 - Extracted screen copy/click/paste-wait/screenshot capture into
   `checkocr2/capture_adapter.py`, preserving detail-image saving, date/rate
   in-memory captures, stop handling during waits, invalid-coordinate logs, and
@@ -448,6 +452,7 @@ Latest code verification on 2026-05-12:
 - `python -m pytest tests\test_options_actions.py tests\test_options_panel.py tests\test_settings_binding.py --basetemp $env:TEMP\checkocr2-options-actions-focused`: 12 passed for upscaling detail show/hide behavior, missing-frame tolerance, legacy wrapper delegation, options-panel wiring, and settings binding compatibility.
 - `python -m pytest tests\test_completion_actions.py tests\test_queue_dispatcher.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-summary-actions-reviewfix`: 23 passed for exact OCR completion summary text, legacy app/workflow-manager summary wrapper delegation, queue-dispatch compatibility, and workflow-manager compatibility.
 - `python -m pytest tests\test_completion_actions.py tests\test_queue_dispatcher.py --basetemp $env:TEMP\checkocr2-completion-actions-green2`: 8 passed for work-completion action behavior, stopped-work finalization, legacy app wrapper delegation, and queue-dispatch compatibility.
+- `python -m pytest tests\test_ocr_workflow_manager.py tests\test_async_ocr_initialization.py tests\test_completion_actions.py --basetemp $env:TEMP\checkocr2-ocr-manager-extract`: 50 passed after moving `OCRWorkflowManager` into `checkocr2/ocr_workflow_manager.py` and retargeting workflow dependency monkeypatches to the extracted module.
 - `python -m pytest tests\test_coordinate_actions.py tests\test_coordinates_panel.py tests\test_overlays.py --basetemp $env:TEMP\checkocr2-coordinate-actions-green2`: 12 passed for coordinate action behavior, legacy app wrapper delegation, coordinates-panel compatibility, and overlay compatibility.
 - `python -m pytest tests\test_main_window.py tests\test_file_panel.py tests\test_grid_panel.py tests\test_log_panel.py tests\test_toolbar.py tests\test_menu.py --basetemp $env:TEMP\checkocr2-main-window`: 8 passed for main-window layout assembly and existing panel/menu/toolbar builders.
 - `python -m pytest tests\test_icons.py --basetemp $env:TEMP\checkocr2-icons2`: 4 passed for icon candidate priority, ICO/PNG application, missing-icon handling, and legacy wrapper delegation.

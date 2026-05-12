@@ -82,3 +82,8 @@ def ocr_module():
     _install_pillow_imagetk_stub()
     sys.modules.pop("check_capture_ocr", None)
     return importlib.import_module("check_capture_ocr")
+
+
+@pytest.fixture(scope="session")
+def ocr_workflow_module(ocr_module):
+    return importlib.import_module("checkocr2.ocr_workflow_manager")
