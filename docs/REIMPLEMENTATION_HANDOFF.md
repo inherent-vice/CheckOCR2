@@ -75,10 +75,10 @@ the Korean parallel-agent plan and workstream split, use
 
 Latest code gate result: `ruff` passed, `pytest` passed with 433 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
-reached `Ready` with a `1216x889` window against the `1000x600` minimum gate.
+reached `Ready` with a `1044x788` window against the `1000x600` minimum gate.
 The latest package gate uses the 2026-05-12 clean PyInstaller release build
-plus real package smoke at about `596.405 MB` with startup `4.36` seconds,
-window size `1216x889`, clean GUI exit code `0`, settings-file verification
+plus real package smoke at about `596.408 MB` with startup `1.187` seconds,
+window size `1044x788`, clean GUI exit code `0`, settings-file verification
 under isolated `APPDATA`, and packaged icon extraction evidence.
 
 The current GUI parity verification slice extends source and package smokes to
@@ -151,6 +151,28 @@ tests\test_async_ocr_initialization.py tests\test_completion_actions.py
 passed with `ruff`, 433-test `pytest`, `compileall`, benchmark dry-runs, matrix
 dry-run, and source GUI smoke reaching `Ready` with a `1044x788` window and
 clean exit.
+
+The newest app-shell reduction slice moves `CheckCaptureOCRApp` into
+`checkocr2/app.py` and turns `check_capture_ocr.py` into a thin compatibility
+launcher/import alias. Importing `check_capture_ocr` now returns the package app
+module, preserving legacy monkeypatch seams while making `checkocr2.app` the
+source of truth. Focused verification passed with `python -m pytest
+tests\test_logging_and_main.py tests\test_async_ocr_initialization.py
+tests\test_completion_actions.py tests\test_coordinate_actions.py
+tests\test_folder_actions.py tests\test_grid_actions.py
+tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py
+tests\test_grid_update_actions.py tests\test_keyboard_actions.py
+tests\test_lifecycle_actions.py tests\test_ocr_actions.py
+tests\test_options_actions.py tests\test_presets.py
+tests\test_runtime_status_actions.py tests\test_section_frame.py
+tests\test_settings_actions.py tests\test_window_actions.py --basetemp
+$env:TEMP\checkocr2-app-shell-extract`. The full source/package gate passed
+with `ruff`, 433-test `pytest`, `compileall`, benchmark dry-runs, matrix
+dry-run, all three source launchers reaching `Ready` with a `1044x788` window
+and clean exit, clean PyInstaller build, and real package smoke at
+`596.408 MB`, `1.187` seconds startup, build date
+`2026-05-12T09:52:07+00:00`, isolated settings-file verification, and clean
+packaged GUI exit.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts

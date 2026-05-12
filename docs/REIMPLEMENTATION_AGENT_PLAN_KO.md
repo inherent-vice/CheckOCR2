@@ -23,8 +23,8 @@
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
-  GUI exit을 검사한다. 확인된 창 크기는 `1216x889`이고, 최신 패키지 크기는
-  약 `596.405 MB`, package smoke startup은 `4.36`초다.
+  GUI exit을 검사한다. 확인된 창 크기는 `1044x788`이고, 최신 패키지 크기는
+  약 `596.408 MB`, package smoke startup은 `1.187`초다.
 - 실제 OCR crop fixture와 동일 입력 10행 live 비교가 아직 없으므로 OCR
   기본값, wait-time, OCR 엔진 교체는 기본값으로 승격하지 않는다.
 

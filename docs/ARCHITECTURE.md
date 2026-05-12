@@ -2,10 +2,10 @@
 
 ## Current Shape
 
-CheckOCR2 is still centered on `check_capture_ocr.py`, which owns the Tkinter
-window, menus, panels, grid, dialogs, and release-compatible behavior. The
-refactor extracts stable, testable seams into `checkocr2/` without removing the
-existing GUI surface.
+CheckOCR2 now uses `checkocr2/app.py` as the Tkinter application shell for the
+window, menus, panels, grid, dialogs, and release-compatible behavior. The root
+`check_capture_ocr.py` file remains a thin compatibility launcher/import alias
+for existing scripts, tests, and packaged entrypoints.
 
 The intended direction is an incremental split, not a rewrite. Every extraction
 must keep the canonical launcher, compatibility launcher, and package launcher
@@ -13,8 +13,11 @@ working.
 
 ## Package Modules
 
-- `checkocr2/main.py` and `checkocr2/app.py`: bootstrap helpers that preserve
-  import and launch compatibility.
+- `check_capture_ocr.py`: root compatibility launcher and import alias for the
+  package app module.
+- `checkocr2/app.py`: Tk application shell and legacy method wrappers for the
+  existing GUI behavior.
+- `checkocr2/main.py`: package bootstrap path used by `python -m checkocr2.main`.
 - `checkocr2/settings.py`: per-user settings store and migration from old
   repo-local settings.
 - `checkocr2/settings_compat.py`: legacy `UnifiedSettingsManager` adapter for
@@ -57,6 +60,9 @@ working.
   crop-save, and capture timing orchestration for date/rate OCR images.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
+- `checkocr2/ocr_workflow_manager.py`: legacy OCR workflow manager adapter that
+  assembles run setup, adapters, report finalization, and queue-compatible
+  events for the Tk shell while keeping the class out of `check_capture_ocr.py`.
 - `checkocr2/workflow_event_bridge.py`: workflow event to legacy Tk queue
   bridge, including row total timing and current row tracking.
 - `checkocr2/workflow_legacy_adapters.py`: legacy capture and EasyOCR adapters
