@@ -12,7 +12,7 @@ from checkocr2.capture_adapter import capture_screenshots
 from checkocr2.data_manager import DataManager
 from checkocr2.events import parse_legacy_grid_update
 from checkocr2.exceptions import OCREngineError
-from checkocr2.image_processing import upscale_image_source
+from checkocr2.image_processing import cleanup_temp_ocr_image, upscale_image_source
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
@@ -472,13 +472,14 @@ class OCRWorkflowManager:
             return ""
         finally:
             self._last_ocr_timings[f"{field_key}_total_ms"] = self._elapsed_ms(extract_started)
-            if isinstance(image_source, str) and not save_details:
-                if os.path.exists(image_source) and ("_date.png" in image_source or "_rate.png" in image_source):
-                    try:
-                        os.remove(image_source)
-                        self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제: {image_source}", "DEBUG"))
-                    except OSError as e_remove:
-                        self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제 실패: {e_remove}", "WARNING"))
+            cleanup = cleanup_temp_ocr_image(
+                image_source,
+                save_details=save_details,
+                field_name=field_name,
+            )
+            if cleanup.log_event is not None:
+                message, level = cleanup.log_event
+                self.message_queue.put(("log", message, level))
 
     def _ocr_detail_level(self):
         return ocr_detail_level(self.settings_manager)

@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 364 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 368 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after OCR runtime-options extraction plus real package
-smoke at about `596.395 MB` with startup `3.734` seconds and settings-file
+release build after OCR temp-cleanup extraction plus real package
+smoke at about `596.395 MB` with startup `1.860` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -237,6 +237,13 @@ field-specific minimum confidence lookup into `checkocr2/ocr_runtime_options.py`
 focused tests preserve the legacy detail-one-only behavior, invalid-value
 fallback to `0`, field key construction, and workflow-manager wrapper
 delegation. Source GUI smoke and real package smoke both pass for this slice.
+
+The latest OCR temp-cleanup slice moved temporary date/rate crop cleanup
+decisions into `checkocr2/image_processing.py`; focused tests preserve
+save-detail no-op behavior, date/rate filename matching, non-temp path no-op
+behavior, deletion success logs, deletion failure warnings, and workflow-manager
+wrapper delegation. Source GUI smoke and real package smoke both pass for this
+slice.
 
 ## Commands To Re-Run Before Release
 

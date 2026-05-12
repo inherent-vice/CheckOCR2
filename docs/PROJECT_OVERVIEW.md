@@ -44,8 +44,9 @@ the package bootstrap and remains available for existing shortcuts.
 - `ocr_field_analysis.py`: date/rate field validation results and legacy
   debug-log event text, returned as a pure `OcrFieldAnalysis` result before the
   workflow manager emits legacy queue events.
-- `image_processing.py`: crop validation, OCR crop upscaling, and reusable
-  image-source/upscale metadata helpers.
+- `image_processing.py`: crop validation, OCR crop upscaling, reusable
+  image-source/upscale metadata helpers, and temporary date/rate crop cleanup
+  decisions.
 - `ocr_engine.py`: EasyOCR adapter boundary.
 - `ocr_reader_lifecycle.py`: EasyOCR startup, fallback, settings reset, and
   fatal initialization message queue behavior.

@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 
 from checkocr2.image_processing import (
+    cleanup_temp_ocr_image,
     screenshot_region,
     upscale_image,
     upscale_image_source,
@@ -84,6 +85,64 @@ def test_upscale_image_source_reports_sizes_and_upscaled_flag(tmp_path):
     assert from_path.original_size == (10, 6)
     assert from_path.new_size == (20, 12)
     assert from_path.was_upscaled is True
+
+
+def test_cleanup_temp_ocr_image_removes_legacy_date_and_rate_paths(tmp_path):
+    date_path = tmp_path / "ABC_date.png"
+    rate_path = tmp_path / "ABC_rate.png"
+    date_path.write_text("date", encoding="utf-8")
+    rate_path.write_text("rate", encoding="utf-8")
+
+    date_result = cleanup_temp_ocr_image(str(date_path), save_details=False, field_name="날짜")
+    rate_result = cleanup_temp_ocr_image(str(rate_path), save_details=False, field_name="금리")
+
+    assert date_result.removed is True
+    assert date_result.log_event == (
+        f"임시 날짜 이미지 파일 삭제: {date_path}",
+        "DEBUG",
+    )
+    assert not date_path.exists()
+    assert rate_result.removed is True
+    assert rate_result.log_event == (
+        f"임시 금리 이미지 파일 삭제: {rate_path}",
+        "DEBUG",
+    )
+    assert not rate_path.exists()
+
+
+def test_cleanup_temp_ocr_image_ignores_non_temp_paths_and_detail_saves(tmp_path):
+    detail_path = tmp_path / "ABC_date.png"
+    other_path = tmp_path / "ABC_other.png"
+    detail_path.write_text("date", encoding="utf-8")
+    other_path.write_text("other", encoding="utf-8")
+
+    assert cleanup_temp_ocr_image(
+        str(detail_path), save_details=True, field_name="날짜"
+    ).log_event is None
+    assert cleanup_temp_ocr_image(
+        str(other_path), save_details=False, field_name="날짜"
+    ).log_event is None
+    assert cleanup_temp_ocr_image(
+        object(), save_details=False, field_name="날짜"
+    ).log_event is None
+    assert detail_path.exists()
+    assert other_path.exists()
+
+
+def test_cleanup_temp_ocr_image_reports_remove_failure():
+    result = cleanup_temp_ocr_image(
+        "ABC_date.png",
+        save_details=False,
+        field_name="날짜",
+        exists_func=lambda _path: True,
+        remove_func=lambda _path: (_ for _ in ()).throw(OSError("denied")),
+    )
+
+    assert result.removed is False
+    assert result.log_event == (
+        "임시 날짜 이미지 파일 삭제 실패: denied",
+        "WARNING",
+    )
 
 
 def test_ocr_text_helpers_match_existing_normalization():

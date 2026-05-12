@@ -36,9 +36,9 @@ working.
   and legacy debug-log event text. It returns `OcrFieldAnalysis(value,
   log_events)` and stays Tk-free; the legacy workflow manager only converts
   those log events into `("log", message, level)` queue events.
-- `checkocr2/image_processing.py`: crop validation, pure image upscaling, and
-  reusable image-source loading/upscale result metadata for OCR preprocessing
-  helpers.
+- `checkocr2/image_processing.py`: crop validation, pure image upscaling,
+  reusable image-source loading/upscale result metadata, and temporary date/rate
+  crop cleanup decisions for OCR preprocessing helpers.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
   including `detail=1` text/confidence extraction helpers.
 - `checkocr2/ocr_reader_lifecycle.py`: EasyOCR reader startup lifecycle,

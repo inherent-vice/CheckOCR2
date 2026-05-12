@@ -373,6 +373,40 @@ def test_ocr_runtime_option_wrappers_delegate_to_package_helpers(ocr_module, mon
     ]
 
 
+def test_extract_text_uses_temp_cleanup_helper_for_string_sources(
+    ocr_module,
+    monkeypatch,
+    tmp_path,
+):
+    manager, events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings({"upscaling_enabled": False})
+    image_path = tmp_path / "ABC_date.png"
+    Image.new("RGB", (8, 8), "white").save(image_path)
+    cleanup_calls = []
+
+    class FakeReader:
+        def readtext(self, image, detail=0, **kwargs):
+            return ["2026-05-08"]
+
+    def fake_cleanup(image_source, *, save_details, field_name):
+        cleanup_calls.append((image_source, save_details, field_name))
+        return SimpleNamespace(log_event=("cleanup log", "DEBUG"))
+
+    manager.ocr_reader = FakeReader()
+    monkeypatch.setattr(ocr_module, "cleanup_temp_ocr_image", fake_cleanup)
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        str(image_path),
+        manager._analyze_date_results_internal,
+        "날짜",
+        save_details=False,
+    )
+
+    assert result == "2026/05/08"
+    assert cleanup_calls == [(str(image_path), False, "날짜")]
+    assert ("log", "cleanup log", "DEBUG") in list(events.queue)
+
+
 def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     ocr_module,
     monkeypatch,

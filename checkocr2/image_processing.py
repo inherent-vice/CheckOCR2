@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 from PIL import Image
@@ -22,6 +23,12 @@ class UpscaledImage:
     original_size: tuple[int, int]
     new_size: tuple[int, int]
     was_upscaled: bool
+
+
+@dataclass(frozen=True)
+class TempImageCleanup:
+    removed: bool
+    log_event: tuple[str, str] | None = None
 
 
 def upscale_image(
@@ -71,3 +78,31 @@ def screenshot_region(region: Region) -> tuple[int, int, int, int]:
     if not region.is_valid:
         raise ValueError(f"Invalid screenshot region: {region.as_tuple()}")
     return (region.x1, region.y1, region.width, region.height)
+
+
+def cleanup_temp_ocr_image(
+    image_source: str | object,
+    *,
+    save_details: bool,
+    field_name: str,
+    exists_func=os.path.exists,
+    remove_func=os.remove,
+) -> TempImageCleanup:
+    if not isinstance(image_source, str) or save_details:
+        return TempImageCleanup(False)
+    if not exists_func(image_source):
+        return TempImageCleanup(False)
+    if "_date.png" not in image_source and "_rate.png" not in image_source:
+        return TempImageCleanup(False)
+
+    try:
+        remove_func(image_source)
+    except OSError as exc:
+        return TempImageCleanup(
+            False,
+            (f"임시 {field_name} 이미지 파일 삭제 실패: {exc}", "WARNING"),
+        )
+    return TempImageCleanup(
+        True,
+        (f"임시 {field_name} 이미지 파일 삭제: {image_source}", "DEBUG"),
+    )
