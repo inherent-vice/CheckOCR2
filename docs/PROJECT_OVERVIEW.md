@@ -41,6 +41,9 @@ the package bootstrap and remains available for existing shortcuts.
 - `excel_io.py`: Excel read/write behavior.
 - `table_model.py`: grid row and status rules.
 - `ocr_text.py`: date and rate normalization.
+- `ocr_field_analysis.py`: date/rate field validation results and legacy
+  debug-log event text, returned as a pure `OcrFieldAnalysis` result before the
+  workflow manager emits legacy queue events.
 - `image_processing.py`: crop validation, OCR crop upscaling, and reusable
   image-source/upscale metadata helpers.
 - `ocr_engine.py`: EasyOCR adapter boundary.
@@ -71,6 +74,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `docs/IMPLEMENTATION_STATUS.md`: completed work and remaining gates.
 - `docs/GUI_PARITY_CHECKLIST.md`: manual parity checklist before UI changes.
 - `docs/OCR_BENCHMARK_PLAN.md`: fixture, benchmark, and matrix-sweep plan.
+- `docs/OCR_FIELD_ANALYSIS_CONTRACT.md`: date/rate OCR value and legacy log
+  event compatibility contract.
 - `docs/RUN_REPORT.md`: JSON report schema and usage.
 
 ## Known Constraints

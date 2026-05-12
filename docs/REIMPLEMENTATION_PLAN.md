@@ -119,6 +119,7 @@ checkocr2/
   table_model.py                      # row CRUD, state counts, status rules
   excel_io.py                         # Excel read/write only
   image_processing.py                 # crop validation, upscaling, preprocessing metadata
+  ocr_field_analysis.py               # date/rate OCR field decisions and log text
   ocr_engine.py                       # EasyOCR/RapidOCR/etc adapter boundary
   capture_adapter.py                  # screen copy/click/screenshot capture
   screen_automation.py                # pyautogui and clipboard adapter

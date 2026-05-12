@@ -21,6 +21,7 @@ from checkocr2.ocr_engine import (
     normalize_confidence_threshold,
     read_ocr_text,
 )
+from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
 from checkocr2.ocr_text import (
     clean_date_text,
     clean_rate_text,
@@ -499,30 +500,16 @@ class OCRWorkflowManager:
         return self.settings_manager.get_advanced(f"min_{field_key}_confidence", 0.0)
     
     def _analyze_date_results_internal(self, raw_text, field_name="날짜"):
-        if not raw_text or not raw_text.strip():
-            self.message_queue.put(("log", f"[{field_name}] 텍스트가 비어있습니다.", "DEBUG"))
-            return ""
-        self.message_queue.put(("log", f"[{field_name}] 원본 텍스트: '{raw_text}'", "DEBUG"))
-        cleaned_text = self._clean_date_text_internal(raw_text)
-        if self._is_valid_date_format_internal(cleaned_text):
-            self.message_queue.put(("log", f"[{field_name}] 유효한 날짜: '{cleaned_text}'", "DEBUG"))
-            return cleaned_text
-        else:
-            self.message_queue.put(("log", f"[{field_name}] 유효하지 않은 날짜 형식: '{cleaned_text}' (원본: '{raw_text}')", "DEBUG"))
-            return "" # 빈 문자열 반환하여 그리드에 표시되지 않도록
+        result = analyze_date_field(raw_text, field_name)
+        for message, level in result.log_events:
+            self.message_queue.put(("log", message, level))
+        return result.value
 
     def _analyze_rate_results_internal(self, raw_text, field_name="금리"):
-        if not raw_text or not raw_text.strip():
-            self.message_queue.put(("log", f"[{field_name}] 텍스트가 비어있습니다.", "DEBUG"))
-            return ""
-        self.message_queue.put(("log", f"[{field_name}] 원본 텍스트: '{raw_text}'", "DEBUG"))
-        cleaned_text = self._clean_rate_text_internal(raw_text)
-        if self._is_valid_rate_format_internal(cleaned_text):
-            self.message_queue.put(("log", f"[{field_name}] 유효한 금리: '{cleaned_text}'", "DEBUG"))
-            return cleaned_text
-        else:
-            self.message_queue.put(("log", f"[{field_name}] 유효하지 않은 금리 형식: '{cleaned_text}' (원본: '{raw_text}')", "DEBUG"))
-            return ""
+        result = analyze_rate_field(raw_text, field_name)
+        for message, level in result.log_events:
+            self.message_queue.put(("log", message, level))
+        return result.value
 
     def _is_valid_date_format_internal(self, date_str):
         return is_valid_date_format(date_str)

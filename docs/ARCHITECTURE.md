@@ -32,6 +32,10 @@ working.
   clipboard selection text, grid render values/tags, grid status summaries, and
   final status normalization.
 - `checkocr2/ocr_text.py`: OCR date/rate text normalization.
+- `checkocr2/ocr_field_analysis.py`: pure date/rate OCR field value decisions
+  and legacy debug-log event text. It returns `OcrFieldAnalysis(value,
+  log_events)` and stays Tk-free; the legacy workflow manager only converts
+  those log events into `("log", message, level)` queue events.
 - `checkocr2/image_processing.py`: crop validation, pure image upscaling, and
   reusable image-source loading/upscale result metadata for OCR preprocessing
   helpers.
@@ -138,6 +142,7 @@ working.
 ```text
 Tk app -> WorkController -> worker thread -> OCRWorkflowManager/WorkflowRunner
 Workflow -> screen automation -> screenshots -> preprocessing -> OCR engine
+OCR text -> field analysis -> legacy log/value queue events
 Workflow -> queue events -> Tk app -> grid/log/dialog updates
 Tk app -> Excel export -> run report finalization
 ```
@@ -186,3 +191,6 @@ clipboard/screen functions, and direct queue inspection.
 
 Use `docs/GUI_PARITY_CHECKLIST.md` before UI-moving changes, and keep
 `docs/REIMPLEMENTATION_PLAN.md` as the migration roadmap.
+
+The date/rate field-analysis compatibility contract is documented in
+`docs/OCR_FIELD_ANALYSIS_CONTRACT.md`.

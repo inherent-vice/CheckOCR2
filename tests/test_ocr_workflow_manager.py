@@ -70,6 +70,93 @@ def test_rate_text_cleaning_characterizes_existing_formats(ocr_module):
     assert manager._clean_rate_text_internal("rate: 0.25%") == "0.250"
 
 
+@pytest.mark.parametrize(
+    (
+        "method_name",
+        "raw_text",
+        "field_name",
+        "expected_value",
+        "expected_log_events",
+    ),
+    [
+        (
+            "_analyze_date_results_internal",
+            None,
+            None,
+            "",
+            [("[날짜] 텍스트가 비어있습니다.", "DEBUG")],
+        ),
+        (
+            "_analyze_date_results_internal",
+            "2026-05-08",
+            "결제일",
+            "2026/05/08",
+            [
+                ("[결제일] 원본 텍스트: '2026-05-08'", "DEBUG"),
+                ("[결제일] 유효한 날짜: '2026/05/08'", "DEBUG"),
+            ],
+        ),
+        (
+            "_analyze_date_results_internal",
+            "not a date",
+            None,
+            "",
+            [
+                ("[날짜] 원본 텍스트: 'not a date'", "DEBUG"),
+                ("[날짜] 유효하지 않은 날짜 형식: 'not a date' (원본: 'not a date')", "DEBUG"),
+            ],
+        ),
+        (
+            "_analyze_rate_results_internal",
+            "   ",
+            None,
+            "",
+            [("[금리] 텍스트가 비어있습니다.", "DEBUG")],
+        ),
+        (
+            "_analyze_rate_results_internal",
+            "3.5%",
+            "표면금리",
+            "3.500",
+            [
+                ("[표면금리] 원본 텍스트: '3.5%'", "DEBUG"),
+                ("[표면금리] 유효한 금리: '3.500'", "DEBUG"),
+            ],
+        ),
+        (
+            "_analyze_rate_results_internal",
+            "rate",
+            None,
+            "",
+            [
+                ("[금리] 원본 텍스트: 'rate'", "DEBUG"),
+                ("[금리] 유효하지 않은 금리 형식: '' (원본: 'rate')", "DEBUG"),
+            ],
+        ),
+    ],
+)
+def test_date_and_rate_analysis_wrappers_emit_legacy_logs(
+    ocr_module,
+    method_name,
+    raw_text,
+    field_name,
+    expected_value,
+    expected_log_events,
+):
+    manager, events = make_workflow_manager(ocr_module)
+
+    analyze = getattr(manager, method_name)
+    if field_name is None:
+        result = analyze(raw_text)
+    else:
+        result = analyze(raw_text, field_name)
+
+    assert result == expected_value
+    assert list(events.queue) == [
+        ("log", message, level) for message, level in expected_log_events
+    ]
+
+
 def test_image_upscaling_resizes_pil_images_without_ocr(ocr_module):
     manager, _events = make_workflow_manager(ocr_module)
     source = Image.new("RGB", (8, 5), "white")

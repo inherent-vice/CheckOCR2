@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 336 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 351 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after settings compatibility adapter extraction plus real package
-smoke at about `596.391 MB` with startup `3.891` seconds and settings-file
+release build after OCR field-analysis extraction plus real package
+smoke at about `596.392 MB` with startup `3.203` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -208,6 +208,16 @@ The latest settings compatibility slice moved `UnifiedSettingsManager` into
 `checkocr2/settings_compat.py`; focused tests preserve fallback defaults after
 settings load errors and automatic preset `created_at` timestamps. Source and
 package smoke both pass for this slice.
+
+The latest OCR field-analysis slice moved date/rate value decisions and legacy
+debug-log event text into `checkocr2/ocr_field_analysis.py`; focused tests
+preserve empty, whitespace, `None`, valid, and invalid field logs plus
+legacy workflow-manager wrapper queue events. The compatibility contract is
+now documented in `docs/OCR_FIELD_ANALYSIS_CONTRACT.md`: the helper stays
+Tk-free, accepts `raw_text: str | None`, returns
+`OcrFieldAnalysis(value, log_events)`, and the manager wrapper only emits
+`("log", message, level)` queue events in helper order. Source GUI smoke and
+real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

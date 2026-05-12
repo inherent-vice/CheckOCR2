@@ -153,6 +153,12 @@ checkocr2/
 Keep `check_capture_ocr.py` as a thin launcher during the migration. Move one
 class at a time and run tests after each move.
 
+Current status update, 2026-05-12: the date/rate OCR field decision logic has
+been extracted into `checkocr2/ocr_field_analysis.py`. The pure helper returns
+`OcrFieldAnalysis(value, log_events)`, while the legacy workflow manager keeps
+emitting the same `("log", message, level)` queue events. The exact value/log
+contract is documented in `docs/OCR_FIELD_ANALYSIS_CONTRACT.md`.
+
 ## Phase 2: Runtime Performance And Responsiveness
 
 Target: 1-2 weeks.

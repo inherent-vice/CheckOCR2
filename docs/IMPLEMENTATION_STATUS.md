@@ -39,6 +39,13 @@ Date: 2026-05-12
   exposed through `--allowlist-mode field` and matrix `--allowlist-modes`.
 - Added runtime EasyOCR `detail=1` support behind `ocr_detail_level`, with
   optional date/rate confidence thresholds and run-report confidence fields.
+- Moved date/rate OCR field result decisions and legacy debug-log event text
+  into `checkocr2/ocr_field_analysis.py`, leaving the workflow manager to emit
+  the same queue events and preserve wrapper compatibility.
+- Documented the `OcrFieldAnalysis(value, log_events)` compatibility contract
+  in `docs/OCR_FIELD_ANALYSIS_CONTRACT.md`, including exact queue shape,
+  default field labels, empty/valid/invalid rules, and focused verification
+  commands.
 - Moved reusable OCR crop image-source loading and upscaling size/changed-state
   calculation into `checkocr2/image_processing.py`, leaving the legacy workflow
   manager to preserve existing OCR image-load timing, queue log text, object
@@ -298,13 +305,19 @@ Manual GUI smoke remains required after startup, threading, UI state, or
 packaging changes. Launch the canonical app, compatibility launcher, and package
 launcher, then confirm the window title and OCR-ready transition.
 
+For date/rate OCR field parsing changes, also review
+`docs/OCR_FIELD_ANALYSIS_CONTRACT.md` and preserve the documented
+`OcrFieldAnalysis(value, log_events)` contract before changing helper or manager
+behavior.
+
 Latest code verification on 2026-05-12:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-settings-compat`: 336 passed after settings compatibility adapter extraction, OCR upscaling helper extraction, section-frame builder extraction, window-centering action extraction, app lifecycle action extraction, processing-state finalization action extraction, final-export completion action extraction, final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, grid context-menu extraction, grid-edit action extraction, grid-refresh action extraction, grid-tag styling extraction, grid-update action extraction, keyboard-action extraction, runtime-status action extraction, settings-action extraction, log-action extraction, OCR run/stop and input-validation action extraction, options-action extraction, work-completion and summary action extraction, coordinate capture/preview action extraction, Excel load/output-folder action extraction, source GUI smoke extraction, screen-capture adapter extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-ocr-field`: 351 passed after OCR field-analysis extraction, settings compatibility adapter extraction, OCR upscaling helper extraction, section-frame builder extraction, window-centering action extraction, app lifecycle action extraction, processing-state finalization action extraction, final-export completion action extraction, final-export parser extraction, grid-update row mutation extraction, grid status/render extraction, grid-action extraction, grid context-menu extraction, grid-edit action extraction, grid-refresh action extraction, grid-tag styling extraction, grid-update action extraction, keyboard-action extraction, runtime-status action extraction, settings-action extraction, log-action extraction, OCR run/stop and input-validation action extraction, options-action extraction, work-completion and summary action extraction, coordinate capture/preview action extraction, Excel load/output-folder action extraction, source GUI smoke extraction, screen-capture adapter extraction, OCR-start validation extraction, preset controller extraction, dialog extraction, file-dialog path extraction, application-icon extraction, main-window layout extraction, package-smoke status extraction, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary coverage, DataManager extraction coverage, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
+- `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: source GUI fast-OCR smoke passed after OCR field-analysis extraction with startup `1.016` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: passed after capture-adapter extraction with startup `1.031` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: passed after grid context-menu extraction with startup `1.031` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: passed after log-action extraction with startup `1.016` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
@@ -417,7 +430,7 @@ Latest package verification on 2026-05-12:
 - Clean release venv build for the latest package-affecting app code with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after settings compatibility adapter extraction.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5`: real packaged EasyOCR initialization smoke passed with package size `596.391 MB`, startup time `3.891` seconds, metadata build date `2026-05-12T02:10:24+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5`: real packaged EasyOCR initialization smoke passed with package size `596.392 MB`, startup time `3.203` seconds, metadata build date `2026-05-12T02:23:22+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
 
 Known build warnings: PyInstaller still reports optional `tensorboard`
 collection failure for `torch.utils.tensorboard`; the clean release venv keeps
