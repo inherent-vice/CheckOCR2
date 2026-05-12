@@ -64,11 +64,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 325 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 334 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after section-frame builder extraction plus real package smoke
-at about `596.390 MB` with startup `1.719` seconds and settings-file
+release build after OCR upscaling helper extraction plus real package smoke at
+about `596.390 MB` with startup `3.218` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -194,6 +194,14 @@ title label styling, default and fill-parent packing, returned content-frame
 behavior, typed host/theme-manager protocol coverage, and positional legacy
 wrapper compatibility. Source GUI fast-OCR smoke and real package smoke both
 pass for this slice.
+
+The latest OCR preprocessing slice moved reusable image-source loading and
+upscaling size/changed-state calculation into `checkocr2/image_processing.py`;
+focused tests preserve path input, supported and unknown resampling methods,
+success logging only for resized images, warning fallback logging, logger
+exception calls, original-object fallback behavior, and legacy path-load
+failure re-raise behavior. Source GUI fast-OCR smoke and real package smoke
+both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

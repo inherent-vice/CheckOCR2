@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from PIL import Image
 
 from .models import Region
@@ -12,6 +14,14 @@ RESAMPLING_METHODS = {
     "BILINEAR": Image.Resampling.BILINEAR,
     "NEAREST": Image.Resampling.NEAREST,
 }
+
+
+@dataclass(frozen=True)
+class UpscaledImage:
+    image: Image.Image
+    original_size: tuple[int, int]
+    new_size: tuple[int, int]
+    was_upscaled: bool
 
 
 def upscale_image(
@@ -30,6 +40,29 @@ def upscale_image(
     new_height = int(image.height * factor)
     resampling = RESAMPLING_METHODS.get(method, Image.Resampling.LANCZOS)
     return image.resize((new_width, new_height), resampling)
+
+
+def upscale_image_source(
+    image_source: str | Image.Image,
+    *,
+    enabled: bool = True,
+    factor: float = 2.0,
+    method: str = "LANCZOS",
+) -> UpscaledImage:
+    image = Image.open(image_source) if isinstance(image_source, str) else image_source
+    original_size = image.size
+    upscaled_image = upscale_image(
+        image,
+        enabled=enabled,
+        factor=factor,
+        method=method,
+    )
+    return UpscaledImage(
+        image=upscaled_image,
+        original_size=original_size,
+        new_size=upscaled_image.size,
+        was_upscaled=upscaled_image is not image,
+    )
 
 
 def screenshot_region(region: Region) -> tuple[int, int, int, int]:

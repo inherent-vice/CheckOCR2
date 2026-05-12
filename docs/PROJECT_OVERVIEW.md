@@ -40,7 +40,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `excel_io.py`: Excel read/write behavior.
 - `table_model.py`: grid row and status rules.
 - `ocr_text.py`: date and rate normalization.
-- `image_processing.py`: crop validation and image upscaling.
+- `image_processing.py`: crop validation, OCR crop upscaling, and reusable
+  image-source/upscale metadata helpers.
 - `ocr_engine.py`: EasyOCR adapter boundary.
 - `screen_automation.py`: pyautogui and clipboard wrappers.
 - `workflow.py`: row processing workflow outside Tkinter.

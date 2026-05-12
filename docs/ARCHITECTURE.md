@@ -30,7 +30,9 @@ working.
   clipboard selection text, grid render values/tags, grid status summaries, and
   final status normalization.
 - `checkocr2/ocr_text.py`: OCR date/rate text normalization.
-- `checkocr2/image_processing.py`: crop validation and upscaling.
+- `checkocr2/image_processing.py`: crop validation, pure image upscaling, and
+  reusable image-source loading/upscale result metadata for OCR preprocessing
+  helpers.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
   including `detail=1` text/confidence extraction helpers.
 - `checkocr2/capture_adapter.py`: screen-copy, click, paste-wait, screenshot,

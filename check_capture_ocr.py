@@ -14,7 +14,7 @@ from checkocr2.capture_adapter import capture_screenshots
 from checkocr2.data_manager import DataManager
 from checkocr2.events import parse_legacy_grid_update
 from checkocr2.exceptions import OCREngineError, SettingsError
-from checkocr2.image_processing import upscale_image
+from checkocr2.image_processing import upscale_image_source
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
@@ -592,24 +592,18 @@ class OCRWorkflowManager:
             PIL Image 객체 (업스케일링 적용된)
         """
         try:
-            # 이미지 로드
-            if isinstance(image_source, str):
-                original_img = Image.open(image_source)
-            else:
-                original_img = image_source
-            
-            original_width, original_height = original_img.size
-            upscaled_img = upscale_image(
-                original_img,
+            result = upscale_image_source(
+                image_source,
                 enabled=enable_upscaling,
                 factor=upscaling_factor,
                 method=upscaling_method,
             )
-            new_width, new_height = upscaled_img.size
-            if upscaled_img is not original_img:
+            original_width, original_height = result.original_size
+            new_width, new_height = result.new_size
+            if result.was_upscaled:
                 self.message_queue.put(("log", f"이미지 업스케일링 완료: {original_width}x{original_height} → {new_width}x{new_height} ({upscaling_method})", "DEBUG"))
             
-            return upscaled_img
+            return result.image
             
         except (AttributeError, OSError, TypeError, ValueError) as e:
             self.message_queue.put(("log", f"이미지 업스케일링 실패: {e}, 원본 이미지 사용", "WARNING"))

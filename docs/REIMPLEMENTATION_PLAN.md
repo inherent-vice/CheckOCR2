@@ -117,7 +117,7 @@ checkocr2/
   data_manager.py                     # Excel grid state and export events
   table_model.py                      # row CRUD, state counts, status rules
   excel_io.py                         # Excel read/write only
-  image_processing.py                 # crop validation, upscaling, preprocessing
+  image_processing.py                 # crop validation, upscaling, preprocessing metadata
   ocr_engine.py                       # EasyOCR/RapidOCR/etc adapter boundary
   capture_adapter.py                  # screen copy/click/screenshot capture
   screen_automation.py                # pyautogui and clipboard adapter
@@ -207,7 +207,9 @@ Tasks:
 - Move UNC/path cleanup and output naming to `paths.py`.
 - Move date/rate parsing and validation into a pure parser module or
   `image_processing.py` if kept OCR-adjacent.
-- Move upscaling and crop validation into `image_processing.py`.
+- Done for reusable upscaling, image-source metadata, and crop validation in
+  `image_processing.py`; remaining OCR image-load timing stays in the legacy
+  workflow path until the workflow extraction can preserve run-report timing.
 - Move row CRUD and status finalization into `table_model.py`.
 - Move Excel import/export to `excel_io.py`.
 

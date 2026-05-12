@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from PIL import Image
 
-from checkocr2.image_processing import screenshot_region, upscale_image
+from checkocr2.image_processing import (
+    screenshot_region,
+    upscale_image,
+    upscale_image_source,
+)
 from checkocr2.models import (
     CODE_COL,
     DATE_COL,
@@ -51,6 +56,34 @@ def test_image_helpers_upscale_and_validate_regions():
     assert upscale_image(image, enabled=False, factor=3).size == (10, 6)
     assert upscale_image(image, enabled=True, factor=2.5, method="BICUBIC").size == (25, 15)
     assert screenshot_region(Region(1, 2, 11, 8)) == (1, 2, 10, 6)
+
+
+@pytest.mark.parametrize("method", ["LANCZOS", "BICUBIC", "BILINEAR", "UNKNOWN"])
+def test_upscale_image_accepts_supported_methods_and_unknown_fallback(method):
+    image = Image.new("RGB", (10, 6), "white")
+
+    result = upscale_image(image, enabled=True, factor=2, method=method)
+
+    assert result.size == (20, 12)
+
+
+def test_upscale_image_source_reports_sizes_and_upscaled_flag(tmp_path):
+    image = Image.new("RGB", (10, 6), "white")
+    image_path = tmp_path / "crop.png"
+    image.save(image_path)
+
+    disabled = upscale_image_source(image, enabled=False, factor=3)
+    from_path = upscale_image_source(
+        str(image_path), enabled=True, factor=2, method="NEAREST"
+    )
+
+    assert disabled.image is image
+    assert disabled.original_size == (10, 6)
+    assert disabled.new_size == (10, 6)
+    assert disabled.was_upscaled is False
+    assert from_path.original_size == (10, 6)
+    assert from_path.new_size == (20, 12)
+    assert from_path.was_upscaled is True
 
 
 def test_ocr_text_helpers_match_existing_normalization():

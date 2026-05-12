@@ -6,6 +6,7 @@ import queue
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from PIL import Image
 
 from checkocr2 import data_manager as data_manager_module
@@ -79,6 +80,70 @@ def test_image_upscaling_resizes_pil_images_without_ocr(ocr_module):
     assert disabled is source
     assert upscaled.size == (20, 12)
     assert source.size == (8, 5)
+
+
+def test_image_upscaling_logs_only_when_resized(ocr_module):
+    manager, events = make_workflow_manager(ocr_module)
+    source = Image.new("RGB", (8, 5), "white")
+
+    manager._apply_image_upscaling(source, False, 4.0, "LANCZOS")
+    manager._apply_image_upscaling(source, True, 2.5, "BILINEAR")
+
+    assert list(events.queue) == [
+        ("log", "이미지 업스케일링 완료: 8x5 → 20x12 (BILINEAR)", "DEBUG")
+    ]
+
+
+def test_image_upscaling_failure_logs_and_returns_original_object(ocr_module):
+    manager, events = make_workflow_manager(ocr_module)
+    exception_messages = []
+    manager.logger = SimpleNamespace(exception=exception_messages.append)
+    source = object()
+
+    result = manager._apply_image_upscaling(source, True, 2.0, "LANCZOS")
+
+    assert result is source
+    event = events.get_nowait()
+    assert event[0] == "log"
+    assert "이미지 업스케일링 실패" in event[1]
+    assert event[2] == "WARNING"
+    assert exception_messages == ["이미지 업스케일링 중 예외 발생"]
+
+
+def test_image_upscaling_accepts_path_input_and_logs_when_resized(
+    ocr_module,
+    tmp_path,
+):
+    manager, events = make_workflow_manager(ocr_module)
+    image_path = tmp_path / "crop.png"
+    Image.new("RGB", (8, 5), "white").save(image_path)
+
+    disabled = manager._apply_image_upscaling(str(image_path), False, 4.0, "LANCZOS")
+    resized = manager._apply_image_upscaling(str(image_path), True, 2.0, "UNKNOWN")
+
+    assert disabled.size == (8, 5)
+    assert resized.size == (16, 10)
+    assert list(events.queue) == [
+        ("log", "이미지 업스케일링 완료: 8x5 → 16x10 (UNKNOWN)", "DEBUG")
+    ]
+
+
+def test_image_upscaling_path_load_failure_keeps_legacy_reraise_after_warning(
+    ocr_module,
+    tmp_path,
+):
+    manager, events = make_workflow_manager(ocr_module)
+    exception_messages = []
+    manager.logger = SimpleNamespace(exception=exception_messages.append)
+
+    with pytest.raises(OSError):
+        manager._apply_image_upscaling(str(tmp_path / "missing.png"), True, 2.0, "LANCZOS")
+
+    event = events.get_nowait()
+    assert event[0] == "log"
+    assert "이미지 업스케일링 실패" in event[1]
+    assert event[2] == "WARNING"
+    assert exception_messages == ["이미지 업스케일링 중 예외 발생"]
 
 
 def test_extract_text_uses_detail_one_confidence_when_enabled(ocr_module):
