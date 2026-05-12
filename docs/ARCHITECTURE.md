@@ -62,6 +62,8 @@ working.
   controller logic.
 - `checkocr2/ui/toolbar.py`: top toolbar with OCR start/stop controls and
   theme selection.
+- `checkocr2/ui/window_actions.py`: window geometry helpers, including
+  legacy integer-centered startup positioning.
 - `checkocr2/ui/dialogs.py`: keyboard-shortcut and about dialogs, including
   build metadata text.
 - `checkocr2/ui/file_dialogs.py`: file/open-folder dialog path preparation,

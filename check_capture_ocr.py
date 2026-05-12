@@ -180,6 +180,7 @@ from checkocr2.ui.settings_binding import (
     save_advanced_settings,
 )
 from checkocr2.ui.theme import ThemeManager
+from checkocr2.ui.window_actions import center_window as center_window_action
 from checkocr2.work_controller import WorkController
 from checkocr2.workflow import (
     CapturedImages,
@@ -711,12 +712,7 @@ class CheckCaptureOCRApp(tk.Tk):
         apply_application_icon(self)
 
     def center_window(self):
-        self.update_idletasks()
-        screen_width, screen_height = self.winfo_screenwidth(), self.winfo_screenheight()
-        window_width, window_height = self.winfo_width(), self.winfo_height()
-        x = (screen_width - window_width) // 2
-        y = (screen_height - window_height) // 2
-        self.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        center_window_action(self)
 
     def _setup_keyboard_shortcuts(self):
         setup_keyboard_shortcuts(self)
