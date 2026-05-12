@@ -1,6 +1,6 @@
 # Reimplementation Handoff
 
-Date: 2026-05-11
+Date: 2026-05-12
 
 ## Scope
 
@@ -31,10 +31,11 @@ the Korean parallel-agent plan and workstream split, use
   coordinate capture/preview actions, grid/context-menu actions, grid-update
   actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
   runtime-status actions, settings load/save actions, log text actions, OCR
-  run/stop/input-validation actions, options actions, work-completion/export/summary
-  actions, application icons, OCR-start validation, file, coordinates, timing,
-  options, preset, grid, and log panel seams, the menu bar, top toolbar, and
-  main-window layout now have test coverage.
+  run/stop/input-validation actions, options actions,
+  work-completion/export/summary/state-finalization actions, application icons,
+  OCR-start validation, file, coordinates, timing, options, preset, grid, and
+  log panel seams, the menu bar, top toolbar, and main-window layout now have
+  test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
   timing, failure reasons, and optional OCR confidence fields.
 - Benchmark tooling exists for OCR crops, matrix sweeps, `detail` mode, and
@@ -62,12 +63,12 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 307 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 312 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
-reached `Ready`. The latest package gate uses the 2026-05-11 clean PyInstaller
-release build after final-export completion extraction plus real package smoke
-at about `596.388 MB` with startup `3.203` seconds and settings-file verification under
-isolated `APPDATA`.
+reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
+release build after processing-state finalization extraction plus real package
+smoke at about `596.388 MB` with startup `3.687` seconds and settings-file
+verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
 into `checkocr2/ui/coordinate_actions.py` and Excel/output-folder action glue
@@ -166,6 +167,13 @@ Excel export fallback naming, run-report row timing/confidence fields, export
 timing, report flushing, app-vs-manager reset behavior, grid refresh, and
 success/error dialogs. Source GUI fast-OCR smoke and real package smoke both
 pass for this slice.
+
+The latest processing-state finalization slice moved the legacy app and
+workflow-manager status-finalization wrappers onto a shared
+`checkocr2/ui/completion_actions.py` helper backed by the workflow finalizer.
+Focused tests preserve stopped-status mutation, success log messages,
+malformed-row error logging, and wrapper delegation. Source GUI fast-OCR smoke
+and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

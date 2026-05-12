@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from checkocr2.models import (
+    STATUS_COL,
+    STATUS_DONE,
+    STATUS_PROCESSING,
+    STATUS_STOPPED,
+    STATUS_WAITING,
+)
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.ui import completion_actions
 
@@ -9,9 +16,21 @@ from checkocr2.ui import completion_actions
 class FakeLogger:
     def __init__(self):
         self.messages = []
+        self.exception_messages = []
 
     def info(self, message):
         self.messages.append(message)
+
+    def exception(self, message):
+        self.exception_messages.append(message)
+
+
+class FakeQueue:
+    def __init__(self):
+        self.items = []
+
+    def put(self, item):
+        self.items.append(item)
 
 
 class FakeWorkController:
@@ -61,6 +80,7 @@ class FakeApp:
         self.refresh_count = 0
         self.quick_save_count = 0
         self.finalize_count = 0
+        self.message_queue = FakeQueue()
 
     def _ready_or_error_state(self):
         return RuntimeState.READY
@@ -101,6 +121,68 @@ def test_complete_work_resets_state_refreshes_and_saves_without_dialog():
     assert app.logger.messages == [
         "[_on_work_complete_ui_only] 함수 호출됨 (Main Thread)"
     ]
+
+
+def test_finalize_processing_states_for_app_uses_shared_workflow_finalizer():
+    rows = [
+        {STATUS_COL: STATUS_DONE},
+        {STATUS_COL: STATUS_PROCESSING},
+        {STATUS_COL: STATUS_WAITING},
+        {STATUS_COL: ""},
+    ]
+    app = FakeApp(data_manager=FakeDataManager(rows=rows))
+
+    completion_actions.finalize_processing_states_for_app(app)
+
+    assert rows == [
+        {STATUS_COL: STATUS_DONE},
+        {STATUS_COL: STATUS_STOPPED},
+        {STATUS_COL: STATUS_STOPPED},
+        {STATUS_COL: ""},
+    ]
+    assert app.logger.messages == [
+        "[_finalize_processing_states] 함수 호출됨 (Main Thread)"
+    ]
+    assert app.message_queue.items == [
+        ("log", "모든 처리 상태를 최종화했습니다.", "INFO")
+    ]
+
+
+def test_finalize_processing_states_for_app_logs_malformed_rows():
+    app = FakeApp(data_manager=FakeDataManager(rows=[object()]))
+
+    completion_actions.finalize_processing_states_for_app(app)
+
+    assert app.message_queue.items[0][0] == "log"
+    assert app.message_queue.items[0][1].startswith("상태 최종화 중 오류:")
+    assert app.message_queue.items[0][2] == "ERROR"
+    assert app.logger.exception_messages == ["처리 상태 최종화 중 예외 발생"]
+
+
+def test_finalize_processing_states_for_app_logs_missing_status_key():
+    rows = [{STATUS_COL: STATUS_WAITING}, {"종목코드": "A001"}]
+    app = FakeApp(data_manager=FakeDataManager(rows=rows))
+
+    completion_actions.finalize_processing_states_for_app(app)
+
+    assert rows == [{STATUS_COL: STATUS_STOPPED}, {"종목코드": "A001"}]
+    assert app.message_queue.items[0][0] == "log"
+    assert app.message_queue.items[0][1].startswith("상태 최종화 중 오류:")
+    assert app.message_queue.items[0][2] == "ERROR"
+    assert app.logger.exception_messages == ["처리 상태 최종화 중 예외 발생"]
+
+
+def test_finalize_processing_states_for_app_logs_first_missing_status_key():
+    row = {"종목코드": "A001"}
+    app = FakeApp(data_manager=FakeDataManager(rows=[row]))
+
+    completion_actions.finalize_processing_states_for_app(app)
+
+    assert row == {"종목코드": "A001"}
+    assert app.message_queue.items[0][0] == "log"
+    assert app.message_queue.items[0][1].startswith("상태 최종화 중 오류:")
+    assert app.message_queue.items[0][2] == "ERROR"
+    assert app.logger.exception_messages == ["처리 상태 최종화 중 예외 발생"]
 
 
 def test_stop_completion_finalizes_states_refreshes_and_shows_message(monkeypatch):
@@ -291,6 +373,23 @@ def test_legacy_summary_methods_delegate(ocr_module, monkeypatch):
     assert app._generate_ocr_summary_internal(99, 3) == "summary"
     assert manager._generate_ocr_summary_internal(99, 4) == "summary"
     assert calls == [(rows, 3), (rows, 4)]
+
+
+def test_legacy_finalize_processing_methods_delegate(ocr_module, monkeypatch):
+    app = ocr_module.CheckCaptureOCRApp.__new__(ocr_module.CheckCaptureOCRApp)
+    manager = ocr_module.OCRWorkflowManager.__new__(ocr_module.OCRWorkflowManager)
+    calls = []
+
+    monkeypatch.setattr(
+        ocr_module,
+        "finalize_processing_states_action",
+        lambda owner: calls.append(owner),
+    )
+
+    app._finalize_processing_states()
+    manager._finalize_processing_states()
+
+    assert calls == [app, manager]
 
 
 def test_legacy_finalize_export_methods_delegate(ocr_module, monkeypatch):

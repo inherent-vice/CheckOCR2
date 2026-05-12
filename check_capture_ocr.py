@@ -55,6 +55,9 @@ from checkocr2.ui.completion_actions import (
 from checkocr2.ui.completion_actions import (
     finalize_export_and_complete as finalize_export_and_complete_action,
 )
+from checkocr2.ui.completion_actions import (
+    finalize_processing_states_for_app as finalize_processing_states_action,
+)
 from checkocr2.ui.coordinate_actions import (
     relocate_area as relocate_area_action,
 )
@@ -555,17 +558,7 @@ class OCRWorkflowManager:
         return build_ocr_summary_action(self.data_manager.excel_data, total_items)
 
     def _finalize_processing_states(self):
-        """처리 완료 후 모든 항목의 상태를 최종화"""
-        try:
-            for i, row_data in enumerate(self.data_manager.excel_data):
-                # '처리 중...' 상태이거나, 처리되지 않은 항목들을 '중단됨'으로 표시
-                # 이미 완료/오류 상태인 항목은 그대로 둠
-                if row_data['상태'] == '처리 중...' or row_data['상태'] == '대기 중':
-                    row_data['상태'] = '중단됨'
-            self.message_queue.put(("log", "모든 처리 상태를 최종화했습니다.", "INFO"))
-        except (KeyError, TypeError) as e:
-            self.message_queue.put(("log", f"상태 최종화 중 오류: {e}", "ERROR"))
-            self.logger.exception("처리 상태 최종화 중 예외 발생")
+        finalize_processing_states_action(self)
 
     # 엑셀 내보내기 및 최종 완료 처리를 담당하는 함수 (메인 스레드에서 호출됨)
     def _finalize_export_and_complete(self, output_dir_str, input_excel_path_str, summary_message):
@@ -943,21 +936,7 @@ class CheckCaptureOCRApp(tk.Tk):
 
     # DataManager 클래스의 finalize_processing_states 함수를 CheckCaptureOCRApp으로 옮김 (Worker 스레드가 아닌 Main 스레드에서 호출하기 위함)
     def _finalize_processing_states(self):
-        """처리 완료 또는 중단 후 모든 항목의 상태를 최종화 (Main Thread에서 호출)"""
-        self.logger.info("[_finalize_processing_states] 함수 호출됨 (Main Thread)")
-        try:
-            for i, row_data in enumerate(self.data_manager.excel_data):
-                # '처리 중...' 상태이거나, 처리되지 않은 항목들을 '중단됨'으로 표시
-                # 이미 완료/오류 상태인 항목은 그대로 둠
-                if row_data['상태'] == '처리 중...' or row_data['상태'] == '대기 중':
-                    # 데이터 목록 자체를 여기서 직접 업데이트
-                    self.data_manager.excel_data[i]['상태'] = '중단됨'
-                    # UI 업데이트는 refresh_grid_ui에서 일괄 처리되므로 여기서 별도 호출 불필요
-
-            self.message_queue.put(("log", "모든 처리 상태를 최종화했습니다.", "INFO"))
-        except (KeyError, TypeError) as e:
-            self.message_queue.put(("log", f"상태 최종화 중 오류: {e}", "ERROR"))
-            self.logger.exception("처리 상태 최종화 중 예외 발생")
+        finalize_processing_states_action(self)
 
 
     # 엑셀 내보내기 및 최종 완료 처리를 담당하는 함수 (메인 스레드에서 호출됨)

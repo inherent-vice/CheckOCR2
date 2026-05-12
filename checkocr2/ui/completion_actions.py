@@ -9,8 +9,10 @@ from tkinter import messagebox
 from typing import Any
 
 from checkocr2.exceptions import ExcelIOError
+from checkocr2.models import STATUS_COL, STATUS_PROCESSING, STATUS_WAITING, OcrRow
 from checkocr2.paths import updated_workbook_path
 from checkocr2.run_report import finalize_run_report, record_row_reports
+from checkocr2.workflow import finalize_processing_states
 
 
 def build_ocr_summary(rows: list[dict[str, object]], total_items: int) -> str:
@@ -23,6 +25,27 @@ def build_ocr_summary(rows: list[dict[str, object]], total_items: int) -> str:
         📁 결과는 그리드 및 Excel 파일로 저장되었습니다.
         📝 상세 로그는 ocr_app.log 파일에서 확인 가능합니다.
         """
+
+
+def finalize_processing_states_for_app(app: Any) -> None:
+    app.logger.info("[_finalize_processing_states] 함수 호출됨 (Main Thread)")
+    try:
+        for row in app.data_manager.excel_data:
+            if _final_status_for_legacy_row(row) in {
+                STATUS_WAITING,
+                STATUS_PROCESSING,
+            }:
+                finalize_processing_states([row])
+        app.message_queue.put(("log", "모든 처리 상태를 최종화했습니다.", "INFO"))
+    except (AttributeError, KeyError, TypeError) as exc:
+        app.message_queue.put(("log", f"상태 최종화 중 오류: {exc}", "ERROR"))
+        app.logger.exception("처리 상태 최종화 중 예외 발생")
+
+
+def _final_status_for_legacy_row(row: Any) -> str:
+    if isinstance(row, OcrRow):
+        return row.status
+    return str(row[STATUS_COL])
 
 
 def finalize_export_and_complete(
