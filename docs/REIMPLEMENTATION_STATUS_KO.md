@@ -21,11 +21,11 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 356개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 360개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
-- 최신 기록 기준 패키지는 약 `596.393 MB`, real package smoke startup은
-  `3.235`초다.
+- 최신 기록 기준 패키지는 약 `596.394 MB`, real package smoke startup은
+  `3.203`초다.
 
 ## 반드시 유지할 GUI 동작
 
@@ -47,9 +47,11 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 
 - 설정/경로/Excel: `settings.py`, `settings_compat.py`, `paths.py`,
   `excel_io.py`, `data_manager.py`.
-- OCR/이미지/자동화: `ocr_engine.py`, `ocr_text.py`,
-  `ocr_field_analysis.py`, `image_processing.py`, `screen_automation.py`,
-  `capture_adapter.py`.
+- OCR/이미지/자동화: `ocr_engine.py`, `ocr_reader_lifecycle.py`,
+  `ocr_text.py`, `ocr_field_analysis.py`, `image_processing.py`,
+  `screen_automation.py`, `capture_adapter.py`.
+  `ocr_reader_lifecycle.py`는 EasyOCR 초기화, fallback, 기존 설정 reset,
+  치명적 초기화 실패 queue 메시지를 담당한다.
   `ocr_field_analysis.py`는 날짜/금리 OCR 값 판정과 기존 debug log 문구를
   담당한다.
   `image_processing.py`는 crop 검증, 재사용 가능한 이미지 소스 처리, 업스케일

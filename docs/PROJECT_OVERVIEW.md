@@ -47,6 +47,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `image_processing.py`: crop validation, OCR crop upscaling, and reusable
   image-source/upscale metadata helpers.
 - `ocr_engine.py`: EasyOCR adapter boundary.
+- `ocr_reader_lifecycle.py`: EasyOCR startup, fallback, settings reset, and
+  fatal initialization message queue behavior.
 - `screen_automation.py`: pyautogui and clipboard wrappers.
 - `workflow.py`: row processing workflow outside Tkinter.
 - `worker.py`: background thread helper.

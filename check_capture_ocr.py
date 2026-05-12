@@ -16,12 +16,12 @@ from checkocr2.image_processing import upscale_image_source
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
     confidence_is_accepted,
-    create_easyocr_reader,
     extract_text_with_confidence,
     normalize_confidence_threshold,
     read_ocr_text,
 )
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
+from checkocr2.ocr_reader_lifecycle import initialize_easyocr_reader_with_fallback
 from checkocr2.ocr_text import (
     clean_date_text,
     clean_rate_text,
@@ -214,25 +214,11 @@ class OCRWorkflowManager:
         self._last_ocr_confidences = {}
 
     def initialize_ocr(self):
-        try:
-            self.logger.info("EasyOCR 초기화 중... (영어 전용)")
-            # gpu_enabled = self.settings_manager.get_advanced('ocr_gpu_enabled', False) # GPU 설정 제거
-            gpu_enabled = False # GPU 사용 비활성화로 고정
-            languages = ['en'] # 영어로 고정
-            self.ocr_reader = create_easyocr_reader(languages, gpu=gpu_enabled)
-            self.logger.info(f"EasyOCR 초기화 완료 - 언어: {languages}, GPU: {gpu_enabled}")
-        except (ImportError, OSError, RuntimeError, ValueError, OCREngineError) as e:
-            self.logger.error(f"EasyOCR 초기화 실패: {e}")
-            try:
-                self.logger.info("기본 모드(영어, CPU)로 EasyOCR 재초기화 시도...")
-                self.ocr_reader = create_easyocr_reader(['en'], gpu=False)
-                self.settings_manager.set_advanced('ocr_gpu_enabled', False)
-                self.settings_manager.set_advanced('ocr_languages', ['en'])
-                self.logger.info("EasyOCR 영어 모드(CPU)로 초기화 완료.")
-            except (ImportError, OSError, RuntimeError, ValueError, OCREngineError) as e2:
-                self.message_queue.put(("error_messagebox", "치명적 오류", f"OCR 엔진 초기화에 완전히 실패했습니다: {e2}"))
-                self.logger.critical(f"OCR 엔진 초기화 완전 실패: {e2}")
-                self.ocr_reader = None # 명시적으로 None 설정
+        self.ocr_reader = initialize_easyocr_reader_with_fallback(
+            logger=self.logger,
+            settings_manager=self.settings_manager,
+            message_queue=self.message_queue,
+        )
 
     def execute_ocr_workflow_threaded(self, ui_settings, output_dir_str, save_detail_images_bool):
         """OCR 워크플로우 실행 (그리드 데이터 기반) - 스레드에서 호출됨"""

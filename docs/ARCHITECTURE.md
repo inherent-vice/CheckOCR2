@@ -41,6 +41,9 @@ working.
   helpers.
 - `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
   including `detail=1` text/confidence extraction helpers.
+- `checkocr2/ocr_reader_lifecycle.py`: EasyOCR reader startup lifecycle,
+  including English/CPU defaults, fallback reinitialization, legacy settings
+  reset, fatal error messagebox queueing, and logger text compatibility.
 - `checkocr2/capture_adapter.py`: screen-copy, click, paste-wait, screenshot,
   crop-save, and capture timing orchestration for date/rate OCR images.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.

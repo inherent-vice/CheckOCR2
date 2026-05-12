@@ -26,7 +26,7 @@ the Korean parallel-agent plan and workstream split, use
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
-  image-processing, capture automation, runtime-state, work-controller, theme
+  image-processing, OCR reader lifecycle, capture automation, runtime-state, work-controller, theme
   manager, run-report, queue-dispatch, shortcut/about dialogs, overlay windows,
   preset controller, file-dialog path preparation, Excel/output-folder actions,
   coordinate capture/preview actions, grid/context-menu actions, grid-update
@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 356 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 360 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after OCR initialization action extraction plus real package
-smoke at about `596.393 MB` with startup `3.235` seconds and settings-file
+release build after OCR reader lifecycle extraction plus real package
+smoke at about `596.394 MB` with startup `3.203` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -225,6 +225,12 @@ already-initializing and already-ready no-op behavior, package-smoke fast OCR
 readiness, real initializer thread launch, failure queue events, and legacy app
 wrapper delegation. Source GUI smoke and real package smoke both pass for this
 slice.
+
+The latest OCR reader lifecycle slice moved EasyOCR startup and fallback logic
+into `checkocr2/ocr_reader_lifecycle.py`; focused tests preserve primary
+success, fallback success, legacy settings reset, fatal error messagebox queue
+payload, critical log text, and workflow-manager wrapper delegation.
+Source GUI smoke and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

@@ -52,6 +52,19 @@ def make_app(ocr_module, ready):
     return app
 
 
+def make_workflow_manager_for_initialize(ocr_module):
+    events = queue.Queue()
+    manager = ocr_module.OCRWorkflowManager(
+        app_ref=None,
+        logger=logging.getLogger("tests.async_ocr.manager"),
+        message_queue=events,
+        work_controller=ocr_module.WorkController(),
+        settings_manager=SimpleNamespace(),
+        data_manager=SimpleNamespace(),
+    )
+    return manager, events
+
+
 def test_async_ocr_initialization_enables_start_after_ready(ocr_module, monkeypatch):
     monkeypatch.setattr(ocr_module.threading, "Thread", ImmediateThread)
     app = make_app(ocr_module, ready=True)
@@ -153,3 +166,23 @@ def test_legacy_app_ocr_initialization_method_delegates(ocr_module, monkeypatch)
     assert calls
     assert calls[0][0] is app
     assert calls[0][1]["thread_factory"] is ocr_module.threading.Thread
+
+
+def test_legacy_workflow_manager_initialize_ocr_delegates(ocr_module, monkeypatch):
+    manager, _events = make_workflow_manager_for_initialize(ocr_module)
+    reader = object()
+    calls = []
+
+    monkeypatch.setattr(
+        ocr_module,
+        "initialize_easyocr_reader_with_fallback",
+        lambda **kwargs: calls.append(kwargs) or reader,
+    )
+
+    manager.initialize_ocr()
+
+    assert manager.ocr_reader is reader
+    assert calls
+    assert calls[0]["logger"] is manager.logger
+    assert calls[0]["settings_manager"] is manager.settings_manager
+    assert calls[0]["message_queue"] is manager.message_queue
