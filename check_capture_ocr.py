@@ -1,9 +1,7 @@
-import copy
 import os
 import queue
 import threading
 import tkinter as tk
-from datetime import datetime
 from time import perf_counter
 from tkinter import messagebox
 
@@ -13,7 +11,7 @@ from PIL import Image
 from checkocr2.capture_adapter import capture_screenshots
 from checkocr2.data_manager import DataManager
 from checkocr2.events import parse_legacy_grid_update
-from checkocr2.exceptions import OCREngineError, SettingsError
+from checkocr2.exceptions import OCREngineError
 from checkocr2.image_processing import upscale_image_source
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
@@ -42,7 +40,7 @@ from checkocr2.run_report import (
 )
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
-from checkocr2.settings import DEFAULT_SETTINGS, SettingsStore
+from checkocr2.settings_compat import UnifiedSettingsManager
 from checkocr2.ui.completion_actions import (
     build_ocr_summary as build_ocr_summary_action,
 )
@@ -195,26 +193,6 @@ from checkocr2.workflow import (
     finalize_processing_states as finalize_workflow_processing_states,
 )
 
-
-############################################
-# 통합 설정 관리 시스템
-############################################
-class UnifiedSettingsManager(SettingsStore):
-    """Compatibility adapter around the package settings store."""
-
-    def __init__(self):
-        try:
-            super().__init__()
-        except SettingsError as e:
-            print(f"설정 로드 오류: {e}")
-            self.settings_file = "settings.json"
-            self.legacy_settings_file = "settings.json"
-            self.data = copy.deepcopy(DEFAULT_SETTINGS)
-
-    def save_preset(self, name, settings):
-        settings = dict(settings)
-        settings["created_at"] = datetime.now().isoformat()
-        super().save_preset(name, settings)
 
 ############################################
 # OCR 워크플로우 관리자

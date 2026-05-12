@@ -112,6 +112,7 @@ checkocr2/
   models.py                           # OcrRow, CaptureAreas, Delays, Options
   events.py                           # typed queue/UI event contracts
   settings.py                         # SettingsStore, presets, migration
+  settings_compat.py                  # legacy settings adapter
   paths.py                            # UNC cleanup, output naming, folder open
   logging_config.py                   # logger + Tk queue handler
   data_manager.py                     # Excel grid state and export events

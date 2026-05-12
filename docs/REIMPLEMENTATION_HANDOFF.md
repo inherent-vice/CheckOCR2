@@ -21,7 +21,8 @@ the Korean parallel-agent plan and workstream split, use
 - Canonical launchers remain available: `check_capture_ocr.py`,
   `Check_Capture_Excel_V6.1_배포.py`, and `python -m checkocr2.main`.
 - Runtime settings are stored under `%APPDATA%\CheckOCR2\settings.json`; the
-  repo keeps `settings.example.json` only.
+  repo keeps `settings.example.json` only. Legacy fallback and preset timestamp
+  compatibility live in `checkocr2/settings_compat.py`.
 - EasyOCR initializes after the GUI appears. OCR start is disabled until the
   app reaches `Ready`.
 - Workflow, OCR, Excel, data-manager, table, settings, settings-binding, paths,
@@ -64,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 334 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 336 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after OCR upscaling helper extraction plus real package smoke at
-about `596.390 MB` with startup `3.218` seconds and settings-file
+release build after settings compatibility adapter extraction plus real package
+smoke at about `596.391 MB` with startup `3.891` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -202,6 +203,11 @@ success logging only for resized images, warning fallback logging, logger
 exception calls, original-object fallback behavior, and legacy path-load
 failure re-raise behavior. Source GUI fast-OCR smoke and real package smoke
 both pass for this slice.
+
+The latest settings compatibility slice moved `UnifiedSettingsManager` into
+`checkocr2/settings_compat.py`; focused tests preserve fallback defaults after
+settings load errors and automatic preset `created_at` timestamps. Source and
+package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

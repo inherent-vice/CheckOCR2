@@ -37,6 +37,7 @@ the package bootstrap and remains available for existing shortcuts.
 ## Important Modules
 
 - `settings.py`: per-user JSON settings under `%APPDATA%\CheckOCR2`.
+- `settings_compat.py`: legacy settings-manager adapter used by the Tk shell.
 - `excel_io.py`: Excel read/write behavior.
 - `table_model.py`: grid row and status rules.
 - `ocr_text.py`: date and rate normalization.

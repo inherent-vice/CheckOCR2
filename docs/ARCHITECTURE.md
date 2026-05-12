@@ -17,6 +17,8 @@ working.
   import and launch compatibility.
 - `checkocr2/settings.py`: per-user settings store and migration from old
   repo-local settings.
+- `checkocr2/settings_compat.py`: legacy `UnifiedSettingsManager` adapter for
+  fallback defaults and preset timestamp compatibility.
 - `checkocr2/models.py`: shared column names, status constants, and simple
   data models.
 - `checkocr2/events.py`: typed queue/UI event contracts plus legacy
