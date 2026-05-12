@@ -108,6 +108,7 @@ from checkocr2.ui.grid_update_actions import handle_grid_update
 from checkocr2.ui.icons import apply_application_icon
 from checkocr2.ui.keyboard_actions import handle_f5_key as handle_f5_key_action
 from checkocr2.ui.keyboard_actions import setup_keyboard_shortcuts
+from checkocr2.ui.lifecycle_actions import quit_app as quit_app_action
 from checkocr2.ui.log_actions import append_log_text
 from checkocr2.ui.main_window import (
     build_main_window,
@@ -888,24 +889,7 @@ class CheckCaptureOCRApp(tk.Tk):
         show_context_menu(self, event)
             
     def quit_app(self):
-        # Check if work is running
-        if self.work_controller.is_running:
-            # If running, stop the work immediately without asking
-            self.logger.info("작업 진행 중, 종료 요청. 중단 처리 시도.") # 로그 메시지 수정
-            self.work_controller.stop_work()
-            # Attempt to join the worker thread for a short timeout
-            # This might prevent crashes but doesn't guarantee clean exit if thread is stuck
-            if self.worker_thread and self.worker_thread.is_alive:
-                try:
-                    self.worker_thread.join(timeout=2) # Wait up to 2 seconds
-                    if self.worker_thread.is_alive:
-                         self.logger.warning("작업 스레드가 종료 시간 내에 응답하지 않았습니다.")
-                except (AttributeError, RuntimeError) as e:
-                     self.logger.error(f"작업 스레드 종료 중 오류 발생: {e}")
-            self.destroy() # Close the main window
-        else:
-            # If not running, just destroy the window
-            self.destroy()
+        quit_app_action(self)
 
     def load_last_settings(self):
         load_last_settings_action(self)

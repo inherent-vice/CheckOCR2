@@ -86,6 +86,9 @@ working.
   application.
 - `checkocr2/ui/keyboard_actions.py`: global shortcut binding and F5
   run/stop dispatch for the legacy Tk shell.
+- `checkocr2/ui/lifecycle_actions.py`: app shutdown behavior for idle and
+  running OCR sessions, including stop request, worker join, timeout warning,
+  join-error logging, and final window destruction.
 - `checkocr2/ui/log_actions.py`: log text-widget state, tag fallback, insert,
   scroll, and disabled-state restoration behavior.
 - `checkocr2/ui/main_window.py`: top-level Tk window layout assembly for the
