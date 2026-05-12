@@ -74,10 +74,10 @@ touching startup, settings, threading, or Tkinter UI state.
   automation, and Tk-facing behavior.
 - `scripts/`: OCR benchmark, fixture audit, live run comparison,
   fixture preparation, benchmark-matrix, and packaged-EXE smoke tools.
-- `docs/`: architecture, Korean modernization summary, reimplementation plan,
-  parallel-agent reimplementation plan, execution guide, implementation
-  handoff, GUI parity, run report, OCR fixture workflow, and benchmark
-  documentation.
+- `docs/`: architecture, Korean modernization/status summaries,
+  reimplementation plan, parallel-agent reimplementation plan, execution guide,
+  implementation handoff, GUI parity, run report, OCR fixture workflow, and
+  benchmark documentation.
 - `legacy/`: historical versions kept for reference only.
 - `tools/`: icon generation utilities.
 

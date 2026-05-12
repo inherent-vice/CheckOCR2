@@ -132,6 +132,7 @@ checkocr2/
     dialogs.py
     settings_binding.py
     presets.py
+    section_frame.py                 # shared styled section-frame builder
     lifecycle_actions.py              # app shutdown and worker join glue
     window_actions.py                 # startup window geometry glue
     ocr_actions.py                    # OCR start/stop and input validation glue

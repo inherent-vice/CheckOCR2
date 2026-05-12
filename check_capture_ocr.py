@@ -165,6 +165,9 @@ from checkocr2.ui.runtime_status_actions import (
 from checkocr2.ui.runtime_status_actions import (
     write_package_smoke_status_for_app as write_package_smoke_status_action,
 )
+from checkocr2.ui.section_frame import (
+    create_section_frame_styled as create_section_frame_action,
+)
 from checkocr2.ui.settings_actions import (
     load_last_settings as load_last_settings_action,
 )
@@ -896,23 +899,7 @@ class CheckCaptureOCRApp(tk.Tk):
 
     def _create_section_frame_styled(self, parent, title, fill_parent=False):
         """스타일이 적용된 섹션 프레임을 생성하고 반환합니다."""
-        frame = tk.Frame(parent)
-        self.theme_manager.register_widget(frame, {'bg': 'surface', 'relief': 'groove', 'bd': 1, 'padx': 3, 'pady': 3})
-
-        if fill_parent:
-            frame.pack(fill='both', expand=True, padx=3, pady=3)
-        else:
-            frame.pack(fill='x', padx=3, pady=3)
-
-        title_lbl = tk.Label(frame, text=title, anchor='w', font=('Segoe UI', 10, 'bold'))
-        self.theme_manager.register_widget(title_lbl, {'bg': 'surface', 'fg': 'primary'})
-        title_lbl.pack(fill='x', pady=(0, 5))
-
-        content_frame = tk.Frame(frame)
-        self.theme_manager.register_widget(content_frame, {'bg': 'white', 'padx': 3, 'pady': 3, 'relief': 'solid', 'bd': 1})
-        content_frame.pack(fill='both', expand=True)
-
-        return content_frame # 내용이 들어갈 프레임을 반환합니다.
+        return create_section_frame_action(self, parent, title, fill_parent=fill_parent)
 
     # DataManager 클래스의 finalize_processing_states 함수를 CheckCaptureOCRApp으로 옮김 (Worker 스레드가 아닌 Main 스레드에서 호출하기 위함)
     def _finalize_processing_states(self):

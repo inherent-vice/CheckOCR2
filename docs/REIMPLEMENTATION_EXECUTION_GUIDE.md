@@ -26,7 +26,8 @@ document describes how to continue safely from the current state.
   Excel/output-folder actions, coordinate capture/preview actions,
   grid/context-menu actions, grid-edit actions, grid-refresh/status actions,
   grid-update actions, keyboard actions, lifecycle actions, window geometry
-  actions, runtime-status actions, log text actions, settings load/save actions,
+  actions, shared section-frame construction, runtime-status actions, log text
+  actions, settings load/save actions,
   OCR run/stop/input-validation actions, options actions,
   work-completion/export/summary/state-finalization actions, several panels,
   and work-control state now have package-level seams and tests.

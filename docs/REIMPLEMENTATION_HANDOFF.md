@@ -33,7 +33,8 @@ the Korean parallel-agent plan and workstream split, use
   lifecycle actions, runtime-status actions, settings load/save actions, log
   text actions, OCR run/stop/input-validation actions, options actions,
   work-completion/export/summary/state-finalization actions, application icons,
-  window geometry actions, OCR-start validation, file, coordinates, timing,
+  window geometry actions, shared section-frame construction,
+  OCR-start validation, file, coordinates, timing,
   options, preset, grid, and log panel seams, the menu bar, top toolbar, and
   main-window layout now have test coverage.
 - JSON run reports capture row timing, blank fields, status counts, export
@@ -63,11 +64,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 321 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 325 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after window-centering action extraction plus real package smoke
-at about `596.389 MB` with startup `3.266` seconds and settings-file
+release build after section-frame builder extraction plus real package smoke
+at about `596.390 MB` with startup `1.719` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -186,6 +187,13 @@ The latest window action slice moved startup centering into
 behavior, exact integer-centered geometry, negative offsets for oversized
 windows, and legacy wrapper delegation. Source GUI fast-OCR smoke and real
 package smoke both pass for this slice.
+
+The latest section-frame slice moved shared styled section construction into
+`checkocr2/ui/section_frame.py`; focused tests preserve theme registration,
+title label styling, default and fill-parent packing, returned content-frame
+behavior, typed host/theme-manager protocol coverage, and positional legacy
+wrapper compatibility. Source GUI fast-OCR smoke and real package smoke both
+pass for this slice.
 
 ## Commands To Re-Run Before Release
 

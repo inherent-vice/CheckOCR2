@@ -106,6 +106,9 @@ working.
 - `checkocr2/ui/runtime_status_actions.py`: runtime-state button updates,
   OCR-ready state mapping, and package-smoke status payload writing for the Tk
   shell.
+- `checkocr2/ui/section_frame.py`: shared styled section-frame construction
+  for legacy panel builders, including theme registration, title label styling,
+  fill-parent packing, and returning the content frame.
 - `checkocr2/ui/settings_actions.py`: current settings load/save controller
   actions, including saved-path restoration, advanced defaults, preset refresh,
   theme restore, advanced reset, and quick-save error reporting.
