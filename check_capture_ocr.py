@@ -31,7 +31,7 @@ from checkocr2.ocr_text import (
     is_valid_rate_format,
 )
 from checkocr2.paths import clean_folder_path
-from checkocr2.run_report import finalize_run_report, record_row_reports, write_run_report
+from checkocr2.run_report import write_run_report
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.screen_automation import click, copy_text, hotkey, screenshot
 from checkocr2.settings_compat import UnifiedSettingsManager
@@ -192,6 +192,10 @@ from checkocr2.workflow_legacy_adapters import (
     LegacyAutomationAdapter,
     LegacyEasyOcrAdapter,
 )
+from checkocr2.workflow_report_finalization import (
+    finalize_workflow_report_failure,
+    finalize_workflow_report_success,
+)
 from checkocr2.workflow_run_setup import prepare_workflow_run
 
 
@@ -300,37 +304,26 @@ class OCRWorkflowManager:
                 self.logger.info("[OCRWorkflowManager] 모든 항목 처리 완료. 최종 처리 메시지 전송 중.")
 
             if self._current_run_report is not None:
-                finalize_workflow_processing_states(self.data_manager.excel_data)
-                record_row_reports(
-                    self._current_run_report,
-                    self.data_manager.excel_data,
-                    row_timing_by_index,
-                    row_metadata_by_index,
+                finalize_workflow_report_success(
+                    report=self._current_run_report,
+                    rows=self.data_manager.excel_data,
+                    row_timing_by_index=row_timing_by_index,
+                    row_metadata_by_index=row_metadata_by_index,
+                    result=result,
+                    flush_report=self._flush_current_run_report,
                 )
-                finalize_run_report(
-                    self._current_run_report,
-                    self.data_manager.excel_data,
-                    processed_count=result.processed_count,
-                    total_items=result.total_items,
-                    stopped=result.stopped,
-                )
-                self._flush_current_run_report()
 
         except Exception as e_workflow:
             self.message_queue.put(("log", f"OCR 전체 워크플로우 오류: {e_workflow}", "ERROR"))
             self.logger.exception("OCR 전체 워크플로우에서 예외 발생")
             # 워크플로우 자체에서 예외 발생 시에도 중단 처리 및 stopped 메시지 보냄
             if self._current_run_report is not None:
-                finalize_workflow_processing_states(self.data_manager.excel_data)
-                finalize_run_report(
-                    self._current_run_report,
-                    self.data_manager.excel_data,
-                    processed_count=0,
-                    total_items=len(self.data_manager.excel_data),
-                    stopped=True,
+                finalize_workflow_report_failure(
+                    report=self._current_run_report,
+                    rows=self.data_manager.excel_data,
                     error=str(e_workflow),
+                    flush_report=self._flush_current_run_report,
                 )
-                self._flush_current_run_report()
             if not self.work_controller.is_stopped:
                  self.work_controller.stop_work() # is_stopped 플래그 설정 및 stop_event 설정
             # 예외 발생 후에도 stopped 메시지를 보내 UI 상태를 중단됨으로 변경

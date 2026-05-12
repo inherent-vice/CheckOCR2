@@ -62,6 +62,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `run_report.py`: JSON timing/error report writer.
 - `workflow_run_setup.py`: OCR run setup for delays, capture coordinates,
   detail-image folders, and initial run report metadata.
+- `workflow_report_finalization.py`: success/failure run-report finalization
+  used by the OCR workflow manager.
 - `runtime_state.py`: explicit GUI start/stop/OCR readiness state.
 - `build_metadata.py`: package metadata and dependency hash generation.
 - `ui/`: extracted Tk panels, dialogs, overlays, action helpers, menu/toolbar,

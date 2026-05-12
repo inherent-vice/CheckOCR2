@@ -101,6 +101,9 @@ test or a manual verification note.
 - Mitigated: the workflow capture and EasyOCR adapters now live in
   `checkocr2/workflow_legacy_adapters.py`, preserving run-report timing and
   confidence metadata while reducing local classes in the Tk controller.
+- Mitigated: workflow success/failure run-report finalization now lives in
+  `checkocr2/workflow_report_finalization.py`, preserving finalize, row-report,
+  error-summary, and flush ordering.
 
 ## Target Architecture
 
@@ -137,6 +140,7 @@ checkocr2/
   workflow.py                         # OCR orchestration without Tk imports
   workflow_event_bridge.py            # workflow event to Tk queue/timing bridge
   workflow_legacy_adapters.py         # legacy capture/OCR workflow adapters
+  workflow_report_finalization.py     # success/failure report finalization
   workflow_run_setup.py               # per-run paths/options/report setup
   worker.py                           # thread/cancel/event bridge
   ui/
