@@ -118,7 +118,13 @@ def test_run_package_smoke_reports_ok_and_terminates(tmp_path):
         exe_path,
         process_launcher=launch,
         list_windows=lambda: [
-            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
         ],
         sleep=lambda _seconds: None,
     )
@@ -128,6 +134,8 @@ def test_run_package_smoke_reports_ok_and_terminates(tmp_path):
     assert report["window_title"] == "Check Capture OCR V6.1"
     assert report["window_pid"] == 100
     assert report["window_hwnd"] == 10
+    assert report["window_width"] == 1200
+    assert report["window_height"] == 850
     assert report["package_metadata"] == metadata
     assert report["package_size_mb"] >= 0
     assert report["termination"] == {
@@ -137,6 +145,60 @@ def test_run_package_smoke_reports_ok_and_terminates(tmp_path):
     }
     assert process.terminated
     assert not process.killed
+
+
+def test_run_package_smoke_can_require_minimum_window_size(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        min_window_width=1000,
+        min_window_height=600,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["min_window_width"] == 1000
+    assert report["min_window_height"] == 600
+
+
+def test_run_package_smoke_rejects_small_window_size(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        min_window_width=1000,
+        min_window_height=600,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="Check Capture OCR V6.1",
+                width=900,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "window_size_too_small"
+    assert report["window_width"] == 900
+    assert "below minimum 1000" in report["error"]
 
 
 def test_run_package_smoke_accepts_package_size_within_budget(tmp_path):

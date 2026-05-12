@@ -41,6 +41,8 @@ class WindowInfo:
     hwnd: int
     pid: int
     title: str
+    width: int | None = None
+    height: int | None = None
 
 
 class SmokeProcess(Protocol):
@@ -61,6 +63,13 @@ ProcessLauncher = Callable[[Path], SmokeProcess]
 
 def positive_float(value: str) -> float:
     parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than 0")
+    return parsed
+
+
+def positive_int(value: str) -> int:
+    parsed = int(value)
     if parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than 0")
     return parsed
@@ -144,6 +153,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
         help="Fail if the main window takes longer than this many seconds to appear",
     )
+    parser.add_argument(
+        "--min-window-width",
+        type=positive_int,
+        default=None,
+        help="Fail if the main window is narrower than this many pixels",
+    )
+    parser.add_argument(
+        "--min-window-height",
+        type=positive_int,
+        default=None,
+        help="Fail if the main window is shorter than this many pixels",
+    )
     return parser.parse_args(argv)
 
 
@@ -171,6 +192,8 @@ def iter_window_titles() -> list[WindowInfo]:
         ctypes.POINTER(wintypes.DWORD),
     ]
     user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+    user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+    user32.GetWindowRect.restype = wintypes.BOOL
 
     titles: list[WindowInfo] = []
 
@@ -191,8 +214,20 @@ def iter_window_titles() -> list[WindowInfo]:
 
         process_id = wintypes.DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(process_id))
+        rect = wintypes.RECT()
+        width: int | None = None
+        height: int | None = None
+        if user32.GetWindowRect(hwnd, ctypes.byref(rect)):
+            width = int(rect.right - rect.left)
+            height = int(rect.bottom - rect.top)
         titles.append(
-            WindowInfo(hwnd=int(hwnd), pid=int(process_id.value), title=title)
+            WindowInfo(
+                hwnd=int(hwnd),
+                pid=int(process_id.value),
+                title=title,
+                width=width,
+                height=height,
+            )
         )
         return 1
 
@@ -239,6 +274,34 @@ def wait_for_window(
             return "timeout", None, None
 
         sleep(min(poll_interval_seconds, deadline - now))
+
+
+def window_size_report(window: WindowInfo) -> dict[str, int]:
+    report: dict[str, int] = {}
+    if window.width is not None:
+        report["window_width"] = window.width
+    if window.height is not None:
+        report["window_height"] = window.height
+    return report
+
+
+def validate_window_size(
+    window: WindowInfo,
+    *,
+    min_window_width: int | None = None,
+    min_window_height: int | None = None,
+) -> str | None:
+    if min_window_width is not None:
+        if window.width is None:
+            return "Window width is unavailable"
+        if window.width < min_window_width:
+            return f"Window width {window.width} is below minimum {min_window_width}"
+    if min_window_height is not None:
+        if window.height is None:
+            return "Window height is unavailable"
+        if window.height < min_window_height:
+            return f"Window height {window.height} is below minimum {min_window_height}"
+    return None
 
 
 def wait_for_ocr_ready(
@@ -320,7 +383,7 @@ def build_error_report(
     timeout_seconds: float,
     error_code: str,
     error: str,
-) -> dict[str, bool | float | int | str | None]:
+) -> SmokeReport:
     return {
         "status": "error",
         "error_code": error_code,
@@ -351,44 +414,46 @@ def run_package_smoke(
     require_settings_file: bool = False,
     isolated_appdata: bool = False,
     appdata_dir: Path | None = None,
+    min_window_width: int | None = None,
+    min_window_height: int | None = None,
 ) -> tuple[int, SmokeReport]:
     exe_path = exe_path.expanduser()
     if not exe_path.exists():
-        report = build_error_report(
+        error_report = build_error_report(
             exe_path,
             title_fragment,
             timeout_seconds,
             "exe_not_found",
             f"EXE not found: {exe_path}",
         )
-        return 2, report
+        return 2, error_report
     if not exe_path.is_file():
-        report = build_error_report(
+        error_report = build_error_report(
             exe_path,
             title_fragment,
             timeout_seconds,
             "exe_not_file",
             f"EXE path is not a file: {exe_path}",
         )
-        return 2, report
+        return 2, error_report
     if require_settings_file and not require_ocr_ready:
-        report = build_error_report(
+        error_report = build_error_report(
             exe_path,
             title_fragment,
             timeout_seconds,
             "settings_file_requires_ocr_ready",
             "--require-settings-file requires --require-ocr-ready",
         )
-        return 2, report
+        return 2, error_report
     if isolated_appdata and appdata_dir is not None:
-        report = build_error_report(
+        error_report = build_error_report(
             exe_path,
             title_fragment,
             timeout_seconds,
             "appdata_conflict",
             "--isolated-appdata and --appdata-dir cannot be used together",
         )
-        return 2, report
+        return 2, error_report
 
     process: SmokeProcess | None = None
     cleanup_appdata_dir: Path | None = None
@@ -404,6 +469,8 @@ def run_package_smoke(
         ),
         "max_package_size_mb": max_package_size_mb,
         "max_startup_seconds": max_startup_seconds,
+        "min_window_width": min_window_width,
+        "min_window_height": min_window_height,
         "ocr_ready_required": require_ocr_ready,
         "ocr_ready_mode": ocr_ready_mode if require_ocr_ready else None,
         "settings_file_required": require_settings_file,
@@ -447,9 +514,18 @@ def run_package_smoke(
                     "window_hwnd": window.hwnd,
                     "package_metadata": package_metadata,
                     "packaged_dependency_audit": packaged_dependency_audit,
+                    **window_size_report(window),
                 }
             )
             exit_code = 0
+            window_size_error = validate_window_size(
+                window,
+                min_window_width=min_window_width,
+                min_window_height=min_window_height,
+            )
+            if window_size_error:
+                report.update({"status": "window_size_too_small", "error": window_size_error})
+                exit_code = 1
             if require_package_metadata and package_metadata is None:
                 report.update(
                     {
@@ -459,6 +535,7 @@ def run_package_smoke(
                 )
                 exit_code = 1
             elif require_package_metadata:
+                assert package_metadata is not None
                 dependency_errors = validate_packaged_dependencies(
                     package_metadata,
                     packaged_dependency_audit,
@@ -744,8 +821,10 @@ def validate_packaged_dependencies(
         if isinstance(version, str) and version and version != "not-installed":
             errors.append(f"metadata contains forbidden dependency: {forbidden_name}")
 
-    for forbidden_name in packaged_dependency_audit.get("forbidden_present", []):
-        errors.append(f"package contains forbidden distribution: {forbidden_name}")
+    forbidden_present = packaged_dependency_audit.get("forbidden_present", [])
+    if isinstance(forbidden_present, list):
+        for forbidden_name in forbidden_present:
+            errors.append(f"package contains forbidden distribution: {forbidden_name}")
 
     return errors
 
@@ -833,6 +912,8 @@ def main(argv: list[str] | None = None) -> int:
         require_settings_file=args.require_settings_file,
         isolated_appdata=args.isolated_appdata,
         appdata_dir=args.appdata_dir,
+        min_window_width=args.min_window_width,
+        min_window_height=args.min_window_height,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

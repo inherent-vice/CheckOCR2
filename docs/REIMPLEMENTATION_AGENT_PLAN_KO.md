@@ -19,11 +19,12 @@
   컨트롤러, OCR 초기화 포함 주요 UI action/helper가 분리되어 있다.
 - 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
   legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 404개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 408개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
-- 최신 기록 기준 패키지 크기는 약 `596.403 MB`, package smoke startup은
-  `3.219`초다.
+- 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`을 검사한다.
+  확인된 창 크기는 `1216x889`이고, 최신 패키지 크기는 약 `596.404 MB`,
+  package smoke startup은 `1.657`초다.
 - 실제 OCR crop fixture와 동일 입력 10행 live 비교가 아직 없으므로 OCR
   기본값, wait-time, OCR 엔진 교체는 기본값으로 승격하지 않는다.
 
@@ -36,7 +37,8 @@
 - OCR 시작/중지, KBP skip, 상세 이미지 저장, 업스케일 옵션.
 
 변경이 이 계약을 건드리면 `docs/GUI_PARITY_CHECKLIST.md`에 수동 증거를
-남기거나 자동 테스트를 추가한다.
+남기거나 자동 테스트를 추가한다. 현재 체크리스트에는 최소 창 크기
+`1000x600` 자동 검증 증거가 포함되어 있다.
 
 ## 병렬 작업 스트림
 
@@ -79,7 +81,7 @@ python -m pytest --basetemp $env:TEMP\checkocr2-pytest
 python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field
-python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file
+python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --min-window-width 1000 --min-window-height 600
 ```
 
 OCR 후보 또는 속도 후보 검증:
@@ -96,7 +98,7 @@ python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixtu
 
 ```powershell
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600
 ```
 
 ## 현재 열려 있는 게이트

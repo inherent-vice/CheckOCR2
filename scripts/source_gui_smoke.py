@@ -35,11 +35,14 @@ from scripts.package_smoke import (  # noqa: E402
     WindowLister,
     iter_window_titles,
     positive_float,
+    positive_int,
     remove_appdata_dir,
     terminate_process,
     validate_smoke_settings_file,
+    validate_window_size,
     wait_for_ocr_ready,
     wait_for_window,
+    window_size_report,
 )
 
 SourceProcessLauncher = Callable[[list[str], Path], SmokeProcess]
@@ -113,6 +116,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_OCR_READY_MODE,
         help="'fast' bypasses model loading; 'real' waits for EasyOCR initialization.",
     )
+    parser.add_argument(
+        "--min-window-width",
+        type=positive_int,
+        default=None,
+        help="Fail if the main window is narrower than this many pixels",
+    )
+    parser.add_argument(
+        "--min-window-height",
+        type=positive_int,
+        default=None,
+        help="Fail if the main window is shorter than this many pixels",
+    )
     return parser.parse_args(argv)
 
 
@@ -167,6 +182,8 @@ def run_source_gui_smoke(
     require_settings_file: bool = False,
     isolated_appdata: bool = False,
     appdata_dir: Path | None = None,
+    min_window_width: int | None = None,
+    min_window_height: int | None = None,
 ) -> tuple[int, SmokeReport]:
     cwd = (cwd or Path.cwd()).expanduser().resolve()
     if require_settings_file and not require_ready:
@@ -234,6 +251,8 @@ def run_source_gui_smoke(
         "settings_file_required": require_settings_file,
         "isolated_appdata": isolated_appdata,
         "appdata_dir": str(appdata_dir) if appdata_dir is not None else None,
+        "min_window_width": min_window_width,
+        "min_window_height": min_window_height,
     }
 
     try:
@@ -268,9 +287,18 @@ def run_source_gui_smoke(
                     "window_title": window.title,
                     "window_pid": window.pid,
                     "window_hwnd": window.hwnd,
+                    **window_size_report(window),
                 }
             )
             exit_code = 0
+            window_size_error = validate_window_size(
+                window,
+                min_window_width=min_window_width,
+                min_window_height=min_window_height,
+            )
+            if window_size_error:
+                report.update({"status": "window_size_too_small", "error": window_size_error})
+                exit_code = 1
             if require_ready and status_path is not None:
                 exit_code = _wait_for_required_ready_status(
                     report,
@@ -398,6 +426,8 @@ def main(argv: list[str] | None = None) -> int:
         appdata_dir=args.appdata_dir,
         ocr_ready_timeout_seconds=args.ocr_ready_timeout,
         ocr_ready_mode=args.ocr_ready_mode,
+        min_window_width=args.min_window_width,
+        min_window_height=args.min_window_height,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

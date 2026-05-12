@@ -309,8 +309,9 @@ Date: 2026-05-12
 - Added optional live-comparison P95 row-total improvement gating with a
   configurable percentage threshold for speed and wait-time changes.
 - Added `scripts/source_gui_smoke.py` to run repeatable source launcher smokes
-  with window-title matching, fast OCR Ready status, isolated `APPDATA`,
-  settings-file verification, JSON evidence, and clean process termination.
+  with window-title matching, window-size validation, fast OCR Ready status,
+  isolated `APPDATA`, settings-file verification, JSON evidence, and clean
+  process termination.
 - Narrowed broad exception handlers in the legacy Tk app for icon setup, Excel
   load/export, clipboard parsing, run-report flushing, OCR image processing,
   folder opening, settings save/load, and status finalization. Remaining broad
@@ -336,7 +337,7 @@ python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowli
 python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
-python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5
+python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600
 ```
 
 Before OCR tuning or release decisions that depend on OCR accuracy, also run:
@@ -358,10 +359,11 @@ behavior.
 Latest code verification on 2026-05-12:
 
 - `python -m ruff check .`: passed.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-evidence-bundle`: 404 passed after the OCR evidence-bundle gate, GUI parity evidence update, OCR pair-processing slice, OCR field-extraction slice, the `OcrRow.from_dict()` mapping-compatibility slice, and previous workflow report-finalization, workflow legacy-adapter, workflow event-bridge, OCR workflow run-setup, OCR temp-cleanup, OCR runtime-options, OCR reader lifecycle, OCR initialization action, OCR field-analysis, settings compatibility adapter, OCR upscaling helper, section-frame builder, window-centering action, app lifecycle action, processing-state finalization action, final-export completion action, final-export parser, grid-update row mutation, grid status/render, grid-action, grid context-menu, grid-edit action, grid-refresh action, grid-tag styling, grid-update action, keyboard-action, runtime-status action, settings-action, log-action, OCR run/stop and input-validation action, options-action, work-completion and summary action, coordinate capture/preview action, Excel load/output-folder action, source GUI smoke, screen-capture adapter, OCR-start validation, preset controller, dialog, file-dialog path, application-icon, main-window layout, package-smoke status, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary, DataManager extraction, and settings-binding extraction coverage.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest-window-size-smoke`: 408 passed after adding source/package smoke window-size validation coverage, the OCR evidence-bundle gate, GUI parity evidence update, OCR pair-processing slice, OCR field-extraction slice, the `OcrRow.from_dict()` mapping-compatibility slice, and previous workflow report-finalization, workflow legacy-adapter, workflow event-bridge, OCR workflow run-setup, OCR temp-cleanup, OCR runtime-options, OCR reader lifecycle, OCR initialization action, OCR field-analysis, settings compatibility adapter, OCR upscaling helper, section-frame builder, window-centering action, app lifecycle action, processing-state finalization action, final-export completion action, final-export parser, grid-update row mutation, grid status/render, grid-action, grid context-menu, grid-edit action, grid-refresh action, grid-tag styling, grid-update action, keyboard-action, runtime-status action, settings-action, log-action, OCR run/stop and input-validation action, options-action, work-completion and summary action, coordinate capture/preview action, Excel load/output-folder action, source GUI smoke, screen-capture adapter, OCR-start validation, preset controller, dialog, file-dialog path, application-icon, main-window layout, package-smoke status, package-smoke settings-file enforcement, fixture preparation, fixture-audit, live-comparison, typed exception-boundary, DataManager extraction, and settings-binding extraction coverage.
 - `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
+- `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45 --min-window-width 1000 --min-window-height 600`: source GUI fast-OCR smoke passed after the window-size gate with startup `1.032` seconds, window size `1216x889`, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: source GUI fast-OCR smoke passed after the OCR pair-processing slice with startup `1.016` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: source GUI fast-OCR smoke passed after workflow legacy-adapter extraction with startup `1.016` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: source GUI fast-OCR smoke passed after workflow event-bridge extraction with startup `1.031` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
@@ -483,7 +485,7 @@ Latest package verification on 2026-05-12:
 - Clean release venv build for the latest package-affecting app code with `$env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: build completed after the OCR pair-processing slice.
 - Global-interpreter `python -m PyInstaller build_app.spec --noconfirm`: failed by design because this machine has `opencv-python==4.10.0.84` and `opencv-contrib-python==4.10.0.84` installed outside the release venv.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
-- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5`: real packaged EasyOCR initialization smoke passed with package size `596.403 MB`, startup time `3.219` seconds, metadata build date `2026-05-12T04:26:44+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
+- `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600`: real packaged EasyOCR initialization smoke passed with package size `596.404 MB`, startup time `1.657` seconds, window size `1216x889`, metadata build date `2026-05-12T04:26:44+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
 
 Known build warnings: PyInstaller still reports optional `tensorboard`
 collection failure for `torch.utils.tensorboard`; the clean release venv keeps
@@ -506,6 +508,7 @@ that warning non-blocking while package smoke remains green.
 - Continue extracting UI panels/dialogs/controller helpers only while targeted
   tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
   now records dated automated launch/package evidence for the three Python
-  entrypoints and built EXE, but remains broader than those smokes; keep adding
-  manual evidence or granular tests before treating every checklist item as a
-  green gate.
+  entrypoints and built EXE, and the canonical source/package smokes enforce
+  the `1000x600` minimum window size. The checklist remains broader than those
+  smokes; keep adding manual evidence or granular tests before treating every
+  item as a green gate.

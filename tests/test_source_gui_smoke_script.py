@@ -51,6 +51,10 @@ def test_parse_args_accepts_string_entrypoint_and_requirements():
             "--isolated-appdata",
             "--require-ready",
             "--require-settings-file",
+            "--min-window-width",
+            "1000",
+            "--min-window-height",
+            "600",
         ]
     )
 
@@ -58,6 +62,8 @@ def test_parse_args_accepts_string_entrypoint_and_requirements():
     assert args.isolated_appdata is True
     assert args.require_ready is True
     assert args.require_settings_file is True
+    assert args.min_window_width == 1000
+    assert args.min_window_height == 600
 
 
 def test_run_source_gui_smoke_reports_ready_and_settings_file(tmp_path):
@@ -93,7 +99,11 @@ def test_run_source_gui_smoke_reports_ready_and_settings_file(tmp_path):
         process_launcher=launch,
         list_windows=lambda: [
             package_smoke.WindowInfo(
-                hwnd=10, pid=100, title="📊 Check Capture OCR V6.1"
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=1200,
+                height=850,
             )
         ],
         sleep=lambda _seconds: None,
@@ -105,8 +115,62 @@ def test_run_source_gui_smoke_reports_ready_and_settings_file(tmp_path):
     assert report["ocr_ready"] is True
     assert report["settings_file"].endswith(r"CheckOCR2\settings.json")
     assert report["appdata_cleanup"]["removed"] is True
+    assert report["window_width"] == 1200
+    assert report["window_height"] == 850
     assert launched == [(["python", "check_capture_ocr.py"], tmp_path)]
     assert process.terminated is True
+
+
+def test_run_source_gui_smoke_can_require_minimum_window_size(tmp_path):
+    process = FakeProcess(pid=100)
+
+    exit_code, report = source_gui_smoke.run_source_gui_smoke(
+        "python check_capture_ocr.py",
+        cwd=tmp_path,
+        min_window_width=1000,
+        min_window_height=600,
+        process_launcher=lambda _command, _cwd: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=1200,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["min_window_width"] == 1000
+    assert report["min_window_height"] == 600
+
+
+def test_run_source_gui_smoke_rejects_small_window_size(tmp_path):
+    process = FakeProcess(pid=100)
+
+    exit_code, report = source_gui_smoke.run_source_gui_smoke(
+        "python check_capture_ocr.py",
+        cwd=tmp_path,
+        min_window_width=1000,
+        process_launcher=lambda _command, _cwd: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(
+                hwnd=10,
+                pid=100,
+                title="📊 Check Capture OCR V6.1",
+                width=900,
+                height=850,
+            )
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "window_size_too_small"
+    assert "below minimum 1000" in report["error"]
 
 
 def test_run_source_gui_smoke_requires_ready_for_settings_file():
