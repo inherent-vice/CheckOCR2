@@ -30,7 +30,7 @@ OCR engines until these gates pass with real data.
 | Keep runtime settings and logs out of repo root | `checkocr2/settings.py`, `checkocr2/logging_config.py`, `tests/test_logging_and_main.py` | Tests verify APPDATA settings/log placement and no repo-root `ocr_app.log` creation. | Done |
 | Keep worker, stop-state, Excel blank, date validation, and exception safety fixes | `tests/test_worker.py`, `tests/test_work_controller.py`, `tests/test_excel_table_modules.py`, `tests/test_ocr_field_analysis.py` | Full suite currently includes these regressions and passes. | Done |
 | Keep package release gate green | Clean PyInstaller build plus `scripts/package_smoke.py ... --ocr-ready-mode real ... --require-clean-exit` | Strict package smoke: `596.409 MB`, startup `1.125s`, build date `2026-05-12T10:50:04+00:00`, `Ready`, isolated settings, clean exit. | Done |
-| Build reviewed OCR crop fixtures | `tests/fixtures/ocr_crops/ground_truth.csv`; `python scripts/audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit_current.json` | Current audit status is `not_ready`: `Fixture CSV not found: tests\fixtures\ocr_crops\ground_truth.csv`; `total_cases=0`. | Missing |
+| Build reviewed OCR crop fixtures | `tests/fixtures/ocr_crops/ground_truth.csv`; `python scripts/promote_ocr_fixtures.py ... --confirm-reviewed`; `python scripts/audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit_current.json` | Promotion gate exists and is tested, but current audit status is still `not_ready`: `Fixture CSV not found: tests\fixtures\ocr_crops\ground_truth.csv`; `total_cases=0`. | Missing |
 | Record real EasyOCR baseline on audited fixtures | `python scripts/benchmark_ocr.py --output-json .analysis_tmp/easyocr_baseline.json` | Only dry-run/zero-case artifacts exist; current dry-run has `status=dry_run`, `total_cases=0`. | Missing |
 | Run OCR matrix on audited fixtures | `python scripts/benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json` | Current matrix artifacts are dry-run/zero-case and rejected by the evidence bundle. | Missing |
 | Run same-input live comparison before speed/default changes | `python scripts/compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json ...` | No accepted live comparison artifact is present; evidence bundle warns `live comparison not provided`. | Missing |
@@ -60,7 +60,7 @@ Observed results:
 2. Run `scripts\prepare_ocr_fixtures.py` to create
    `tests\fixtures\ocr_crops\ground_truth_draft.csv`.
 3. Manually review every crop against the authoritative source and promote the
-   reviewed file to `ground_truth.csv`.
+   reviewed file with `scripts\promote_ocr_fixtures.py --confirm-reviewed`.
 4. Pass `scripts\audit_ocr_fixtures.py`.
 5. Run real baseline and matrix benchmarks against the audited fixtures.
 6. Produce baseline and candidate same-input live run reports, then pass

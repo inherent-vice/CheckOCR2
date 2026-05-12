@@ -77,7 +77,7 @@ completion status and the remaining hard blockers, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 437 tests, and
+Latest code gate result: `ruff` passed, `pytest` passed with 444 tests, and
 `compileall` passed. The latest source GUI fast-OCR smoke reached `Ready` with a
 `1044x788` window against the `1000x600` minimum gate. The latest package gate
 uses the 2026-05-12 clean PyInstaller release build plus strict real package
@@ -442,7 +442,10 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 Before OCR tuning or release decisions that depend on OCR accuracy, also run
 the fixture audit and same-input live comparison commands from
 `docs/OCR_BENCHMARK_PLAN.md`; use `docs/OCR_FIXTURE_WORKFLOW.md` to prepare and
-promote the audited crop fixtures.
+promote the audited crop fixtures. `scripts/promote_ocr_fixtures.py` now makes
+that promotion fail-closed: it requires `--confirm-reviewed`, records
+`--reviewed-by`, rejects blank or unnormalized expected values and draft
+markers, and reruns the fixture audit before writing `ground_truth.csv`.
 
 Use the clean release venv for PyInstaller. The global interpreter is expected
 to fail release preflight on this machine when GUI/contrib OpenCV packages are
@@ -453,8 +456,9 @@ installed outside the release environment.
 - The full completion audit is tracked in
   `docs/REIMPLEMENTATION_COMPLETION_AUDIT.md`; it currently marks the plan as
   **not complete** because the real OCR evidence chain is missing.
-- Create real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/` with
-  a manually reviewed `ground_truth.csv`, then pass the fixture audit script.
+- Create real OCR crop fixtures under ignored `tests/fixtures/ocr_crops/`, review
+  `ground_truth_draft.csv`, promote it with `scripts/promote_ocr_fixtures.py`,
+  then pass the fixture audit script.
 - Run a same-input 10-row live OCR comparison through the run-report comparator
   before reducing wait defaults or changing OCR defaults.
 - Run the OCR evidence bundle gate after audit, baseline, matrix, and live

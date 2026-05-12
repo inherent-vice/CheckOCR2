@@ -17,6 +17,8 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 - `python -m ruff check .`: lint new package, scripts, tests, and the legacy app with scoped ignores.
 - `python -m compileall check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: quick syntax check before committing.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: validate the OCR benchmark harness while fixtures are being built.
+- `python scripts\prepare_ocr_fixtures.py --source-dir .analysis_tmp\detail_images --output-dir tests\fixtures\ocr_crops`: copy saved date/rate detail crops into an ignored review-required fixture draft.
+- `python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed`: promote a manually reviewed OCR fixture draft to `ground_truth.csv` after the same audit gate accepts it.
 - `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json`: audit real crop fixtures before treating benchmark results as baseline evidence.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture`: validate the OCR preprocessing/detail matrix runner before real fixtures exist.
 - `python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json`: compare field-specific OCR allowlists after fixtures exist.

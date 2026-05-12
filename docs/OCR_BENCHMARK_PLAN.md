@@ -34,11 +34,19 @@ python scripts\prepare_ocr_fixtures.py --source-dir .analysis_tmp\detail_images 
 
 The script copies `*_date.png` and `*_rate.png` crops into the ignored fixture
 folder and writes `ground_truth_draft.csv` rows with blank `expected_text`
-values. Fill those values manually from the source screen, then rename or copy
-the reviewed file to `ground_truth.csv` before treating it as ground truth. If
-you intentionally want to prefill draft values from a run report for review,
-add `--run-report <path> --fill-expected-from-report`; those values still
-require manual verification before baseline use. See
+values. Fill those values manually from the source screen, remove draft markers
+from `notes`, then promote the reviewed draft:
+
+```powershell
+python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed
+```
+
+The promotion gate refuses blank or unnormalized expected values, remaining
+draft markers, missing crops, duplicate paths, unsafe output placement, and
+overwrite without `--overwrite`. If you intentionally want to prefill draft
+values from a run report for review, add `--run-report <path>
+--fill-expected-from-report`; those values still require manual verification
+before baseline use. See
 `docs/OCR_FIXTURE_WORKFLOW.md` for the end-to-end fixture workflow. The
 preparer refuses to write `ground_truth.csv` directly and blocks output outside
 the ignored fixture, analysis, or temp folders unless `--allow-unsafe-output`

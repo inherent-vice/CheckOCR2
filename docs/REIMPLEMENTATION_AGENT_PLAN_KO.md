@@ -19,7 +19,7 @@
   컨트롤러, OCR 초기화 포함 주요 UI action/helper가 분리되어 있다.
 - 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
   legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 437개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 444개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
@@ -58,8 +58,10 @@ slice만 merge하고 전체 게이트를 다시 실행한다.
 
 ## 구현 순서
 
-1. 실제 날짜/금리 crop fixture를 만들고 `ground_truth.csv`를 수동 검증한다.
-2. `scripts\audit_ocr_fixtures.py`로 fixture 준비 상태를 통과시킨다.
+1. 실제 날짜/금리 crop fixture를 만들고 `ground_truth_draft.csv`를 수동 검증한다.
+2. `scripts\promote_ocr_fixtures.py --confirm-reviewed`로 검토된 fixture만
+   `ground_truth.csv`에 승격한 뒤 `scripts\audit_ocr_fixtures.py`로 fixture
+   준비 상태를 통과시킨다.
 3. 현재 EasyOCR baseline과 matrix 결과를 기록한다.
 4. `detail=1`, field allowlist, confidence threshold, preprocessing,
    wait-time 후보를 기본값 변경 없이 실험한다.

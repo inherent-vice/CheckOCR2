@@ -56,8 +56,10 @@ plan is complete.
 
 ## Next Safe Work Slices
 
-1. Build real OCR fixtures under ignored `tests/fixtures/ocr_crops/` and add
-   `ground_truth.csv`. Run the fixture audit before recording a baseline.
+1. Build real OCR fixtures under ignored `tests/fixtures/ocr_crops/`, review
+   `ground_truth_draft.csv`, and promote it with
+   `scripts\promote_ocr_fixtures.py --confirm-reviewed`. Run the fixture audit
+   before recording a baseline.
 2. Record the current EasyOCR baseline and matrix reports under
    `.analysis_tmp/`.
 3. Create candidate runs for waits, preprocessing, `detail=1`, confidence
@@ -78,6 +80,7 @@ Before adopting any OCR or timing change, produce the fixture and benchmark
 evidence first:
 
 ```powershell
+python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json

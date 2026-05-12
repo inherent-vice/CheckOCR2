@@ -47,8 +47,17 @@ authoritative data, and fill normalized `expected_text` values:
 - Dates: `YYYY/MM/DD`, for example `2026/05/11`.
 - Rates: three decimals, for example `3.500`.
 
-Remove draft markers from `notes`, then copy or rename the reviewed file to
-`ground_truth.csv`.
+Remove draft markers from `notes`, then run the promotion gate:
+
+```powershell
+python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed
+```
+
+The promotion script writes `ground_truth.csv` only after explicit review
+confirmation, nonblank normalized expected values, no draft markers, readable
+crop files, duplicate checks, and the same fixture audit gate all pass. It
+refuses overwrite unless `--overwrite` is supplied and supports `--dry-run` for
+checking a reviewed draft without writing the canonical CSV.
 
 ## 4. Audit The Ground Truth
 
@@ -59,7 +68,8 @@ python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_aud
 The audit must report `ready`. It rejects missing or unreadable images, duplicate
 crop paths, unsupported fields, blank expected values, unnormalized text, draft
 markers, and insufficient coverage. The default coverage gate is 100 total
-crops with at least 50 date and 50 rate cases.
+crops with at least 50 date and 50 rate cases. Promotion already runs this
+audit once; rerun it here to produce the baseline evidence JSON.
 
 ## 5. Benchmark And Compare Live Runs
 

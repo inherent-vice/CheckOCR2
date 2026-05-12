@@ -29,6 +29,8 @@
   실행 조립은 `checkocr2/workflow_execution.py`로 분리되었다.
 - OCR run setup, event bridge, legacy adapters, report finalization은 각각
   package module로 분리되어 focused pytest 증거가 있다.
+- `scripts/promote_ocr_fixtures.py`가 추가되어 수동 검토 완료 fixture draft만
+  audit gate 통과 후 `ground_truth.csv`로 승격한다.
 - 최신 기록 기준 source/package smoke는 `1044x788` 창, clean exit,
   isolated settings, strict package smoke startup `1.125s`, package size
   `596.409 MB`를 확인했다.

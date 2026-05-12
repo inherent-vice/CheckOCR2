@@ -331,6 +331,10 @@ Date: 2026-05-12
   into the ignored fixture folder and create a review-required
   `ground_truth_draft.csv` that must be manually verified before promotion to
   `ground_truth.csv`.
+- Added `scripts/promote_ocr_fixtures.py` to promote a manually reviewed
+  `ground_truth_draft.csv` to `ground_truth.csv` only after explicit reviewer
+  confirmation, no draft markers, nonblank normalized expected values, readable
+  crops, duplicate checks, and the fixture audit gate all pass.
 - Added `docs/OCR_FIXTURE_WORKFLOW.md` to document the safe crop draft,
   manual-review, audit, benchmark, and live-comparison sequence.
 - Added `scripts/compare_run_reports.py` to compare same-input live run reports
@@ -376,6 +380,7 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 Before OCR tuning or release decisions that depend on OCR accuracy, also run:
 
 ```powershell
+python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json
 ```
@@ -391,10 +396,12 @@ behavior.
 
 Latest code verification on 2026-05-12:
 
-- `python -m ruff check .`: passed after workflow-execution extraction and documentation updates.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-docs-final`: 437 passed after workflow-execution extraction, concise matrix dry-run evidence-bundle handling, and documentation updates.
-- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after workflow-execution extraction and documentation updates.
+- `python -m ruff check .`: passed after adding the reviewed OCR fixture promotion gate.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 444 passed after adding the reviewed OCR fixture promotion gate.
+- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after adding the reviewed OCR fixture promotion gate.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
+- `python -m pytest tests\test_promote_ocr_fixtures_script.py tests\test_prepare_ocr_fixtures_script.py tests\test_audit_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-promote-fixtures`: 20 passed for draft preparation, explicit promotion confirmation, same-folder `ground_truth.csv` output, draft-marker rejection, audit-gated promotion, and fixture audit behavior.
+- `python -m pytest tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py tests\test_check_ocr_evidence_bundle_script.py --basetemp $env:TEMP\checkocr2-ocr-gates`: 20 passed for benchmark, matrix, and evidence-bundle gates after adding fixture promotion.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
 - `python -m pytest tests\test_menu.py tests\test_toolbar.py tests\test_keyboard_actions.py tests\test_icons.py --basetemp $env:TEMP\checkocr2-parity-menu-toolbar-shortcuts-icons`: 9 passed for GUI parity evidence on menu cascades/commands, toolbar title/start/stop/theme selector, keyboard shortcuts, F5 run/stop dispatch, and preferred ICO/PNG source icon application.
 - `python -m pytest tests\test_folder_actions.py tests\test_excel_table_modules.py tests\test_data_manager.py tests\test_grid_panel.py tests\test_grid_actions.py tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py --basetemp $env:TEMP\checkocr2-file-grid-parity3`: 61 passed for GUI parity evidence on Excel browse/load/export, output-folder local/UNC behavior, Korean Excel headers, blank Excel cell normalization, `_updated.xlsx` output naming, `OCR_Results` sheet naming, grid columns, row add/paste/delete/clear, cell editing, context menu commands, grid shortcuts, and status tags.
@@ -442,6 +449,7 @@ Latest code verification on 2026-05-12:
 - `python -m pytest tests\test_check_ocr_evidence_bundle_script.py --basetemp $env:TEMP\checkocr2-evidence-bundle-concise`: 8 passed for final evidence-bundle acceptance, fail-closed rejection, live-comparison requirements, and concise dry-run matrix reporting.
 - `python -m pytest tests\test_audit_ocr_fixtures_script.py tests\test_compare_run_reports_script.py --basetemp $env:TEMP\checkocr2-ocr-gates-pytest`: 21 passed for fixture audit and live report comparison coverage.
 - `python -m pytest tests\test_prepare_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-prepare-fixtures`: 8 passed for fixture draft preparation, overwrite protection, run-report prefill, safe output targeting, dry-run, and CLI error handling.
+- `python -m pytest tests\test_promote_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-promote-green4`: 7 passed for reviewed fixture promotion, explicit confirmation, blank/draft marker rejection, normalized expected-value enforcement, output placement safety, audit-ready enforcement, overwrite protection, dry-run behavior, and CLI success.
 - `python -m pytest tests\test_ocr_engine.py tests\test_ocr_workflow_manager.py --basetemp $env:TEMP\checkocr2-confidence-pytest`: 14 passed for runtime confidence coverage.
 - `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit.json`: failed as expected with `ready_for_baseline=false` and `Fixture CSV not found: tests\fixtures\ocr_crops\ground_truth.csv`; this hard gate remains open.
 - Broad exception audit now reports only adapter/safety boundaries: the top-level
@@ -544,7 +552,8 @@ that warning non-blocking while package smoke remains green.
 ## Remaining Evidence Gates
 
 - Build real OCR crop fixtures using `docs/OCR_FIXTURE_WORKFLOW.md`, promote a
-  manually reviewed `ground_truth.csv`, then pass
+  manually reviewed `ground_truth.csv` with `scripts\promote_ocr_fixtures.py`,
+  then pass
   `scripts\audit_ocr_fixtures.py`.
 - Run a same-input 10-row live OCR comparison with
   `scripts\compare_run_reports.py` before reducing wait times or changing OCR
