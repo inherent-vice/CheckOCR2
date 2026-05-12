@@ -32,7 +32,7 @@ the Korean parallel-agent plan and workstream split, use
   coordinate capture/preview actions, grid/context-menu actions, grid-update
   actions, grid-edit actions, grid-refresh/status actions, keyboard actions,
   lifecycle actions, runtime-status actions, settings load/save actions, log
-  text actions, OCR run/stop/input-validation actions, options actions,
+  text actions, OCR initialization/run/stop/input-validation actions, options actions,
   work-completion/export/summary/state-finalization actions, application icons,
   window geometry actions, shared section-frame construction,
   OCR-start validation, file, coordinates, timing,
@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 351 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 356 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after OCR field-analysis extraction plus real package
-smoke at about `596.392 MB` with startup `3.203` seconds and settings-file
+release build after OCR initialization action extraction plus real package
+smoke at about `596.393 MB` with startup `3.235` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -218,6 +218,13 @@ Tk-free, accepts `raw_text: str | None`, returns
 `OcrFieldAnalysis(value, log_events)`, and the manager wrapper only emits
 `("log", message, level)` queue events in helper order. Source GUI smoke and
 real package smoke both pass for this slice.
+
+The latest OCR initialization slice moved async OCR initialization controller
+glue into `checkocr2/ui/ocr_initialization_actions.py`; focused tests preserve
+already-initializing and already-ready no-op behavior, package-smoke fast OCR
+readiness, real initializer thread launch, failure queue events, and legacy app
+wrapper delegation. Source GUI smoke and real package smoke both pass for this
+slice.
 
 ## Commands To Re-Run Before Release
 

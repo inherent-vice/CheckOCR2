@@ -54,7 +54,7 @@ the package bootstrap and remains available for existing shortcuts.
 - `runtime_state.py`: explicit GUI start/stop/OCR readiness state.
 - `build_metadata.py`: package metadata and dependency hash generation.
 - `ui/`: extracted Tk panels, dialogs, overlays, action helpers, menu/toolbar,
-  and queue-dispatch seams.
+  OCR initialization, and queue-dispatch seams.
 
 ## Documentation Map
 

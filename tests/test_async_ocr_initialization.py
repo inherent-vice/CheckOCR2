@@ -136,3 +136,20 @@ def test_run_ocr_process_is_blocked_while_ocr_is_loading(
     assert app.work_controller.is_running is False
     assert warnings
     assert "OCR" in warnings[0][0]
+
+
+def test_legacy_app_ocr_initialization_method_delegates(ocr_module, monkeypatch):
+    app = object.__new__(ocr_module.CheckCaptureOCRApp)
+    calls = []
+
+    monkeypatch.setattr(
+        ocr_module,
+        "start_ocr_initialization_action",
+        lambda actual_app, **kwargs: calls.append((actual_app, kwargs)),
+    )
+
+    app.start_ocr_initialization_async()
+
+    assert calls
+    assert calls[0][0] is app
+    assert calls[0][1]["thread_factory"] is ocr_module.threading.Thread

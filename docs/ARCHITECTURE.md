@@ -103,6 +103,10 @@ working.
   scroll, and disabled-state restoration behavior.
 - `checkocr2/ui/main_window.py`: top-level Tk window layout assembly for the
   menu, toolbar, three-panel grid, and log handler wiring.
+- `checkocr2/ui/ocr_initialization_actions.py`: async OCR initialization
+  orchestration for the Tk shell, including already-initializing no-op
+  behavior, package-smoke fast OCR readiness, real initializer thread launch,
+  and legacy `ocr_ready` queue events.
 - `checkocr2/ui/ocr_actions.py`: OCR run/stop button orchestration and
   OCR-start input-validation UI dispatch, including validator handoff,
   warning/error messagebox selection, runtime-state transition, worker launch,
@@ -149,7 +153,8 @@ Tk app -> Excel export -> run report finalization
 
 The GUI initializes first, then EasyOCR loads asynchronously. OCR start remains
 disabled until the reader is ready. This keeps startup responsive even when
-model loading is slow.
+model loading is slow. The Tk shell delegates this initialization handoff to
+`checkocr2/ui/ocr_initialization_actions.py`.
 
 Package smoke tests set `CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE=<path>` and wait
 for `Ready`. Fast startup smoke also sets `CHECKOCR2_PACKAGE_SMOKE_FAST_OCR=1`

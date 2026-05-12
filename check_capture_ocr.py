@@ -28,9 +28,6 @@ from checkocr2.ocr_text import (
     is_valid_date_format,
     is_valid_rate_format,
 )
-from checkocr2.package_smoke_status import (
-    package_smoke_fast_ocr_enabled,
-)
 from checkocr2.paths import clean_folder_path
 from checkocr2.run_report import (
     create_run_report,
@@ -130,6 +127,9 @@ from checkocr2.ui.ocr_actions import (
 )
 from checkocr2.ui.ocr_actions import (
     validate_inputs_for_ocr as validate_inputs_for_ocr_action,
+)
+from checkocr2.ui.ocr_initialization_actions import (
+    start_ocr_initialization as start_ocr_initialization_action,
 )
 from checkocr2.ui.options_actions import (
     toggle_upscaling_details as toggle_upscaling_details_action,
@@ -641,22 +641,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self.after(100, self.start_ocr_initialization_async)
 
     def start_ocr_initialization_async(self):
-        if self.ocr_initializing or self.ocr_workflow_manager.ocr_reader:
-            return
-        self.ocr_initializing = True
-        self._set_runtime_state(RuntimeState.OCR_LOADING)
-
-        if package_smoke_fast_ocr_enabled():
-            self.ocr_workflow_manager.ocr_reader = object()
-            self.message_queue.put(("ocr_ready", True))
-            return
-
-        def initialize():
-            self.ocr_workflow_manager.initialize_ocr()
-            self.message_queue.put(("ocr_ready", self.ocr_workflow_manager.ocr_reader is not None))
-
-        self.ocr_init_thread = threading.Thread(target=initialize, daemon=True)
-        self.ocr_init_thread.start()
+        start_ocr_initialization_action(self, thread_factory=threading.Thread)
 
     def _set_runtime_state(self, state):
         set_runtime_state_action(self, state)

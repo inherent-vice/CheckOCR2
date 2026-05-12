@@ -21,11 +21,11 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 351개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 356개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
-- 최신 기록 기준 패키지는 약 `596.392 MB`, real package smoke startup은
-  `3.203`초다.
+- 최신 기록 기준 패키지는 약 `596.393 MB`, real package smoke startup은
+  `3.235`초다.
 
 ## 반드시 유지할 GUI 동작
 
@@ -59,7 +59,8 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 - UI action/helper: 메뉴, 툴바, 패널, 공통 section frame, 대화상자, 오버레이,
   queue dispatch,
   runtime status, settings, preset, folder, coordinate, grid, log, keyboard,
-  lifecycle, window geometry, OCR run/stop, options, completion/export helpers.
+  lifecycle, window geometry, OCR initialization/run/stop, options,
+  completion/export helpers.
 - 패키징: build metadata, release preflight, package smoke, OpenCV headless
   검증, PyInstaller build gate.
 
