@@ -30,7 +30,7 @@
 - OCR run setup, event bridge, legacy adapters, report finalization은 각각
   package module로 분리되어 focused pytest 증거가 있다.
 - 최신 기록 기준 source/package smoke는 `1044x788` 창, clean exit,
-  isolated settings, strict package smoke startup `1.109s`, package size
+  isolated settings, strict package smoke startup `1.125s`, package size
   `596.409 MB`를 확인했다.
 
 ## 남은 hard gate
