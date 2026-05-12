@@ -364,6 +364,7 @@ Latest code verification on 2026-05-12:
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
 - `python -m pytest tests\test_menu.py tests\test_toolbar.py tests\test_keyboard_actions.py tests\test_icons.py --basetemp $env:TEMP\checkocr2-parity-menu-toolbar-shortcuts-icons`: 9 passed for GUI parity evidence on menu cascades/commands, toolbar title/start/stop/theme selector, keyboard shortcuts, F5 run/stop dispatch, and preferred ICO/PNG source icon application.
+- `python -m pytest tests\test_folder_actions.py tests\test_excel_table_modules.py tests\test_data_manager.py tests\test_grid_panel.py tests\test_grid_actions.py tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py --basetemp $env:TEMP\checkocr2-file-grid-parity2`: 59 passed for GUI parity evidence on Excel browse/load/export, output-folder local/UNC behavior, Korean Excel headers, `_updated.xlsx` output naming, `OCR_Results` sheet naming, grid columns, row add/paste/delete/clear, cell editing, context menu commands, grid shortcuts, and status tags.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45 --min-window-width 1000 --min-window-height 600 --require-clean-exit`: source GUI fast-OCR smoke passed after the clean-exit gate with startup `1.016` seconds, window size `1216x889`, `runtime_state="Ready"`, `ocr_ready=true`, clean GUI exit code `0`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: source GUI fast-OCR smoke passed after the OCR pair-processing slice with startup `1.016` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
 - `python scripts\source_gui_smoke.py --entrypoint "python check_capture_ocr.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45`: source GUI fast-OCR smoke passed after workflow legacy-adapter extraction with startup `1.016` seconds, `runtime_state="Ready"`, `ocr_ready=true`, isolated settings-file verification, and cleanup.
@@ -511,6 +512,6 @@ that warning non-blocking while package smoke remains green.
   now records dated automated launch/package evidence for the three Python
   entrypoints and built EXE, the canonical source/package smokes enforce the
   `1000x600` minimum window size plus clean GUI exit, and focused unit tests
-  cover menu, toolbar, shortcut, and source icon parity. The checklist remains
-  broader than those smokes; keep adding manual evidence or granular tests
-  before treating every item as a green gate.
+  cover menu, toolbar, shortcut, source icon, file/folder, Excel, and grid
+  parity. The checklist remains broader than those smokes; keep adding manual
+  evidence or granular tests before treating every item as a green gate.

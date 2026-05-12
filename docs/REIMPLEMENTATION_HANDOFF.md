@@ -90,6 +90,12 @@ keyboard shortcuts, F5 run/stop dispatch, and source icon helper behavior.
 `docs/GUI_PARITY_CHECKLIST.md` now marks those items as automated while keeping
 packaged icon resource verification and workflow-heavy parity items open.
 
+The latest file/grid parity slice adds explicit tests for Korean Excel headers,
+local and UNC output-folder open behavior, `_updated.xlsx` output naming, and
+the `OCR_Results` export sheet. The checklist now marks file/folder workflow
+and grid behavior items as automated while leaving capture/options/OCR live-run
+items open.
+
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
 working while making the typed workflow row snapshot compatible with mutable and

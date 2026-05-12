@@ -146,10 +146,24 @@ def test_excel_io_loads_and_exports_grid_rows(tmp_path):
     rows[0][DATE_COL] = "2026/05/08"
     rows[0][RATE_COL] = "3.500"
     output = export_grid_rows(rows, tmp_path / "out.xlsx")
+    with pd.ExcelFile(output) as workbook:
+        assert workbook.sheet_names == ["OCR_Results"]
     exported = pd.read_excel(output, dtype=str).fillna("")
 
     assert exported.to_dict("records")[0][CODE_COL] == "A001"
     assert exported.to_dict("records")[0][RATE_COL] == "3.500"
+
+
+def test_excel_io_loads_korean_grid_headers(tmp_path):
+    source = tmp_path / "korean.xlsx"
+    pd.DataFrame([{CODE_COL: "A001", NAME_COL: "알파"}]).to_excel(source, index=False)
+
+    rows, missing = load_grid_rows(source)
+
+    assert missing == []
+    assert rows == [
+        {CODE_COL: "A001", NAME_COL: "알파", DATE_COL: "", RATE_COL: "", STATUS_COL: STATUS_WAITING}
+    ]
 
 
 def test_excel_io_normalizes_writer_failures(tmp_path):

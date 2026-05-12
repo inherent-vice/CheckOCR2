@@ -25,6 +25,7 @@ Latest automated evidence:
 | Package bootstrap launcher | `python scripts\source_gui_smoke.py --entrypoint "python -m checkocr2.main" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45 --require-clean-exit` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, `runtime_state="Ready"`, `ocr_ready=true`, startup `1.016s`, window size `1216x889`, and clean GUI exit code `0`. |
 | Built EXE | `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, real OCR `Ready`, package size `596.405 MB`, startup `4.641s`, window size `1216x889`, and clean GUI exit code `0`. |
 | Menu, toolbar, shortcuts, source icon helper | `python -m pytest tests\test_menu.py tests\test_toolbar.py tests\test_keyboard_actions.py tests\test_icons.py --basetemp $env:TEMP\checkocr2-parity-menu-toolbar-shortcuts-icons` | `9 passed` on 2026-05-12. Covers menu cascades and commands, toolbar title/start/stop/theme selector, `F5`, `Esc`, `F1`, `Ctrl+S`, `Ctrl+L`, `Ctrl+O`, and preferred ICO/PNG application. |
+| File/folder and grid behavior | `python -m pytest tests\test_folder_actions.py tests\test_excel_table_modules.py tests\test_data_manager.py tests\test_grid_panel.py tests\test_grid_actions.py tests\test_grid_edit_actions.py tests\test_grid_refresh_actions.py --basetemp $env:TEMP\checkocr2-file-grid-parity2` | `59 passed` on 2026-05-12. Covers Excel browse filters, output-folder autofill/browse/open for local and UNC paths, Korean Excel headers, `_updated.xlsx`, `OCR_Results`, grid columns, row add/paste/delete/clear, cell editing, context menu, grid shortcuts, and status tags. |
 
 ## Launch And Window
 
@@ -49,13 +50,13 @@ Latest automated evidence:
 
 ## File And Folder Workflow
 
-- [ ] Excel browse accepts `.xlsx` and `.xls`.
-- [ ] Selecting an Excel file auto-fills the output folder.
-- [ ] Excel load populates grid rows from Korean headers.
-- [ ] Output folder browse works for local and UNC paths.
-- [ ] Open output folder works for existing local and UNC paths.
-- [ ] Export still writes `<input_base>_updated.xlsx`.
-- [ ] Export sheet remains `OCR_Results`.
+- [x] Excel browse accepts `.xlsx` and `.xls`.
+- [x] Selecting an Excel file auto-fills the output folder.
+- [x] Excel load populates grid rows from Korean headers.
+- [x] Output folder browse works for local and UNC paths.
+- [x] Open output folder works for existing local and UNC paths.
+- [x] Export still writes `<input_base>_updated.xlsx`.
+- [x] Export sheet remains `OCR_Results`.
 
 ## Capture Controls
 
@@ -80,15 +81,15 @@ Latest automated evidence:
 
 ## Grid Behavior
 
-- [ ] Grid columns remain `종목코드`, `종목명`, `날짜`, `금리`, `상태`.
-- [ ] Add row works.
-- [ ] Paste from clipboard adds tab-delimited rows.
-- [ ] Delete selected rows works.
-- [ ] Clear all works after confirmation.
-- [ ] Double-click cell editing saves with Enter and cancels with Escape.
-- [ ] Context menu copy actions work.
-- [ ] `Ctrl+C`, `Ctrl+V`, and `Delete` shortcuts work on the grid.
-- [ ] Status tags still visually distinguish processing, completed, and error
+- [x] Grid columns remain `종목코드`, `종목명`, `날짜`, `금리`, `상태`.
+- [x] Add row works.
+- [x] Paste from clipboard adds tab-delimited rows.
+- [x] Delete selected rows works.
+- [x] Clear all works after confirmation.
+- [x] Double-click cell editing saves with Enter and cancels with Escape.
+- [x] Context menu copy actions work.
+- [x] `Ctrl+C`, `Ctrl+V`, and `Delete` shortcuts work on the grid.
+- [x] Status tags still visually distinguish processing, completed, and error
   rows.
 
 ## OCR Run Behavior

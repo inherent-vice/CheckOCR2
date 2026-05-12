@@ -85,6 +85,7 @@ def test_export_grid_to_excel_writes_updated_workbook(ocr_module, tmp_path):
     exported_path = manager.export_grid_to_excel_data(output_dir, str(tmp_path / "source.xlsx"))
 
     assert exported_path.exists()
+    assert exported_path.name == "source_updated.xlsx"
     exported = pd.read_excel(exported_path, dtype=str).fillna("")
 
     assert list(exported.columns) == [CODE, NAME, DATE, RATE, STATUS]

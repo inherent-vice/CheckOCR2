@@ -108,6 +108,22 @@ def test_browse_output_folder_uses_initial_dir_sets_cleaned_path_and_warns_for_u
     assert messages == []
 
 
+def test_browse_output_folder_sets_cleaned_local_path_without_notice():
+    app = FakeApp(r"C:\old")
+    messages = []
+
+    folder_actions.browse_output_folder(
+        app,
+        askdirectory=lambda **_kwargs: r"C:\new\folder",
+        initial_dir_func=lambda current: current,
+        showinfo=lambda title, message: messages.append((title, message)),
+        showerror=lambda title, message: messages.append(("error", title, message)),
+    )
+
+    assert app.output_folder_path.get() == "C:/new/folder"
+    assert messages == []
+
+
 def test_browse_output_folder_shows_network_notice_after_cleaning_unc_path():
     app = FakeApp()
     app._clean_output_folder_path = lambda path: path
@@ -193,6 +209,22 @@ def test_open_output_folder_windows_unavailable_unc_warns_and_does_not_open():
 
     assert opened == []
     assert messages and messages[0][0] == "네트워크 오류"
+
+
+def test_open_output_folder_windows_opens_existing_unc_path():
+    app = FakeApp(r"\\server\share\folder")
+    opened = []
+
+    folder_actions.open_output_folder(
+        app,
+        system=lambda: "Windows",
+        exists=lambda _path: True,
+        startfile=lambda path: opened.append(path),
+        showwarning=lambda title, message: None,
+        showerror=lambda title, message: None,
+    )
+
+    assert opened == [r"\\server\share\folder"]
 
 
 def test_open_output_folder_posix_unc_converts_to_smb_url():

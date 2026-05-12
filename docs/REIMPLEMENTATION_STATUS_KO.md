@@ -42,7 +42,7 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 확인 또는 자동 테스트 증거를 남긴다. 현재 체크리스트에는 세 Python
 entrypoint와 built EXE의 dated 자동 launch/package 증거, `1000x600` 최소
 창 크기 증거, clean GUI exit 증거, 메뉴/툴바/단축키/source icon helper
-단위 테스트 증거가 기록되어 있다.
+단위 테스트 증거, 파일/폴더/Excel/grid 단위 테스트 증거가 기록되어 있다.
 
 ## 분리 완료된 주요 구조
 
