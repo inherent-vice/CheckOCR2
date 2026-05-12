@@ -341,6 +341,12 @@ Date: 2026-05-12
 - Added `scripts/prepare_live_smoke_workspace.py` to create an ignored copied
   input workbook, source/smoke hashes, and expected output/report paths before a
   1-2 row live GUI smoke, reducing production workbook mutation risk.
+- Added `scripts/check_live_smoke_workspace.py` to verify the copied live-smoke
+  workspace after a real run: source/input hashes, output workbook, run report
+  input/output paths, processed rows, stopped state, and report errors.
+- Extended `scripts/check_ocr_evidence_bundle.py` with `--live-smoke-json` and
+  `--require-live-smoke` so final OCR evidence can require an accepted
+  copied-workbook GUI smoke check.
 - Added `docs/OCR_FIXTURE_WORKFLOW.md` to document the safe crop draft,
   manual-review, audit, benchmark, and live-comparison sequence.
 - Added `scripts/compare_run_reports.py` to compare same-input live run reports
@@ -389,7 +395,9 @@ Before OCR tuning or release decisions that depend on OCR accuracy, also run:
 python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json
 python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 2
+python scripts\check_live_smoke_workspace.py --manifest .analysis_tmp\live_smoke\live_smoke_manifest.json --output-json .analysis_tmp\live_smoke_check.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --output-json .analysis_tmp/live_ocr_compare.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 Manual GUI smoke remains required after startup, threading, UI state, or
@@ -403,13 +411,14 @@ behavior.
 
 Latest code verification on 2026-05-12:
 
-- `python -m ruff check .`: passed after the typed queue boundary and live-smoke workspace guard changes.
-- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 451 passed after the typed queue boundary and live-smoke workspace guard changes.
-- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after the typed queue boundary and live-smoke workspace guard changes.
+- `python -m ruff check .`: passed after the live-smoke evidence-bundle gate changes.
+- `python -m pytest --basetemp $env:TEMP\checkocr2-pytest`: 462 passed after the live-smoke evidence-bundle gate changes.
+- `python -m compileall checkocr2 scripts check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: passed after the live-smoke evidence-bundle gate changes.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: dry-run passed with zero fixtures.
 - `python -m pytest tests\test_promote_ocr_fixtures_script.py tests\test_prepare_ocr_fixtures_script.py tests\test_audit_ocr_fixtures_script.py --basetemp $env:TEMP\checkocr2-promote-fixtures`: 20 passed for draft preparation, explicit promotion confirmation, same-folder `ground_truth.csv` output, draft-marker rejection, audit-gated promotion, and fixture audit behavior.
-- `python -m pytest tests\test_prepare_live_smoke_workspace_script.py --basetemp $env:TEMP\checkocr2-live-smoke-workspace`: 4 passed for copied live-smoke workbook creation, source/smoke hashing, expected output/report paths, safe output targeting, overwrite protection, and CLI output.
-- `python -m pytest tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py tests\test_check_ocr_evidence_bundle_script.py --basetemp $env:TEMP\checkocr2-ocr-gates`: 20 passed for benchmark, matrix, and evidence-bundle gates after adding fixture promotion.
+- `python -m pytest tests\test_check_live_smoke_workspace_script.py tests\test_prepare_live_smoke_workspace_script.py --basetemp $env:TEMP\checkocr2-live-smoke-check`: 13 passed for copied live-smoke workbook creation, source/smoke hashing, expected output/report paths, safe output targeting, post-run hash and run-report verification, manifest path containment, source-workbook mutation detection, overwrite protection, and CLI output.
+- `python -m pytest tests\test_check_ocr_evidence_bundle_script.py tests\test_check_live_smoke_workspace_script.py --basetemp $env:TEMP\checkocr2-live-smoke-safety`: 19 passed for accepted/rejected live-smoke checker reports, manifest path safety, and final evidence-bundle live-smoke requirements.
+- `python -m pytest tests\test_benchmark_script.py tests\test_benchmark_matrix_script.py tests\test_check_ocr_evidence_bundle_script.py --basetemp $env:TEMP\checkocr2-ocr-gates`: 22 passed for benchmark, matrix, and evidence-bundle gates after adding required live-smoke support.
 - `python -m pytest tests\test_queue_dispatcher.py tests\test_workflow_event_bridge.py tests\test_excel_table_modules.py --basetemp $env:TEMP\checkocr2-typed-queue-boundary`: 24 passed after adding typed legacy queue-message parsing at the Tk dispatch edge.
 - `python -m pytest tests\test_ocr_actions.py tests\test_completion_actions.py tests\test_grid_update_actions.py --basetemp $env:TEMP\checkocr2-typed-queue-ui`: 30 passed for queue-adjacent OCR action, completion, and grid-update behavior after typed queue parsing.
 - `python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json`: dry-run matrix report written.
@@ -569,10 +578,14 @@ that warning non-blocking while package smoke remains green.
   `scripts\compare_run_reports.py` before reducing wait times or changing OCR
   defaults.
 - Use `scripts\prepare_live_smoke_workspace.py` before a 1-2 row GUI live smoke
-  so the run targets an ignored copied workbook and records hash evidence.
+  so the run targets an ignored copied workbook and records hash evidence; use
+  `scripts\check_live_smoke_workspace.py` after the run to verify artifacts.
+- Include `.analysis_tmp\live_smoke_check.json` in the final evidence bundle
+  with `--live-smoke-json` and `--require-live-smoke` when OCR release
+  decisions depend on live GUI evidence.
 - Run `scripts\check_ocr_evidence_bundle.py` after fixture audit, baseline,
-  matrix, and live-comparison reports to prevent dry-run or failed artifacts
-  from being treated as promotion evidence.
+  matrix, live-smoke check, and live-comparison reports to prevent dry-run or
+  failed artifacts from being treated as promotion evidence.
 - Benchmark candidate engines only after fixture baselines exist.
 - Continue package-size cleanup only one measured PyInstaller/dependency change
   at a time, with clean build and package smoke after each removal.

@@ -95,8 +95,9 @@ the package bootstrap and remains available for existing shortcuts.
 
 - OCR tuning requires real crop fixtures, fixture audit, matrix benchmark
   evidence, and a same-input live comparison.
-- Use `scripts/prepare_live_smoke_workspace.py` to create an ignored copied
-  workbook and manifest before a small GUI live smoke.
+- Use `scripts/prepare_live_smoke_workspace.py` and
+  `scripts/check_live_smoke_workspace.py` to create and verify an ignored copied
+  workbook workspace for a small GUI live smoke.
 - Desktop automation depends on screen coordinates and the external target app.
 - Tests should fake OCR and screen automation unless running an explicit smoke.
 - Personal settings, screenshots, production workbooks, and benchmark crops must

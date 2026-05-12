@@ -56,8 +56,9 @@ completion status and the remaining hard blockers, use
   before OCR-default or wait-time changes.
 - `scripts/check_ocr_evidence_bundle.py` is the final OCR evidence guard: it
   rejects not-ready audit reports, dry-run or zero-case benchmark artifacts,
-  matrix coverage failures, and rejected live comparisons. Matrix regressions
-  are warnings by default and become failures with
+  matrix coverage failures, missing/rejected copied-workbook live-smoke checks,
+  and rejected live comparisons. Matrix regressions are warnings by default and
+  become failures with
   `--require-no-matrix-regressions`.
 - `scripts/source_gui_smoke.py` now provides repeatable source-launch, Ready,
   window-title, minimum-window-size, clean-exit, isolated `APPDATA`, and
@@ -77,7 +78,7 @@ completion status and the remaining hard blockers, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 451 tests, and
+Latest code gate result: `ruff` passed, `pytest` passed with 462 tests, and
 `compileall` passed. The latest source GUI fast-OCR smoke reached `Ready` with a
 `1044x788` window against the `1000x600` minimum gate. The latest package gate
 uses the 2026-05-12 clean PyInstaller release build plus strict real package
@@ -115,13 +116,15 @@ of `INFO`, `WARNING`, `ERROR`, and `SUCCESS` messages, Tk log-handler
 forwarding, queue dispatch, and log panel construction. The GUI parity
 checklist now leaves only the real live OCR run unchecked.
 
-The latest live-smoke workspace slice adds `scripts/prepare_live_smoke_workspace.py`
-and `tests/test_prepare_live_smoke_workspace_script.py`. It creates an ignored
-copied input workbook, source/smoke workbook hashes, and expected output/report
-paths before a small real GUI smoke, so the operator does not target the
-production workbook directly. Focused verification passed with `python -m
-pytest tests\test_prepare_live_smoke_workspace_script.py --basetemp
-$env:TEMP\checkocr2-live-smoke-workspace`.
+The latest live-smoke evidence slice adds `scripts/check_live_smoke_workspace.py`,
+`tests/test_check_live_smoke_workspace_script.py`, and `--live-smoke-json /
+--require-live-smoke` support in the final evidence bundle. It verifies
+source/input hashes, expected output workbook and run report paths, processed
+row count, stopped state, and report errors after a copied-workbook GUI smoke.
+Focused verification passed with `python -m pytest
+tests\test_check_ocr_evidence_bundle_script.py
+tests\test_check_live_smoke_workspace_script.py --basetemp
+$env:TEMP\checkocr2-live-smoke-safety`.
 
 The latest typed-queue boundary slice adds `LegacyQueueMessage` parsing in
 `checkocr2/events.py` and routes `checkocr2/ui/queue_dispatcher.py` through it.
@@ -495,13 +498,15 @@ installed outside the release environment.
 
 1. Build representative date/rate crop fixtures and pass the fixture audit.
 2. Record the EasyOCR baseline and matrix reports under `.analysis_tmp/`.
-3. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
-4. Run `scripts\check_ocr_evidence_bundle.py` to reject dry-run, zero-case,
-   coverage-changed, or rejected live-comparison artifacts.
-5. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
+3. Run the copied-workbook live smoke and verify it with
+   `scripts\check_live_smoke_workspace.py`.
+4. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
+5. Run `scripts\check_ocr_evidence_bundle.py` to reject dry-run, zero-case,
+   coverage-changed, missing live-smoke, or rejected live-comparison artifacts.
+6. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
    confidence thresholds, and field allowlists.
-6. Tune waits or OCR defaults only if accuracy does not regress.
-6. Reduce packaging size through one PyInstaller or dependency change at a time.
-7. Add dated parity-checklist evidence for UI areas not covered by source
+7. Tune waits or OCR defaults only if accuracy does not regress.
+8. Reduce packaging size through one PyInstaller or dependency change at a time.
+9. Add dated parity-checklist evidence for UI areas not covered by source
    smoke.
-8. Extract the remaining GUI panels and dialogs in small parity-checked commits.
+10. Extract the remaining GUI panels and dialogs in small parity-checked commits.

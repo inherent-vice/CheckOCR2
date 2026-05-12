@@ -34,10 +34,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--benchmark-json", type=Path, default=DEFAULT_BENCHMARK_JSON)
     parser.add_argument("--matrix-json", type=Path, default=DEFAULT_MATRIX_JSON)
     parser.add_argument("--live-comparison-json", type=Path)
+    parser.add_argument("--live-smoke-json", type=Path)
     parser.add_argument(
         "--require-live-comparison",
         action="store_true",
         help="Fail unless --live-comparison-json is provided and accepted.",
+    )
+    parser.add_argument(
+        "--require-live-smoke",
+        action="store_true",
+        help="Fail unless --live-smoke-json is provided and accepted.",
     )
     parser.add_argument(
         "--require-no-matrix-regressions",
@@ -59,7 +65,9 @@ def check_evidence_bundle(
     benchmark_report: dict[str, Any],
     matrix_report: dict[str, Any],
     live_comparison_report: dict[str, Any] | None = None,
+    live_smoke_report: dict[str, Any] | None = None,
     require_live_comparison: bool = False,
+    require_live_smoke: bool = False,
     require_no_matrix_regressions: bool = False,
 ) -> dict[str, Any]:
     errors: list[str] = []
@@ -79,6 +87,10 @@ def check_evidence_bundle(
         "live_comparison": check_live_comparison_report(
             live_comparison_report,
             required=require_live_comparison,
+        ),
+        "live_smoke": check_live_smoke_report(
+            live_smoke_report,
+            required=require_live_smoke,
         ),
     }
 
@@ -267,6 +279,29 @@ def check_live_comparison_report(
     return check
 
 
+def check_live_smoke_report(
+    report: dict[str, Any] | None,
+    *,
+    required: bool,
+) -> dict[str, Any]:
+    check = base_check("live_smoke")
+    if report is None:
+        if required:
+            reject(check, "live smoke is required but missing")
+        else:
+            warn(check, "live smoke not provided")
+        return check
+    if report.get("accepted") is not True or report.get("status") != "ok":
+        reject(check, "live smoke is not accepted")
+    report_errors = report.get("errors")
+    if isinstance(report_errors, list) and report_errors:
+        reject(check, "live smoke contains errors: " + "; ".join(map(str, report_errors)))
+    for key in ("manifest", "smoke_input", "expected_output_workbook", "expected_run_report"):
+        if not str(report.get(key, "") or ""):
+            reject(check, f"live smoke report missing {key}")
+    return check
+
+
 def check_artifact_consistency(
     audit_report: dict[str, Any],
     benchmark_report: dict[str, Any],
@@ -435,7 +470,13 @@ def main(argv: list[str] | None = None) -> int:
                 if args.live_comparison_json is not None
                 else None
             ),
+            live_smoke_report=(
+                load_json(args.live_smoke_json)
+                if args.live_smoke_json is not None
+                else None
+            ),
             require_live_comparison=args.require_live_comparison,
+            require_live_smoke=args.require_live_smoke,
             require_no_matrix_regressions=args.require_no_matrix_regressions,
         )
     except (OSError, json.JSONDecodeError, ValueError) as exc:

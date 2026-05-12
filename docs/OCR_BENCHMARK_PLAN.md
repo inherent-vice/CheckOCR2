@@ -123,6 +123,12 @@ For the 1-2 row GUI smoke, use the generated `live_smoke_input.xlsx` and
 run target. The manifest records source and smoke workbook hashes plus expected
 `_updated.xlsx` and run-report paths.
 
+After the GUI run, verify the copied-workbook smoke artifacts:
+
+```powershell
+python scripts\check_live_smoke_workspace.py --manifest .analysis_tmp\live_smoke\live_smoke_manifest.json --output-json .analysis_tmp\live_smoke_check.json
+```
+
 ```powershell
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp/live_ocr_compare.json
 ```
@@ -138,21 +144,22 @@ against source data.
 
 ## Evidence Bundle Gate
 
-After the fixture audit, baseline benchmark, matrix benchmark, and live
-comparison have all been produced, run the bundle gate:
+After the fixture audit, baseline benchmark, matrix benchmark, live-smoke check,
+and live comparison have all been produced, run the bundle gate:
 
 ```powershell
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 This command is intentionally fail-closed. It rejects not-ready fixture audits,
 dry-run or zero-case benchmarks, matrix candidates with changed coverage or
-rejected live comparisons. Matrix accuracy, blank, false-positive, and P95
-regressions are reported as warnings because exploratory matrices often contain
-bad candidates by design. Add `--require-no-matrix-regressions` when the matrix
-contains only selected promotion candidates. Omit `--require-live-comparison`
-only when auditing fixture OCR accuracy without making wait-time or
-runtime-default changes.
+missing or rejected copied-workbook live-smoke checks, and rejected live
+comparisons. Matrix accuracy, blank, false-positive, and P95 regressions are
+reported as warnings because exploratory matrices often contain bad candidates
+by design. Add `--require-no-matrix-regressions` when the matrix contains only
+selected promotion candidates. Omit `--require-live-smoke` and
+`--require-live-comparison` only when auditing fixture OCR accuracy without
+making wait-time or runtime-default changes.
 
 ## Acceptance Gate
 

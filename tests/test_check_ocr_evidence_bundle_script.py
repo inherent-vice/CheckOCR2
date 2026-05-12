@@ -113,13 +113,28 @@ def ok_live_comparison():
     }
 
 
+def ok_live_smoke():
+    return {
+        "status": "ok",
+        "accepted": True,
+        "manifest": ".analysis_tmp/live_smoke/live_smoke_manifest.json",
+        "smoke_input": ".analysis_tmp/live_smoke/live_smoke_input.xlsx",
+        "expected_output_workbook": ".analysis_tmp/live_smoke/live_smoke_input_updated.xlsx",
+        "expected_run_report": ".analysis_tmp/live_smoke/live_smoke_input_run_report.json",
+        "errors": [],
+        "warnings": [],
+    }
+
+
 def test_check_evidence_bundle_accepts_real_artifacts_with_live_comparison():
     report = check_evidence_bundle(
         audit_report=ready_audit(),
         benchmark_report=ok_benchmark(),
         matrix_report=ok_matrix(),
         live_comparison_report=ok_live_comparison(),
+        live_smoke_report=ok_live_smoke(),
         require_live_comparison=True,
+        require_live_smoke=True,
     )
 
     assert report["status"] == "ready"
@@ -207,6 +222,39 @@ def test_check_evidence_bundle_requires_live_comparison_when_requested():
     assert "live comparison is required but missing" in report["errors"]
 
 
+def test_check_evidence_bundle_requires_live_smoke_when_requested():
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=ok_matrix(),
+        require_live_smoke=True,
+    )
+
+    assert report["accepted"] is False
+    assert "live smoke is required but missing" in report["errors"]
+
+
+def test_check_evidence_bundle_rejects_failed_live_smoke_report():
+    failed_smoke = {
+        **ok_live_smoke(),
+        "status": "not_ready",
+        "accepted": False,
+        "errors": ["expected_output_workbook missing"],
+    }
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=ok_matrix(),
+        live_smoke_report=failed_smoke,
+        require_live_smoke=True,
+    )
+
+    assert report["accepted"] is False
+    assert "live smoke is not accepted" in report["errors"]
+    assert "live smoke contains errors: expected_output_workbook missing" in report["errors"]
+
+
 def test_check_evidence_bundle_rejects_mixed_fixture_artifacts():
     benchmark = {**ok_benchmark(), "total_cases": 1}
     matrix = ok_matrix()
@@ -227,10 +275,12 @@ def test_check_ocr_evidence_bundle_cli_writes_failure_json(tmp_path):
     audit_path = tmp_path / "audit.json"
     benchmark_path = tmp_path / "benchmark.json"
     matrix_path = tmp_path / "matrix.json"
+    live_smoke_path = tmp_path / "live_smoke.json"
     output_path = tmp_path / "bundle.json"
     audit_path.write_text(json.dumps(ready_audit()), encoding="utf-8")
     benchmark_path.write_text(json.dumps(ok_benchmark()), encoding="utf-8")
     matrix_path.write_text(json.dumps({**ok_matrix(), "dry_run": True}), encoding="utf-8")
+    live_smoke_path.write_text(json.dumps(ok_live_smoke()), encoding="utf-8")
 
     result = subprocess.run(
         [
@@ -242,6 +292,9 @@ def test_check_ocr_evidence_bundle_cli_writes_failure_json(tmp_path):
             str(benchmark_path),
             "--matrix-json",
             str(matrix_path),
+            "--live-smoke-json",
+            str(live_smoke_path),
+            "--require-live-smoke",
             "--output-json",
             str(output_path),
         ],
