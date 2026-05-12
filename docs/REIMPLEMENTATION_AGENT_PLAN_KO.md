@@ -38,7 +38,8 @@
 
 변경이 이 계약을 건드리면 `docs/GUI_PARITY_CHECKLIST.md`에 수동 증거를
 남기거나 자동 테스트를 추가한다. 현재 체크리스트에는 최소 창 크기
-`1000x600`과 clean GUI exit 자동 검증 증거가 포함되어 있다.
+`1000x600`, clean GUI exit, 메뉴/툴바/단축키/source icon helper 자동 검증
+증거가 포함되어 있다.
 
 ## 병렬 작업 스트림
 

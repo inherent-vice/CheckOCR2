@@ -24,27 +24,28 @@ Latest automated evidence:
 | Compatibility launcher | `python scripts\source_gui_smoke.py --entrypoint "python Check_Capture_Excel_V6.1_배포.py" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45 --require-clean-exit` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, `runtime_state="Ready"`, `ocr_ready=true`, startup `1.016s`, window size `1216x889`, and clean GUI exit code `0`. |
 | Package bootstrap launcher | `python scripts\source_gui_smoke.py --entrypoint "python -m checkocr2.main" --isolated-appdata --require-ready --require-settings-file --timeout 45 --ocr-ready-timeout 45 --require-clean-exit` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, `runtime_state="Ready"`, `ocr_ready=true`, startup `1.016s`, window size `1216x889`, and clean GUI exit code `0`. |
 | Built EXE | `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit` | Passed on 2026-05-12 with title `📊 Check Capture OCR V6.1`, real OCR `Ready`, package size `596.405 MB`, startup `4.641s`, window size `1216x889`, and clean GUI exit code `0`. |
+| Menu, toolbar, shortcuts, source icon helper | `python -m pytest tests\test_menu.py tests\test_toolbar.py tests\test_keyboard_actions.py tests\test_icons.py --basetemp $env:TEMP\checkocr2-parity-menu-toolbar-shortcuts-icons` | `9 passed` on 2026-05-12. Covers menu cascades and commands, toolbar title/start/stop/theme selector, `F5`, `Esc`, `F1`, `Ctrl+S`, `Ctrl+L`, `Ctrl+O`, and preferred ICO/PNG application. |
 
 ## Launch And Window
 
 - [x] `python check_capture_ocr.py` opens the app.
 - [x] `python Check_Capture_Excel_V6.1_배포.py` opens the app.
 - [x] Window title is `📊 Check Capture OCR V6.1`.
-- [ ] App icon is applied when `eye_ocr_02_scanline.ico` exists.
+- [x] App icon is applied when `eye_ocr_02_scanline.ico` exists.
 - [x] Initial geometry remains roughly `1200x850`, with minimum size
   `1000x600`.
 - [x] App can close cleanly when no work is running.
 
 ## Menus, Toolbar, And Shortcuts
 
-- [ ] Menu bar still contains file, settings, preview, run, and help actions.
-- [ ] Toolbar still shows title, OCR start, stop, and theme selector.
-- [ ] `F5` starts or stops OCR processing.
-- [ ] `Esc` stops processing when a run is active.
-- [ ] `F1` opens shortcut help.
-- [ ] `Ctrl+S` saves current settings.
-- [ ] `Ctrl+L` loads last settings.
-- [ ] `Ctrl+O` loads the selected Excel file into the grid.
+- [x] Menu bar still contains file, settings, preview, run, and help actions.
+- [x] Toolbar still shows title, OCR start, stop, and theme selector.
+- [x] `F5` starts or stops OCR processing.
+- [x] `Esc` stops processing when a run is active.
+- [x] `F1` opens shortcut help.
+- [x] `Ctrl+S` saves current settings.
+- [x] `Ctrl+L` loads last settings.
+- [x] `Ctrl+O` loads the selected Excel file into the grid.
 
 ## File And Folder Workflow
 

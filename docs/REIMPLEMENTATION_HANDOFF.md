@@ -84,6 +84,12 @@ window handle. Focused script tests and live source/package smoke preserve the
 existing startup title, Ready-state, settings-file, package metadata, and real
 OCR readiness checks while adding window-size and clean-exit evidence.
 
+The latest GUI parity documentation slice records existing unit-test evidence
+for menu cascades and commands, toolbar title/start/stop/theme selector,
+keyboard shortcuts, F5 run/stop dispatch, and source icon helper behavior.
+`docs/GUI_PARITY_CHECKLIST.md` now marks those items as automated while keeping
+packaged icon resource verification and workflow-heavy parity items open.
+
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
 `dict[str, Any]` input to `Mapping[str, Any]`. This keeps legacy grid dicts
 working while making the typed workflow row snapshot compatible with mutable and
