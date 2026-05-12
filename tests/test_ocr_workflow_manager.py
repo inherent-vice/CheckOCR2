@@ -347,6 +347,32 @@ def test_extract_text_detail_zero_ignores_confidence_threshold_for_parity(ocr_mo
     assert manager._last_ocr_confidences == {}
 
 
+def test_ocr_runtime_option_wrappers_delegate_to_package_helpers(ocr_module, monkeypatch):
+    manager, _events = make_workflow_manager(ocr_module)
+    calls = []
+
+    monkeypatch.setattr(
+        ocr_module,
+        "ocr_detail_level",
+        lambda settings_manager: calls.append(("detail", settings_manager)) or 1,
+    )
+    monkeypatch.setattr(
+        ocr_module,
+        "minimum_confidence",
+        lambda settings_manager, field_key: calls.append(
+            ("confidence", settings_manager, field_key)
+        )
+        or 0.75,
+    )
+
+    assert manager._ocr_detail_level() == 1
+    assert manager._minimum_confidence("date") == 0.75
+    assert calls == [
+        ("detail", manager.settings_manager),
+        ("confidence", manager.settings_manager, "date"),
+    ]
+
+
 def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     ocr_module,
     monkeypatch,

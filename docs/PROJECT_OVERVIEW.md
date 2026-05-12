@@ -49,6 +49,8 @@ the package bootstrap and remains available for existing shortcuts.
 - `ocr_engine.py`: EasyOCR adapter boundary.
 - `ocr_reader_lifecycle.py`: EasyOCR startup, fallback, settings reset, and
   fatal initialization message queue behavior.
+- `ocr_runtime_options.py`: runtime `detail` and field confidence option
+  lookup.
 - `screen_automation.py`: pyautogui and clipboard wrappers.
 - `workflow.py`: row processing workflow outside Tkinter.
 - `worker.py`: background thread helper.

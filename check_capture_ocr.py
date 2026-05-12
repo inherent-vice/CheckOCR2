@@ -22,6 +22,10 @@ from checkocr2.ocr_engine import (
 )
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
 from checkocr2.ocr_reader_lifecycle import initialize_easyocr_reader_with_fallback
+from checkocr2.ocr_runtime_options import (
+    minimum_confidence,
+    ocr_detail_level,
+)
 from checkocr2.ocr_text import (
     clean_date_text,
     clean_rate_text,
@@ -477,13 +481,10 @@ class OCRWorkflowManager:
                         self.message_queue.put(("log", f"임시 {field_name} 이미지 파일 삭제 실패: {e_remove}", "WARNING"))
 
     def _ocr_detail_level(self):
-        try:
-            return 1 if int(self.settings_manager.get_advanced("ocr_detail_level", 0)) == 1 else 0
-        except (TypeError, ValueError):
-            return 0
+        return ocr_detail_level(self.settings_manager)
 
     def _minimum_confidence(self, field_key):
-        return self.settings_manager.get_advanced(f"min_{field_key}_confidence", 0.0)
+        return minimum_confidence(self.settings_manager, field_key)
     
     def _analyze_date_results_internal(self, raw_text, field_name="날짜"):
         result = analyze_date_field(raw_text, field_name)

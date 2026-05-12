@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 360 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 364 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after OCR reader lifecycle extraction plus real package
-smoke at about `596.394 MB` with startup `3.203` seconds and settings-file
+release build after OCR runtime-options extraction plus real package
+smoke at about `596.395 MB` with startup `3.734` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The newest structural slices extract coordinate capture/preview action glue
@@ -231,6 +231,12 @@ into `checkocr2/ocr_reader_lifecycle.py`; focused tests preserve primary
 success, fallback success, legacy settings reset, fatal error messagebox queue
 payload, critical log text, and workflow-manager wrapper delegation.
 Source GUI smoke and real package smoke both pass for this slice.
+
+The latest OCR runtime-options slice moved `ocr_detail_level` parsing and
+field-specific minimum confidence lookup into `checkocr2/ocr_runtime_options.py`;
+focused tests preserve the legacy detail-one-only behavior, invalid-value
+fallback to `0`, field key construction, and workflow-manager wrapper
+delegation. Source GUI smoke and real package smoke both pass for this slice.
 
 ## Commands To Re-Run Before Release
 

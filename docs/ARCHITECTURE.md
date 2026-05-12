@@ -44,6 +44,8 @@ working.
 - `checkocr2/ocr_reader_lifecycle.py`: EasyOCR reader startup lifecycle,
   including English/CPU defaults, fallback reinitialization, legacy settings
   reset, fatal error messagebox queueing, and logger text compatibility.
+- `checkocr2/ocr_runtime_options.py`: runtime OCR option interpretation for
+  `ocr_detail_level` and field-specific minimum confidence settings.
 - `checkocr2/capture_adapter.py`: screen-copy, click, paste-wait, screenshot,
   crop-save, and capture timing orchestration for date/rate OCR images.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.

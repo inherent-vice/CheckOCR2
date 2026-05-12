@@ -122,6 +122,7 @@ checkocr2/
   ocr_field_analysis.py               # date/rate OCR field decisions and log text
   ocr_engine.py                       # EasyOCR/RapidOCR/etc adapter boundary
   ocr_reader_lifecycle.py             # EasyOCR reader startup/fallback lifecycle
+  ocr_runtime_options.py              # detail/confidence runtime option lookup
   capture_adapter.py                  # screen copy/click/screenshot capture
   screen_automation.py                # pyautogui and clipboard adapter
   workflow.py                         # OCR orchestration without Tk imports
