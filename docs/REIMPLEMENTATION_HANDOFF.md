@@ -11,8 +11,10 @@ operators should keep the same buttons, shortcuts, Korean labels, Excel flow,
 capture tools, presets, grid behavior, output naming, and stop/final-export
 behavior.
 
-For the current execution rules, next safe work slices, agent coordination, and
-commit checklist, start with `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`. For
+For the current documentation entrypoint and hard-gate map, start with
+`docs/REIMPLEMENTATION_DOC_INDEX_KO.md`. For the current execution rules, next
+safe work slices, agent coordination, and commit checklist, use
+`docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`. For
 the Korean parallel-agent plan and workstream split, use
 `docs/REIMPLEMENTATION_AGENT_PLAN_KO.md`. For the current prompt-to-artifact
 completion status and the remaining hard blockers, use
@@ -75,14 +77,14 @@ completion status and the remaining hard blockers, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 435 tests,
-`compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
-reached `Ready` with a `1044x788` window against the `1000x600` minimum gate.
-The latest package gate uses the 2026-05-12 clean PyInstaller release build
-plus strict real package smoke at about `596.408 MB` with startup `1.110` seconds,
-build date `2026-05-12T10:21:36+00:00`, window size `1044x788`, clean GUI exit
-code `0`, settings-file verification under isolated `APPDATA`, and packaged
-icon extraction evidence.
+Latest code gate result: `ruff` passed, `pytest` passed with 437 tests, and
+`compileall` passed. The latest source GUI fast-OCR smoke reached `Ready` with a
+`1044x788` window against the `1000x600` minimum gate. The latest package gate
+uses the 2026-05-12 clean PyInstaller release build plus strict real package
+smoke at about `596.409 MB` with startup `4.187` seconds, build date
+`2026-05-12T10:50:04+00:00`, window size `1044x788`, clean GUI exit code `0`,
+settings-file verification under isolated `APPDATA`, and packaged icon
+extraction evidence.
 
 The current GUI parity verification slice extends source and package smokes to
 capture the main Tk window rectangle and request a GUI close through the matched
@@ -151,7 +153,7 @@ workflow dependency seams in the extracted module. Focused verification passed
 with `python -m pytest tests\test_ocr_workflow_manager.py
 tests\test_async_ocr_initialization.py tests\test_completion_actions.py
 --basetemp $env:TEMP\checkocr2-ocr-manager-extract`. The full slice gate also
-passed with `ruff`, 435-test `pytest`, `compileall`, benchmark dry-runs, matrix
+passed with `ruff`, 437-test `pytest`, `compileall`, benchmark dry-runs, matrix
 dry-run, and source GUI smoke reaching `Ready` with a `1044x788` window and
 clean exit.
 
@@ -160,6 +162,14 @@ import from `checkocr2/ocr_workflow_manager.py`. Export dialogs are injected by
 `CheckCaptureOCRApp` when it constructs the manager, and focused tests pin the
 injected callback path plus the absence of a workflow-manager `messagebox`
 module dependency.
+
+The latest workflow-execution slice moves legacy run setup, workflow adapter
+assembly, queue bridge wiring, and success report finalization into
+`checkocr2/workflow_execution.py`. `OCRWorkflowManager` now owns the EasyOCR
+reader and tracking callbacks while delegating the run assembly. Focused
+verification passed with `python -m pytest tests\test_workflow_execution.py
+tests\test_ocr_workflow_manager.py tests\test_check_ocr_evidence_bundle_script.py
+--basetemp $env:TEMP\checkocr2-workflow-exec-evidence2`.
 
 The newest app-shell reduction slice moves `CheckCaptureOCRApp` into
 `checkocr2/app.py` and turns `check_capture_ocr.py` into a thin compatibility
@@ -176,11 +186,11 @@ tests\test_options_actions.py tests\test_presets.py
 tests\test_runtime_status_actions.py tests\test_section_frame.py
 tests\test_settings_actions.py tests\test_window_actions.py --basetemp
 $env:TEMP\checkocr2-app-shell-extract`. The full source/package gate passed
-with `ruff`, 435-test `pytest`, `compileall`, benchmark dry-runs, matrix
+with `ruff`, 437-test `pytest`, `compileall`, benchmark dry-runs, matrix
 dry-run, all three source launchers reaching `Ready` with a `1044x788` window
 and clean exit, clean PyInstaller build, and real package smoke at
-`596.408 MB`, `1.110` seconds startup, build date
-`2026-05-12T10:21:36+00:00`, isolated settings-file verification, and clean
+`596.409 MB`, `4.187` seconds startup, build date
+`2026-05-12T10:50:04+00:00`, isolated settings-file verification, and clean
 packaged GUI exit.
 
 The current manager-dialog slice removes the direct Tk messagebox import from
@@ -190,7 +200,7 @@ behavior while keeping the manager closer to an adapter seam. Focused
 verification passed with `python -m pytest tests\test_ocr_workflow_manager.py
 tests\test_completion_actions.py tests\test_async_ocr_initialization.py
 --basetemp $env:TEMP\checkocr2-manager-dialogs`. The slice also passed the full
-gate with `ruff`, 435-test `pytest`, `compileall`, source GUI smoke, clean
+gate with `ruff`, 437-test `pytest`, `compileall`, source GUI smoke, clean
 PyInstaller build, and real package smoke.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete

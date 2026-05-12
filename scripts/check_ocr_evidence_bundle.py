@@ -149,6 +149,8 @@ def check_matrix_report(
     if report.get("dry_run") is True:
         reject(check, "matrix is a dry-run artifact")
     require_positive_int(check, report, "total_candidates", "matrix")
+    if report.get("dry_run") is True:
+        return check
 
     baseline = report.get("baseline")
     if not isinstance(baseline, dict):

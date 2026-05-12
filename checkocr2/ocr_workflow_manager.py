@@ -36,15 +36,13 @@ from checkocr2.ui.completion_actions import (
 from checkocr2.ui.completion_actions import (
     finalize_processing_states_for_app as finalize_processing_states_action,
 )
-from checkocr2.workflow import WorkflowOptions, WorkflowRunner
-from checkocr2.workflow import finalize_processing_states as finalize_workflow_processing_states
-from checkocr2.workflow_event_bridge import WorkflowEventBridge
-from checkocr2.workflow_legacy_adapters import LegacyAutomationAdapter, LegacyEasyOcrAdapter
+from checkocr2.workflow_execution import (
+    WorkflowExecutionCallbacks,
+    execute_legacy_workflow,
+)
 from checkocr2.workflow_report_finalization import (
     finalize_workflow_report_failure,
-    finalize_workflow_report_success,
 )
-from checkocr2.workflow_run_setup import prepare_workflow_run
 
 
 class OCRWorkflowManager:
@@ -91,85 +89,37 @@ class OCRWorkflowManager:
                 return
 
             input_excel_file = self.app.input_excel_path.get()
-            run_setup = prepare_workflow_run(
-                ui_settings,
-                output_dir_str,
-                input_excel_file,
-                len(self.data_manager.excel_data),
-                save_detail_images_bool,
-            )
-            paste_d = run_setup.paste_delay
-            load_d = run_setup.load_delay
-            coords = run_setup.coords
-            save_folder = run_setup.save_folder
             self._last_capture_timing = {}
             self._last_ocr_timings = {}
             self._last_ocr_confidences = {}
-            row_timing_by_index = {}
-            row_metadata_by_index = {}
-            self._current_run_report_path = run_setup.report_path
-            self._current_run_report = run_setup.report
 
             def clear_ocr_tracking():
                 self._last_ocr_timings = {}
                 self._last_ocr_confidences = {}
 
-            event_bridge = WorkflowEventBridge(
-                self.message_queue,
-                self.data_manager,
-                row_timing_by_index,
-                self._elapsed_ms,
-            )
-
-            runner = WorkflowRunner(
-                LegacyAutomationAdapter(
-                    self._capture_screenshots_internal,
-                    save_folder,
-                    coords,
-                    paste_d,
-                    load_d,
-                    save_detail_images_bool,
-                    lambda: self._last_capture_timing,
-                    row_timing_by_index,
-                    self._elapsed_ms,
-                ),
-                LegacyEasyOcrAdapter(
-                    self._process_single_ocr_internal,
-                    save_detail_images_bool,
-                    clear_ocr_tracking,
-                    lambda: self._last_ocr_timings,
-                    lambda: self._last_ocr_confidences,
-                    row_timing_by_index,
-                    row_metadata_by_index,
-                    self._elapsed_ms,
-                ),
-                stop_token=self.work_controller,
-                event_sink=event_bridge.emit,
-            )
-            result = runner.process_rows(
-                self.data_manager.excel_data,
-                WorkflowOptions(
-                    skip_kbp_code=self.settings_manager.get_advanced('skip_kbp_code', True),
-                    save_detail_images=save_detail_images_bool,
-                    output_dir=output_dir_str,
-                    input_excel_path=input_excel_file,
-                ),
-            )
-            if result.stopped:
-                finalize_workflow_processing_states(self.data_manager.excel_data)
-                self.logger.info("[OCRWorkflowManager] 작업 루프 종료됨 (사용자 중단).")
-            else:
-                self.logger.info("[OCRWorkflowManager] 모든 항목 처리 완료. 최종 처리 메시지 전송 중.")
-
-            if self._current_run_report is not None:
-                finalize_workflow_report_success(
-                    report=self._current_run_report,
-                    rows=self.data_manager.excel_data,
-                    row_timing_by_index=row_timing_by_index,
-                    row_metadata_by_index=row_metadata_by_index,
-                    result=result,
+            execute_legacy_workflow(
+                ui_settings=ui_settings,
+                output_dir=output_dir_str,
+                input_excel_file=input_excel_file,
+                rows=self.data_manager.excel_data,
+                save_detail_images=save_detail_images_bool,
+                skip_kbp_code=self.settings_manager.get_advanced('skip_kbp_code', True),
+                message_queue=self.message_queue,
+                data_manager=self.data_manager,
+                work_controller=self.work_controller,
+                logger=self.logger,
+                callbacks=WorkflowExecutionCallbacks(
+                    capture_screenshots=self._capture_screenshots_internal,
+                    process_single_ocr=self._process_single_ocr_internal,
+                    clear_ocr_tracking=clear_ocr_tracking,
+                    get_capture_timing=lambda: self._last_capture_timing,
+                    get_ocr_timings=lambda: self._last_ocr_timings,
+                    get_ocr_confidences=lambda: self._last_ocr_confidences,
+                    elapsed_ms=self._elapsed_ms,
                     flush_report=self._flush_current_run_report,
-                )
+                    set_current_run_report=self._set_current_run_report,
+                ),
+            )
 
         except Exception as e_workflow:
             self.message_queue.put(("log", f"OCR 전체 워크플로우 오류: {e_workflow}", "ERROR"))
@@ -186,6 +136,10 @@ class OCRWorkflowManager:
                  self.work_controller.stop_work() # is_stopped 플래그 설정 및 stop_event 설정
             # 예외 발생 후에도 stopped 메시지를 보내 UI 상태를 중단됨으로 변경
             self.message_queue.put(("stopped", None))
+
+    def _set_current_run_report(self, report, report_path):
+        self._current_run_report = report
+        self._current_run_report_path = report_path
 
     def _flush_current_run_report(self):
         if self._current_run_report is None or self._current_run_report_path is None:

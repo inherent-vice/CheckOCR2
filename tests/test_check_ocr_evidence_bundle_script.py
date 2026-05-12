@@ -145,6 +145,20 @@ def test_check_evidence_bundle_rejects_bootstrap_artifacts():
     assert "matrix total_candidates must be greater than zero" in report["errors"]
 
 
+def test_check_evidence_bundle_reports_concise_matrix_dry_run_error():
+    matrix = {**ok_matrix(), "dry_run": True}
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=matrix,
+    )
+
+    matrix_errors = report["checks"]["matrix"]["errors"]
+    assert matrix_errors == ["matrix is a dry-run artifact"]
+    assert report["accepted"] is False
+
+
 def test_check_evidence_bundle_warns_on_exploratory_matrix_regressions():
     matrix = ok_matrix()
     matrix["comparisons"][0]["against_baseline"]["accuracy_not_regressed"] = False

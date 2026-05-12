@@ -29,7 +29,7 @@ OCR engines until these gates pass with real data.
 | Keep GUI parity for menus, toolbar, shortcuts, file/grid flows, coordinates, options, presets, logs, and workflow summaries | `docs/GUI_PARITY_CHECKLIST.md` and listed focused pytest commands | Checklist records automated evidence for all listed areas except real live OCR run. | Partial |
 | Keep runtime settings and logs out of repo root | `checkocr2/settings.py`, `checkocr2/logging_config.py`, `tests/test_logging_and_main.py` | Tests verify APPDATA settings/log placement and no repo-root `ocr_app.log` creation. | Done |
 | Keep worker, stop-state, Excel blank, date validation, and exception safety fixes | `tests/test_worker.py`, `tests/test_work_controller.py`, `tests/test_excel_table_modules.py`, `tests/test_ocr_field_analysis.py` | Full suite currently includes these regressions and passes. | Done |
-| Keep package release gate green | Clean PyInstaller build plus `scripts/package_smoke.py ... --ocr-ready-mode real ... --require-clean-exit` | Strict package smoke: `596.408 MB`, startup `1.110s`, build date `2026-05-12T10:21:36+00:00`, `Ready`, isolated settings, clean exit. | Done |
+| Keep package release gate green | Clean PyInstaller build plus `scripts/package_smoke.py ... --ocr-ready-mode real ... --require-clean-exit` | Strict package smoke: `596.409 MB`, startup `4.187s`, build date `2026-05-12T10:50:04+00:00`, `Ready`, isolated settings, clean exit. | Done |
 | Build reviewed OCR crop fixtures | `tests/fixtures/ocr_crops/ground_truth.csv`; `python scripts/audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit_current.json` | Current audit status is `not_ready`: `Fixture CSV not found: tests\fixtures\ocr_crops\ground_truth.csv`; `total_cases=0`. | Missing |
 | Record real EasyOCR baseline on audited fixtures | `python scripts/benchmark_ocr.py --output-json .analysis_tmp/easyocr_baseline.json` | Only dry-run/zero-case artifacts exist; current dry-run has `status=dry_run`, `total_cases=0`. | Missing |
 | Run OCR matrix on audited fixtures | `python scripts/benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json` | Current matrix artifacts are dry-run/zero-case and rejected by the evidence bundle. | Missing |
@@ -43,14 +43,15 @@ Commands rerun during this audit:
 ```powershell
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit_current.json
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\easyocr_baseline_dry_run.json
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit_current.json --benchmark-json .analysis_tmp\easyocr_baseline_dry_run.json --matrix-json .analysis_tmp\ocr_benchmark_matrix.json --output-json .analysis_tmp\ocr_evidence_bundle_current.json
+python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit_current.json --benchmark-json .analysis_tmp\easyocr_baseline_dry_run.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle_current.json
 ```
 
 Observed results:
 
 - `ocr_fixture_audit_current.json`: `status=not_ready`, `ready_for_baseline=false`, `total_cases=0`.
 - `easyocr_baseline_dry_run.json`: `status=dry_run`, `dry_run=true`, `total_cases=0`.
-- `ocr_evidence_bundle_current.json`: `accepted=false`; fixture audit, benchmark, and matrix checks failed; live comparison was not provided.
+- `ocr_evidence_bundle_current.json`: `accepted=false`; fixture audit and benchmark checks failed, the matrix check is rejected as a dry-run artifact, and required live comparison is missing.
 
 ## Next Required Work
 

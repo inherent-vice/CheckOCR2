@@ -29,12 +29,12 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 - `checkocr2/ocr_workflow_manager.py`는 export 완료/오류 dialog 함수를
   `checkocr2/app.py`에서 주입받으며, 더 이상 Tk messagebox를 직접 import하지
   않는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 435개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 437개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
   GUI exit을 검사한다. 확인된 창 크기는 `1044x788`이고, 최신 패키지는 약
-  `596.408 MB`, strict real package smoke startup은 `1.110`초다.
+  `596.409 MB`, strict real package smoke startup은 `4.187`초다.
 
 ## 반드시 유지할 GUI 동작
 
@@ -79,10 +79,14 @@ entrypoint와 built EXE의 dated 자동 launch/package 증거, `1000x600` 최소
   누락 이미지 skip, 부분 실패 결과 보존, 기존 한국어 오류 로그를 담당한다.
   `image_processing.py`는 crop 검증, 재사용 가능한 이미지 소스 처리, 업스케일
   크기/변경 상태 계산을 담당한다.
-- 워크플로/상태/리포트: `workflow.py`, `workflow_event_bridge.py`,
-  `workflow_legacy_adapters.py`, `workflow_run_setup.py`, `worker.py`,
-  `workflow_report_finalization.py`, `work_controller.py`, `runtime_state.py`,
-  `run_report.py`, `events.py`, `table_model.py`.
+- 워크플로/상태/리포트: `workflow.py`, `workflow_execution.py`,
+  `workflow_event_bridge.py`, `workflow_legacy_adapters.py`,
+  `workflow_run_setup.py`, `worker.py`, `workflow_report_finalization.py`,
+  `work_controller.py`, `runtime_state.py`, `run_report.py`, `events.py`,
+  `table_model.py`.
+  `workflow_execution.py`는 legacy manager의 실행 조립을 맡아 run setup,
+  queue event bridge, capture/OCR adapter, `WorkflowRunner` 호출, stop log,
+  성공 run-report finalization을 한 곳에서 처리한다.
   `models.py`의 `OcrRow.from_dict()`는 이제 구체적인 `dict`뿐 아니라
   `Mapping[str, Any]`를 받아 workflow row snapshot의 타입 계약과 맞춘다.
 - UI action/helper: 메뉴, 툴바, 패널, 공통 section frame, 대화상자, 오버레이,
@@ -177,6 +181,7 @@ python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.e
 
 ## 관련 문서
 
+- `docs/REIMPLEMENTATION_DOC_INDEX_KO.md`: 재구현 문서 진입점과 남은 hard gate.
 - `docs/REIMPLEMENTATION_EXECUTION_GUIDE.md`: 다음 작업자가 따라야 할 실행 규칙.
 - `docs/REIMPLEMENTATION_HANDOFF.md`: 최신 검증 상태와 남은 게이트.
 - `docs/OCR_FIXTURE_WORKFLOW.md`: crop fixture 준비와 수동 검토 절차.
