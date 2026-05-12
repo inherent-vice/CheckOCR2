@@ -24,8 +24,17 @@ def start_daemon_worker(
     target: Callable[..., Any],
     *args: Any,
     name: str | None = None,
+    on_exception: Callable[[Exception], None] | None = None,
     **kwargs: Any,
 ) -> WorkerHandle:
-    thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True, name=name)
+    def run_target() -> None:
+        try:
+            target(*args, **kwargs)
+        except Exception as exc:
+            if on_exception is None:
+                raise
+            on_exception(exc)
+
+    thread = threading.Thread(target=run_target, daemon=True, name=name)
     thread.start()
     return WorkerHandle(thread)

@@ -42,7 +42,18 @@ def run_ocr_process(
         output_dir,
         save_details,
         name="checkocr2-ocr-workflow",
+        on_exception=lambda exc: handle_worker_exception(app, exc),
     )
+
+
+def handle_worker_exception(app: Any, exc: Exception) -> None:
+    app.message_queue.put(("log", f"OCR worker thread failed: {exc}", "ERROR"))
+    logger = getattr(app, "logger", None)
+    if logger is not None:
+        logger.exception("OCR worker thread failed")
+    if not getattr(app.work_controller, "is_stopped", False):
+        app.work_controller.stop_work()
+    app.message_queue.put(("stopped", None))
 
 
 def validate_inputs_for_ocr(

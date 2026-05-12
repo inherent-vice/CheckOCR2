@@ -13,16 +13,19 @@ _OCR_READER = object()
 class FakeWorkController:
     def __init__(self, *, running=False):
         self.is_running = running
+        self.is_stopped = False
         self.started = 0
         self.stopped = 0
 
     def start_work(self):
         self.started += 1
         self.is_running = True
+        self.is_stopped = False
 
     def stop_work(self):
         self.stopped += 1
         self.is_running = False
+        self.is_stopped = True
         return "stopped"
 
 
@@ -46,6 +49,7 @@ class FakeApp:
         self.valid = valid
         self.current_settings = {"click_point": (1, 2)}
         self.stop_ui_calls = 0
+        self.logger = SimpleNamespace(exception_calls=[], exception=lambda message: self.logger.exception_calls.append(message))
 
     def _set_runtime_state(self, state):
         self.runtime_states.append(state)
@@ -92,9 +96,28 @@ def test_run_ocr_process_starts_worker_with_current_ui_contract():
         (
             app.ocr_workflow_manager.execute_ocr_workflow_threaded,
             ({"click_point": (1, 2)}, "C:/Output", True),
-            {"name": "checkocr2-ocr-workflow"},
+            {"name": "checkocr2-ocr-workflow", "on_exception": worker_calls[0][2]["on_exception"]},
         )
     ]
+    assert callable(worker_calls[0][2]["on_exception"])
+
+
+def test_run_ocr_process_worker_exception_callback_logs_and_stops():
+    app = FakeApp(valid=True)
+    callbacks = []
+
+    def start_worker(target, *args, **kwargs):
+        callbacks.append(kwargs["on_exception"])
+        return "worker-handle"
+
+    ocr_actions.run_ocr_process(app, start_worker=start_worker)
+    callbacks[0](RuntimeError("boom"))
+
+    assert app.work_controller.stopped == 1
+    assert app.work_controller.is_stopped is True
+    assert app.logger.exception_calls == ["OCR worker thread failed"]
+    assert app.message_queue.get_nowait() == ("log", "OCR worker thread failed: boom", "ERROR")
+    assert app.message_queue.get_nowait() == ("stopped", None)
 
 
 def test_run_ocr_process_stops_instead_of_starting_when_already_running():

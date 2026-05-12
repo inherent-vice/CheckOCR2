@@ -19,7 +19,7 @@
   컨트롤러, OCR 초기화 포함 주요 UI action/helper가 분리되어 있다.
 - 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
   legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 431개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 433개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
@@ -33,6 +33,7 @@
 - 기존 창 제목, 아이콘, 메뉴, 툴바, 로그 패널, 테마 선택.
 - `F5`, `Esc`, `F1`, `Ctrl+S`, `Ctrl+L`, `Ctrl+O` 및 그리드 편집 단축키.
 - Excel 로드, 출력 폴더 자동 설정, `_updated.xlsx` export, run report 생성.
+- Excel 빈 셀과 NaN 값은 grid 표시, 복사, export에서 빈 문자열로 유지.
 - 클릭 지점, 전체/날짜/금리 영역 선택, 미리보기 오버레이, 프리셋 관리.
 - OCR 시작/중지, KBP skip, 상세 이미지 저장, 업스케일 옵션.
 

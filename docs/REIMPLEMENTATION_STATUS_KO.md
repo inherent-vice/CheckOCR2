@@ -21,7 +21,7 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
   기존 GUI 호환 adapter는 `checkocr2/settings_compat.py`에 있다.
 - EasyOCR는 GUI가 먼저 표시된 뒤 백그라운드에서 초기화된다. OCR 준비 전에는
   시작 버튼과 `F5` 실행을 막는다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 431개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 433개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
@@ -34,6 +34,7 @@ OCR 정확도, 처리 속도, 패키징 안정성, 코드 유지보수성을 개
 - 단축키: `F5`, `Esc`, `F1`, `Ctrl+S`, `Ctrl+L`, `Ctrl+O`.
 - 그리드 행 추가/삭제/초기화, 복사/붙여넣기, 셀 편집 Enter/Escape.
 - Excel 파일 선택, 행 로드, 출력 폴더 자동 설정, `_updated.xlsx` export.
+- Excel 빈 셀과 NaN 값은 grid 표시, 복사, export에서 빈 문자열로 유지한다.
 - 클릭 지점, 전체/날짜/금리 영역 선택, 영역 미리보기 오버레이.
 - 상세 이미지 저장, KBP skip, OCR 업스케일, 프리셋 저장/적용/삭제.
 - OCR 시작/중지, 행별 상태 갱신, 최종 export, run report 생성.
