@@ -65,11 +65,11 @@ the Korean parallel-agent plan and workstream split, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 392 tests,
+Latest code gate result: `ruff` passed, `pytest` passed with 397 tests,
 `compileall` passed, benchmark dry-runs passed, and source GUI fast-OCR smoke
 reached `Ready`. The latest package gate uses the 2026-05-12 clean PyInstaller
-release build after the OCR field-extraction slice plus real package smoke at
-about `596.402 MB` with startup `3.204` seconds and settings-file
+release build after the OCR pair-processing slice plus real package smoke at
+about `596.403 MB` with startup `3.219` seconds and settings-file
 verification under isolated `APPDATA`.
 
 The current small model-seam slice widens `OcrRow.from_dict()` from concrete
@@ -83,6 +83,12 @@ The current OCR extraction slice moves the single-field OCR read sequence into
 same method name and dependency injection points, while the package helper owns
 image-load/preprocess/OCR/parse/total timings, confidence metadata, rejection
 warnings, OCR result logs, temp cleanup logs, and blank-field error handling.
+
+The current OCR pair-processing slice moves date/rate image-pair orchestration
+into `checkocr2/ocr_pair_processing.py`. The legacy manager wrapper still owns
+the same public method, while the package helper preserves call order,
+missing-source skips, partial-failure return values, Korean error logs, and
+manager monkeypatch compatibility.
 
 The newest structural slices extract coordinate capture/preview action glue
 into `checkocr2/ui/coordinate_actions.py` and Excel/output-folder action glue

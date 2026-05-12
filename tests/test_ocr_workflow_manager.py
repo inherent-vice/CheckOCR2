@@ -489,6 +489,28 @@ def test_extract_text_records_timing_before_cleanup_failure(ocr_module, monkeypa
     assert "date_total_ms" in manager._last_ocr_timings
 
 
+def test_process_single_ocr_wrapper_delegates_to_pair_helper(ocr_module, monkeypatch):
+    manager, _events = make_workflow_manager(ocr_module)
+    calls = []
+
+    monkeypatch.setattr(
+        ocr_module,
+        "process_ocr_image_pair",
+        lambda *args, **kwargs: calls.append((args, kwargs)) or ("date", "rate"),
+    )
+
+    result = manager._process_single_ocr_internal("date-image", "rate-image", save_details=True)
+
+    assert result == ("date", "rate")
+    assert calls
+    assert calls[0][0] == ("date-image", "rate-image")
+    assert calls[0][1]["save_details"] is True
+    assert calls[0][1]["extract_text"] == manager._extract_text_with_ocr_attempts_internal
+    assert calls[0][1]["analyze_date"] == manager._analyze_date_results_internal
+    assert calls[0][1]["analyze_rate"] == manager._analyze_rate_results_internal
+    assert calls[0][1]["logger"] is manager.logger
+
+
 def test_capture_screenshots_saves_full_area_only_when_detail_enabled(
     ocr_module,
     monkeypatch,

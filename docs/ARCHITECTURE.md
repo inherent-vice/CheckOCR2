@@ -40,6 +40,9 @@ working.
 - `checkocr2/ocr_field_extraction.py`: single-field OCR extraction sequence for
   image load timing, upscaling, EasyOCR read, confidence gating, field parsing,
   cleanup logging, and timing/confidence result capture.
+- `checkocr2/ocr_pair_processing.py`: date/rate image-pair orchestration for
+  single-row OCR, including missing-image skips, partial-failure preservation,
+  Korean error-log emission, and legacy manager wrapper delegation.
 - `checkocr2/image_processing.py`: crop validation, pure image upscaling,
   reusable image-source loading/upscale result metadata, and temporary date/rate
   crop cleanup decisions for OCR preprocessing helpers.
@@ -162,7 +165,7 @@ working.
 
 ```text
 Tk app -> WorkController -> worker thread -> OCRWorkflowManager/WorkflowRunner
-Workflow -> screen automation -> screenshots -> preprocessing -> OCR engine
+Workflow -> screen automation -> screenshots -> OCR pair processing -> preprocessing -> OCR engine
 OCR text -> field analysis -> legacy log/value queue events
 Workflow -> queue events -> Tk app -> grid/log/dialog updates
 Tk app -> Excel export -> run report finalization

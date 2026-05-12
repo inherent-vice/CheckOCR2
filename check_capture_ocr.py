@@ -9,7 +9,6 @@ from PIL import Image
 
 from checkocr2.capture_adapter import capture_screenshots
 from checkocr2.data_manager import DataManager
-from checkocr2.exceptions import OCREngineError
 from checkocr2.image_processing import cleanup_temp_ocr_image, upscale_image_source
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_engine import (
@@ -20,6 +19,7 @@ from checkocr2.ocr_engine import (
 )
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
 from checkocr2.ocr_field_extraction import extract_ocr_field_text
+from checkocr2.ocr_pair_processing import process_ocr_image_pair
 from checkocr2.ocr_reader_lifecycle import initialize_easyocr_reader_with_fallback
 from checkocr2.ocr_runtime_options import (
     minimum_confidence,
@@ -364,16 +364,16 @@ class OCRWorkflowManager:
         return result.date_image, result.rate_image
 
     def _process_single_ocr_internal(self, date_img_src, rate_img_src, save_details):
-        date_result, rate_result = "", ""
-        try:
-            if date_img_src:
-                date_result = self._extract_text_with_ocr_attempts_internal(date_img_src, self._analyze_date_results_internal, "날짜", save_details)
-            if rate_img_src:
-                rate_result = self._extract_text_with_ocr_attempts_internal(rate_img_src, self._analyze_rate_results_internal, "금리", save_details)
-        except (OSError, RuntimeError, TypeError, ValueError, OCREngineError) as e:
-            self.message_queue.put(("log", f"단일 OCR 처리 중 오류: {e}", "ERROR"))
-            self.logger.exception("단일 OCR 처리 중 예외 발생")
-        return date_result, rate_result
+        return process_ocr_image_pair(
+            date_img_src,
+            rate_img_src,
+            save_details=save_details,
+            extract_text=self._extract_text_with_ocr_attempts_internal,
+            analyze_date=self._analyze_date_results_internal,
+            analyze_rate=self._analyze_rate_results_internal,
+            emit_log=lambda message, level: self.message_queue.put(("log", message, level)),
+            logger=self.logger,
+        )
 
     def _extract_text_with_ocr_attempts_internal(self, image_source, analysis_function, field_name, save_details):
         if self.work_controller.is_stopped: return ""
