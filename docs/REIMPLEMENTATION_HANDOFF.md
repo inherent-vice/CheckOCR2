@@ -493,8 +493,8 @@ installed outside the release environment.
   then pass the fixture audit script.
 - Run a same-input 10-row live OCR comparison through the run-report comparator
   before reducing wait defaults or changing OCR defaults.
-- Run the OCR evidence bundle gate after audit, baseline, matrix, and live
-  comparison artifacts exist.
+- Run the OCR evidence bundle gate after audit, baseline, matrix,
+  repeatability, live-smoke, and live-comparison artifacts exist.
 - Benchmark alternate OCR engines only after the fixture baseline exists.
 - Continue trimming PyInstaller hidden imports only when each removal is
   followed by a clean build and package smoke.
@@ -509,15 +509,18 @@ installed outside the release environment.
 
 1. Build representative date/rate crop fixtures and pass the fixture audit.
 2. Record the EasyOCR baseline and matrix reports under `.analysis_tmp/`.
-3. Run the copied-workbook live smoke and verify it with
+3. Run three repeated benchmark reports for the candidate and verify them with
+   `scripts\check_ocr_repeatability.py`.
+4. Run the copied-workbook live smoke and verify it with
    `scripts\check_live_smoke_workspace.py`.
-4. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
-5. Run `scripts\check_ocr_evidence_bundle.py` to reject dry-run, zero-case,
-   coverage-changed, missing live-smoke, or rejected live-comparison artifacts.
-6. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
+5. Run the 10-row live comparison and save run reports under `.analysis_tmp/`.
+6. Run `scripts\check_ocr_evidence_bundle.py` to reject dry-run, zero-case,
+   coverage-changed, non-repeatable, missing live-smoke, or rejected
+   live-comparison artifacts.
+7. Use `scripts\benchmark_ocr_matrix.py` to compare preprocessing, `detail=1`,
    confidence thresholds, and field allowlists.
-7. Tune waits or OCR defaults only if accuracy does not regress.
-8. Reduce packaging size through one PyInstaller or dependency change at a time.
-9. Add dated parity-checklist evidence for UI areas not covered by source
+8. Tune waits or OCR defaults only if accuracy does not regress.
+9. Reduce packaging size through one PyInstaller or dependency change at a time.
+10. Add dated parity-checklist evidence for UI areas not covered by source
    smoke.
-10. Extract the remaining GUI panels and dialogs in small parity-checked commits.
+11. Extract the remaining GUI panels and dialogs in small parity-checked commits.
