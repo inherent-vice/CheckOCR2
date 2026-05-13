@@ -4,9 +4,13 @@ import pytest
 
 from checkocr2.exceptions import OCREngineError
 from checkocr2.ocr_engine import (
+    OCR_ENGINE_EASYOCR,
+    OCR_ENGINE_PADDLE,
     confidence_is_accepted,
+    create_ocr_reader,
     extract_text_with_confidence,
     normalize_confidence_threshold,
+    normalize_ocr_engine,
     read_ocr_text,
 )
 
@@ -69,3 +73,46 @@ def test_confidence_threshold_accepts_fraction_and_percent_values():
     assert confidence_is_accepted(None, 0.0) is True
     assert confidence_is_accepted(0.79, 80) is False
     assert confidence_is_accepted(0.8, 80) is True
+
+
+def test_normalize_ocr_engine_accepts_supported_names():
+    assert normalize_ocr_engine("") == OCR_ENGINE_EASYOCR
+    assert normalize_ocr_engine(" EASYOCR ") == OCR_ENGINE_EASYOCR
+    assert normalize_ocr_engine("paddle") == OCR_ENGINE_PADDLE
+    assert normalize_ocr_engine("paddleocr") == OCR_ENGINE_PADDLE
+    with pytest.raises(OCREngineError, match="unsupported OCR engine"):
+        normalize_ocr_engine("tesseract")
+
+
+def test_create_ocr_reader_dispatches_to_requested_factory():
+    calls = []
+
+    def easy_factory(languages, *, gpu=False):
+        calls.append(("easy", list(languages), gpu))
+        return "easy-reader"
+
+    def paddle_factory(languages, *, gpu=False):
+        calls.append(("paddle", list(languages), gpu))
+        return "paddle-reader"
+
+    assert (
+        create_ocr_reader(
+            OCR_ENGINE_EASYOCR,
+            ["en"],
+            gpu=False,
+            easyocr_factory=easy_factory,
+            paddle_factory=paddle_factory,
+        )
+        == "easy-reader"
+    )
+    assert (
+        create_ocr_reader(
+            OCR_ENGINE_PADDLE,
+            ["en"],
+            gpu=True,
+            easyocr_factory=easy_factory,
+            paddle_factory=paddle_factory,
+        )
+        == "paddle-reader"
+    )
+    assert calls == [("easy", ["en"], False), ("paddle", ["en"], True)]

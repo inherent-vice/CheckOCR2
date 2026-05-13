@@ -8,9 +8,42 @@ from typing import Any, Protocol
 
 from .exceptions import OCREngineError
 
+OCR_ENGINE_EASYOCR = "easyocr"
+OCR_ENGINE_PADDLE = "paddle"
+SUPPORTED_OCR_ENGINES = (OCR_ENGINE_EASYOCR, OCR_ENGINE_PADDLE)
+
 
 class EasyOcrReaderLike(Protocol):
     def readtext(self, image, detail: int = 0, **kwargs: Any): ...
+
+
+def normalize_ocr_engine(value: Any) -> str:
+    normalized = str(value or OCR_ENGINE_EASYOCR).strip().lower()
+    if normalized in {"", "easy", "easyocr"}:
+        return OCR_ENGINE_EASYOCR
+    if normalized in {"paddle", "paddleocr"}:
+        return OCR_ENGINE_PADDLE
+    raise OCREngineError(f"unsupported OCR engine: {value}")
+
+
+def create_ocr_reader(
+    engine: Any,
+    languages: Sequence[str],
+    *,
+    gpu: bool = False,
+    easyocr_factory=None,
+    paddle_factory=None,
+) -> EasyOcrReaderLike:
+    engine_name = normalize_ocr_engine(engine)
+    if easyocr_factory is None:
+        easyocr_factory = create_easyocr_reader
+    if engine_name == OCR_ENGINE_EASYOCR:
+        return easyocr_factory(languages, gpu=gpu)
+    if paddle_factory is None:
+        from .ocr_paddle_engine import create_paddleocr_reader
+
+        paddle_factory = create_paddleocr_reader
+    return paddle_factory(languages, gpu=gpu)
 
 
 def create_easyocr_reader(languages: Sequence[str], *, gpu: bool = False) -> EasyOcrReaderLike:
@@ -31,8 +64,10 @@ def read_ocr_text(reader: EasyOcrReaderLike, image, *, detail: int = 0, allowlis
         kwargs["allowlist"] = allowlist
     try:
         return reader.readtext(image, **kwargs)
+    except OCREngineError:
+        raise
     except Exception as exc:
-        raise OCREngineError(f"EasyOCR readtext failed: {exc}") from exc
+        raise OCREngineError(f"OCR readtext failed: {exc}") from exc
 
 
 def extract_text_with_confidence(results: Sequence[Any], detail: int) -> tuple[str, float | None]:

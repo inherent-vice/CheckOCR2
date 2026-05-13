@@ -2,7 +2,7 @@
 
 CheckOCR2 is a Windows desktop OCR automation tool for loading Excel rows,
 copying stock codes into an external screen, capturing configured date/rate
-regions, running EasyOCR, and exporting an updated workbook.
+regions, running the configured OCR engine, and exporting an updated workbook.
 
 The current migration keeps the existing Tkinter GUI and operator workflow while
 moving reusable logic into the `checkocr2/` package.
@@ -30,8 +30,16 @@ For narrower installs:
 - `requirements-runtime.txt`: runtime dependencies only.
 - `requirements-build.txt`: runtime plus PyInstaller.
 - `requirements-dev.txt`: build dependencies plus pytest and ruff.
+- `requirements-paddle.txt`: optional PaddleOCR validation layer; install
+  `paddlepaddle==3.3.0` from the official Paddle CPU index first.
 - `constraints.txt`: pinned direct dependency versions from the verified Windows
   environment, including EasyOCR's required `opencv-python-headless` package.
+
+EasyOCR remains the default OCR engine. PaddleOCR 3.5.0 / PP-OCRv5 is available
+behind the OCR engine seam for validation with `CHECKOCR2_OCR_ENGINE=paddle`,
+but it is not the release default until live workbook and Paddle package gates
+pass. Current evidence is summarized in
+`docs/PADDLE_OCR_VALIDATION_STATUS_2026-05-13.md`.
 
 Runtime settings are stored outside the repo at
 `%APPDATA%\CheckOCR2\settings.json`. Keep `settings.example.json` as the
@@ -100,10 +108,10 @@ fast` for quick startup smoke that bypasses model loading, or
 the GUI reaches `Ready`.
 
 Use `scripts\benchmark_ocr_matrix.py` after fixture creation to sweep OCR
-upscale factors, interpolation methods, and EasyOCR detail modes against the
+engines, upscale factors, interpolation methods, and OCR detail modes against the
 same ground-truth set. The matrix report compares every candidate with the
 first combination as the baseline. Add `--allowlist-modes none,field` when
-testing field-specific EasyOCR character allowlists for date and rate crops.
+testing field-specific character allowlists for date and rate crops.
 Review `field_summaries` and `field_comparisons` so date and rate regressions
 are evaluated separately.
 
@@ -119,6 +127,6 @@ or failure increase. Add `--require-p95-improvement --min-p95-improvement-percen
 ## Current Evidence Gates
 
 Do not tune OCR defaults or replace EasyOCR until representative crop fixtures
-exist under `tests/fixtures/ocr_crops/` with a `ground_truth.csv` and pass the
-fixture audit. Speed changes must be compared against the same 10-row live input
-with no output change and no increase in blank or failed rows.
+pass audit, same-input live comparison passes, and package smoke passes for the
+intended release engine. Speed changes must be compared against the same 10-row
+live input with no output change and no increase in blank or failed rows.

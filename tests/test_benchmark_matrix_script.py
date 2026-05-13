@@ -14,11 +14,14 @@ def test_parse_matrix_csv_values():
     assert benchmark_ocr_matrix.parse_csv_ints("0,1") == [0, 1]
     assert benchmark_ocr_matrix.parse_csv_strings("bilinear,LANCZOS") == ["BILINEAR", "LANCZOS"]
     assert benchmark_ocr_matrix.parse_csv_allowlist_modes("none,FIELD") == ["none", "field"]
+    assert benchmark_ocr_matrix.parse_csv_engines("easyocr,PADDLEOCR") == ["easyocr", "paddle"]
 
     with pytest.raises(SystemExit):
         benchmark_ocr_matrix.parse_args(["--details", "2"])
     with pytest.raises(SystemExit):
         benchmark_ocr_matrix.parse_args(["--allowlist-modes", "unsafe"])
+    with pytest.raises(SystemExit):
+        benchmark_ocr_matrix.parse_args(["--engines", "unsafe"])
 
 
 def test_run_matrix_summarizes_baseline_comparisons(monkeypatch, tmp_path):

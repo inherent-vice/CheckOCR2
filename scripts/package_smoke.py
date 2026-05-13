@@ -61,6 +61,7 @@ class SmokeProcess(Protocol):
 WindowLister = Callable[[], Iterable[WindowInfo]]
 WindowCloser = Callable[[WindowInfo], bool]
 ProcessLauncher = Callable[[Path], SmokeProcess]
+ProcessIdCollector = Callable[[int], set[int]]
 
 
 def positive_float(value: str) -> float:
@@ -252,11 +253,15 @@ def find_matching_window(
     title_fragment: str,
     process_id: int,
     list_windows: WindowLister = iter_window_titles,
+    collect_process_ids: ProcessIdCollector | None = None,
 ) -> WindowInfo | None:
     title_fragment_normalized = title_fragment.casefold()
+    matching_process_ids = (
+        collect_process_ids(process_id) if collect_process_ids is not None else {process_id}
+    )
     for window in list_windows():
         if (
-            window.pid == process_id
+            window.pid in matching_process_ids
             and title_fragment_normalized in window.title.casefold()
         ):
             return window
@@ -269,12 +274,18 @@ def wait_for_window(
     timeout_seconds: float,
     poll_interval_seconds: float,
     list_windows: WindowLister = iter_window_titles,
+    collect_process_ids: ProcessIdCollector | None = None,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
 ) -> tuple[str, WindowInfo | None, int | None]:
     deadline = clock() + timeout_seconds
     while True:
-        match = find_matching_window(title_fragment, process.pid, list_windows)
+        match = find_matching_window(
+            title_fragment,
+            process.pid,
+            list_windows,
+            collect_process_ids=collect_process_ids,
+        )
         if match is not None:
             return "ok", match, None
 

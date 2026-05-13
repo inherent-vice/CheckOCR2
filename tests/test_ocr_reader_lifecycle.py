@@ -3,7 +3,10 @@ from __future__ import annotations
 import queue
 
 from checkocr2.exceptions import OCREngineError
-from checkocr2.ocr_reader_lifecycle import initialize_easyocr_reader_with_fallback
+from checkocr2.ocr_reader_lifecycle import (
+    initialize_easyocr_reader_with_fallback,
+    initialize_ocr_reader_with_fallback,
+)
 
 
 class FakeLogger:
@@ -23,11 +26,15 @@ class FakeLogger:
 
 
 class FakeSettings:
-    def __init__(self):
+    def __init__(self, advanced=None):
         self.set_calls = []
+        self.advanced = dict(advanced or {})
 
     def set_advanced(self, key, value):
         self.set_calls.append((key, value))
+
+    def get_advanced(self, key, default=None):
+        return self.advanced.get(key, default)
 
 
 class ReaderFactory:
@@ -123,3 +130,45 @@ def test_initialize_easyocr_reader_reports_fatal_failure():
         "OCR 엔진 초기화에 완전히 실패했습니다: fallback failed",
     )
     assert logger.criticals == ["OCR 엔진 초기화 완전 실패: fallback failed"]
+
+
+def test_initialize_ocr_reader_accepts_engine_environment_override(monkeypatch):
+    reader = object()
+    logger = FakeLogger()
+    settings = FakeSettings({"ocr_engine": "easyocr"})
+    messages = queue.Queue()
+    factory = ReaderFactory([reader])
+    monkeypatch.setenv("CHECKOCR2_OCR_ENGINE", "paddle")
+
+    result = initialize_ocr_reader_with_fallback(
+        logger=logger,
+        settings_manager=settings,
+        message_queue=messages,
+        reader_factory=factory,
+    )
+
+    assert result is reader
+    assert factory.calls == [(["en"], False)]
+    assert logger.infos[0].startswith("PaddleOCR")
+
+
+def test_initialize_ocr_reader_uses_configured_paddle_engine():
+    reader = object()
+    logger = FakeLogger()
+    settings = FakeSettings({"ocr_engine": "paddle"})
+    messages = queue.Queue()
+    factory = ReaderFactory([reader])
+
+    result = initialize_ocr_reader_with_fallback(
+        logger=logger,
+        settings_manager=settings,
+        message_queue=messages,
+        reader_factory=factory,
+    )
+
+    assert result is reader
+    assert factory.calls == [(["en"], False)]
+    assert logger.infos == [
+        "PaddleOCR 초기화 중... (영어 전용)",
+        "PaddleOCR 초기화 완료 - 언어: ['en'], GPU: False",
+    ]

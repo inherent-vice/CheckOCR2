@@ -13,8 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from checkocr2.exceptions import OCREngineError  # noqa: E402
+from checkocr2.ocr_engine import normalize_ocr_engine  # noqa: E402
 from scripts.benchmark_ocr import run_benchmark, validate_output_path  # noqa: E402
 
+DEFAULT_ENGINES = "easyocr"
 DEFAULT_FACTORS = "1.0,1.5,2.0,2.5,3.0"
 DEFAULT_METHODS = "BILINEAR,BICUBIC,LANCZOS"
 DEFAULT_DETAILS = "0,1"
@@ -53,6 +56,16 @@ def parse_csv_allowlist_modes(value: str) -> list[str]:
     return parsed
 
 
+def parse_csv_engines(value: str) -> list[str]:
+    try:
+        parsed = [normalize_ocr_engine(part) for part in value.split(",") if part.strip()]
+    except OCREngineError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    if not parsed:
+        raise argparse.ArgumentTypeError("at least one engine is required")
+    return parsed
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixture-csv", type=Path, default=Path("tests/fixtures/ocr_crops/ground_truth.csv"))
@@ -61,6 +74,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--allow-empty-fixture", action="store_true")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--engines", type=parse_csv_engines, default=parse_csv_engines(DEFAULT_ENGINES))
     parser.add_argument("--gpu", action="store_true")
     parser.add_argument("--upscale-factors", type=parse_csv_floats, default=parse_csv_floats(DEFAULT_FACTORS))
     parser.add_argument("--upscale-methods", type=parse_csv_strings, default=parse_csv_strings(DEFAULT_METHODS))
@@ -75,8 +89,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def candidate_key(report: dict[str, Any]) -> str:
     settings = report.get("settings", {})
+    engine_part = f"engine={settings.get('engine')};" if settings.get("engine") else ""
     return (
-        f"detail={settings.get('detail')};"
+        engine_part
+        + f"detail={settings.get('detail')};"
         f"factor={settings.get('upscale_factor')};"
         f"method={settings.get('upscale_method')};"
         f"allowlist={settings.get('allowlist_mode')}"
@@ -192,12 +208,14 @@ def benchmark_args(
     method: str,
     detail: int,
     allowlist_mode: str,
+    engine: str,
 ) -> Namespace:
     return Namespace(
         fixture_csv=base_args.fixture_csv,
         limit=base_args.limit,
         allow_empty_fixture=base_args.allow_empty_fixture,
         dry_run=base_args.dry_run,
+        engine=engine,
         gpu=base_args.gpu,
         detail=detail,
         upscale_factor=factor,
@@ -211,24 +229,26 @@ def run_matrix(args: argparse.Namespace) -> dict[str, Any]:
     summaries: list[dict[str, Any]] = []
     baseline_summary: dict[str, Any] | None = None
 
-    for detail in args.details:
-        for factor in args.upscale_factors:
-            for method in args.upscale_methods:
-                for allowlist_mode in args.allowlist_modes:
-                    report = run_benchmark(
-                        benchmark_args(
-                            args,
-                            factor=factor,
-                            method=method,
-                            detail=detail,
-                            allowlist_mode=allowlist_mode,
+    for engine in getattr(args, "engines", parse_csv_engines(DEFAULT_ENGINES)):
+        for detail in args.details:
+            for factor in args.upscale_factors:
+                for method in args.upscale_methods:
+                    for allowlist_mode in args.allowlist_modes:
+                        report = run_benchmark(
+                            benchmark_args(
+                                args,
+                                factor=factor,
+                                method=method,
+                                detail=detail,
+                                allowlist_mode=allowlist_mode,
+                                engine=engine,
+                            )
                         )
-                    )
-                    summary = summarize_report(report)
-                    reports.append(report)
-                    summaries.append(summary)
-                    if baseline_summary is None:
-                        baseline_summary = summary
+                        summary = summarize_report(report)
+                        reports.append(report)
+                        summaries.append(summary)
+                        if baseline_summary is None:
+                            baseline_summary = summary
 
     baseline_summary = baseline_summary or {}
     comparisons = [

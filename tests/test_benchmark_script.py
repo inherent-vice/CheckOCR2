@@ -182,6 +182,7 @@ def test_benchmark_report_calculates_accuracy_blank_false_positive_and_confidenc
             limit=0,
             allow_empty_fixture=False,
             dry_run=False,
+            engine="easyocr",
             gpu=False,
             detail=1,
             upscale_factor=1.0,
@@ -248,6 +249,7 @@ def test_benchmark_field_allowlist_passes_field_specific_easyocr_allowlists(
             limit=0,
             allow_empty_fixture=False,
             dry_run=False,
+            engine="easyocr",
             gpu=False,
             detail=0,
             upscale_factor=1.0,
@@ -261,3 +263,47 @@ def test_benchmark_field_allowlist_passes_field_specific_easyocr_allowlists(
     assert allowlist_calls == [FIELD_ALLOWLISTS["date"], FIELD_ALLOWLISTS["rate"]]
     assert report["results"][0]["allowlist"] == FIELD_ALLOWLISTS["date"]
     assert report["results"][1]["allowlist"] == FIELD_ALLOWLISTS["rate"]
+
+
+def test_benchmark_uses_selected_ocr_engine(tmp_path, monkeypatch):
+    from scripts import benchmark_ocr
+
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    Image.new("RGB", (8, 8), "white").save(fixture_dir / "date.png")
+    fixture_csv = fixture_dir / "ground_truth.csv"
+    fixture_csv.write_text(
+        "crop_path,field,expected_text\n"
+        "date.png,date,2026/05/13\n",
+        encoding="utf-8",
+    )
+    calls = []
+
+    class FakeReader:
+        def readtext(self, image, detail=0, **kwargs):
+            return ["2026-05-13"]
+
+    def fake_create_ocr_reader(engine, languages, *, gpu=False):
+        calls.append((engine, list(languages), gpu))
+        return FakeReader()
+
+    monkeypatch.setattr(benchmark_ocr, "create_ocr_reader", fake_create_ocr_reader)
+
+    report = run_benchmark(
+        Namespace(
+            fixture_csv=fixture_csv,
+            limit=0,
+            allow_empty_fixture=False,
+            dry_run=False,
+            engine="paddle",
+            gpu=True,
+            detail=0,
+            upscale_factor=1.0,
+            upscale_method="LANCZOS",
+            allowlist_mode="none",
+        )
+    )
+
+    assert report["status"] == "ok"
+    assert report["settings"]["engine"] == "paddle"
+    assert calls == [("paddle", ["en"], True)]

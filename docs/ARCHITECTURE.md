@@ -49,10 +49,14 @@ working.
 - `checkocr2/image_processing.py`: crop validation, pure image upscaling,
   reusable image-source loading/upscale result metadata, and temporary date/rate
   crop cleanup decisions for OCR preprocessing helpers.
-- `checkocr2/ocr_engine.py`: EasyOCR reader/readtext adapter boundary,
-  including `detail=1` text/confidence extraction helpers.
-- `checkocr2/ocr_reader_lifecycle.py`: EasyOCR reader startup lifecycle,
-  including English/CPU defaults, fallback reinitialization, legacy settings
+- `checkocr2/ocr_engine.py`: OCR reader/readtext adapter boundary for EasyOCR
+  and optional PaddleOCR, including `detail=1` text/confidence extraction
+  helpers.
+- `checkocr2/ocr_paddle_engine.py`: PaddleOCR 3.5 / PP-OCRv5 adapter that
+  exposes Paddle recognition results through the existing EasyOCR-compatible
+  `readtext` surface.
+- `checkocr2/ocr_reader_lifecycle.py`: OCR reader startup lifecycle, including
+  English/CPU defaults, EasyOCR fallback reinitialization, legacy settings
   reset, fatal error messagebox queueing, and logger text compatibility.
 - `checkocr2/ocr_runtime_options.py`: runtime OCR option interpretation for
   `ocr_detail_level` and field-specific minimum confidence settings.
@@ -61,7 +65,7 @@ working.
 - `checkocr2/screen_automation.py`: pyautogui and clipboard wrapper functions.
 - `checkocr2/workflow.py`: Tk-free OCR row workflow and report timing support.
 - `checkocr2/ocr_workflow_manager.py`: legacy OCR workflow manager adapter that
-  owns the EasyOCR reader and legacy compatibility methods while keeping the
+  owns the configured OCR reader and legacy compatibility methods while keeping the
   class out of `check_capture_ocr.py`.
   Export-result dialogs are injected by `checkocr2/app.py`, so the manager does
   not import Tk messagebox directly.
@@ -70,8 +74,8 @@ working.
   invocation, stop logging, and success report finalization.
 - `checkocr2/workflow_event_bridge.py`: workflow event to legacy Tk queue
   bridge, including row total timing and current row tracking.
-- `checkocr2/workflow_legacy_adapters.py`: legacy capture and EasyOCR adapters
-  used by the Tk controller when running the Tk-free workflow.
+- `checkocr2/workflow_legacy_adapters.py`: legacy capture and OCR adapters used
+  by the Tk controller when running the Tk-free workflow.
 - `checkocr2/worker.py`: daemon worker helper.
 - `checkocr2/run_report.py`: JSON run report creation/finalization.
 - `checkocr2/workflow_run_setup.py`: per-run delay, coordinate, detail-image

@@ -19,7 +19,7 @@ from checkocr2.ocr_engine import (
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
 from checkocr2.ocr_field_extraction import extract_ocr_field_text
 from checkocr2.ocr_pair_processing import process_ocr_image_pair
-from checkocr2.ocr_reader_lifecycle import initialize_easyocr_reader_with_fallback
+from checkocr2.ocr_reader_lifecycle import initialize_ocr_reader_with_fallback
 from checkocr2.ocr_runtime_options import minimum_confidence, ocr_detail_level
 from checkocr2.ocr_text import (
     clean_date_text,
@@ -74,7 +74,7 @@ class OCRWorkflowManager:
         self._last_ocr_confidences = {}
 
     def initialize_ocr(self):
-        self.ocr_reader = initialize_easyocr_reader_with_fallback(
+        self.ocr_reader = initialize_ocr_reader_with_fallback(
             logger=self.logger,
             settings_manager=self.settings_manager,
             message_queue=self.message_queue,

@@ -80,6 +80,16 @@ def test_parse_args_accepts_string_entrypoint_and_requirements():
     assert args.min_window_height == 600
 
 
+def test_collect_source_process_ids_includes_descendants(monkeypatch):
+    monkeypatch.setattr(
+        source_gui_smoke,
+        "windows_parent_process_map",
+        lambda: {200: 100, 300: 200, 400: 999},
+    )
+
+    assert source_gui_smoke.collect_source_process_ids(100) == {100, 200, 300}
+
+
 def test_run_source_gui_smoke_reports_ready_and_settings_file(tmp_path):
     process = FakeProcess(pid=100)
     launched = []

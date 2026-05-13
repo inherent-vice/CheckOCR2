@@ -10,6 +10,7 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 
 - `python -m venv .venv` then `.venv\Scripts\Activate.ps1`: create and enter a local Windows virtual environment.
 - `python -m pip install -r requirements.txt`: install dev dependencies. Use `requirements-runtime.txt` or `requirements-build.txt` for narrower runtime/build installs.
+- `python -m pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/` then `python -m pip install -r requirements-paddle.txt`: install the optional PaddleOCR validation stack in an isolated venv.
 - `python check_capture_ocr.py`: run the desktop app locally.
 - `python Check_Capture_Excel_V6.1_배포.py`: run through the legacy final-release filename.
 - `python -m checkocr2.main`: run through the package bootstrap path.
@@ -17,6 +18,9 @@ CheckOCR2 is a Python/Tkinter desktop OCR tool for screen capture, EasyOCR proce
 - `python -m ruff check .`: lint new package, scripts, tests, and the legacy app with scoped ignores.
 - `python -m compileall check_capture_ocr.py Check_Capture_Excel_V6.1_배포.py`: quick syntax check before committing.
 - `python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture`: validate the OCR benchmark harness while fixtures are being built.
+- `python scripts\inventory_couponcheck_real_data.py --source <CHECK share> --output-json .analysis_tmp\real_data_inventory.json`: inventory real CouponCheck folders without writing to the share.
+- `python scripts\prepare_real_data_workspace.py --source <CHECK share> --output-dir .analysis_tmp\real_data`: copy selected real-data days into an ignored local workspace with hashes.
+- `python scripts\extract_real_data_ocr_fixtures.py --day-dir .analysis_tmp\real_data\YYYYMMDD --output-dir .analysis_tmp\ocr_crops`: crop date/rate fixtures from copied full-area screenshots using `_updated.xlsx` values.
 - `python scripts\prepare_ocr_fixtures.py --source-dir .analysis_tmp\detail_images --output-dir tests\fixtures\ocr_crops`: copy saved date/rate detail crops into an ignored review-required fixture draft.
 - `python scripts\promote_ocr_fixtures.py --draft-csv tests\fixtures\ocr_crops\ground_truth_draft.csv --reviewed-by <name> --confirm-reviewed`: promote a manually reviewed OCR fixture draft to `ground_truth.csv` after the same audit gate accepts it.
 - `python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json`: audit real crop fixtures before treating benchmark results as baseline evidence.
@@ -37,7 +41,7 @@ Use Python 3.12 with 4-space indentation. Match the existing Tkinter style in `c
 
 ## Testing Guidelines
 
-Use pytest for characterization and unit tests. Keep tests under `tests/` with `test_*.py` names; desktop automation, Tk, and EasyOCR should be stubbed unless doing an explicit live smoke. Cover settings migration, path handling, Excel import/export, OCR text normalization, async OCR startup, and adapters. For packaging changes, launch both Python entrypoints and the built EXE.
+Use pytest for characterization and unit tests. Keep tests under `tests/` with `test_*.py` names; desktop automation, Tk, EasyOCR, and PaddleOCR should be stubbed unless doing an explicit live smoke. Cover settings migration, path handling, Excel import/export, OCR text normalization, async OCR startup, and adapters. For packaging changes, launch both Python entrypoints and the built EXE.
 
 ## Commit & Pull Request Guidelines
 
@@ -45,4 +49,4 @@ Recent history uses Conventional Commit prefixes such as `feat:` and `docs:`. Ke
 
 ## Security & Configuration Tips
 
-Keep OCR and Excel processing local. Do not commit production spreadsheets, screenshots, benchmark crops, API keys, or machine-specific paths. `settings.json`, `.analysis_tmp/`, `tests/fixtures/ocr_crops/`, and benchmark JSON files are ignored because they can contain coordinates, network paths, screenshots, and raw OCR text.
+Keep OCR and Excel processing local. Do not commit production spreadsheets, screenshots, benchmark crops, API keys, or machine-specific paths. `settings.json`, `.analysis_tmp/`, `.venv/`, `tests/fixtures/ocr_crops/`, and benchmark JSON files are ignored because they can contain coordinates, network paths, screenshots, model caches, and raw OCR text.

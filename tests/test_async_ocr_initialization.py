@@ -177,7 +177,7 @@ def test_legacy_workflow_manager_initialize_ocr_delegates(
 
     monkeypatch.setattr(
         ocr_workflow_module,
-        "initialize_easyocr_reader_with_fallback",
+        "initialize_ocr_reader_with_fallback",
         lambda **kwargs: calls.append(kwargs) or reader,
     )
 

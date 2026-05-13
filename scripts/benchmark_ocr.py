@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from checkocr2.ocr_engine import create_ocr_reader, normalize_ocr_engine  # noqa: E402
+
 FIELD_ALLOWLISTS = {
     "date": "0123456789./-",
     "rate": "0123456789.,%",
@@ -46,6 +48,12 @@ def parse_args() -> argparse.Namespace:
         help="Allow a missing or empty fixture CSV while bootstrapping benchmark data",
     )
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument(
+        "--engine",
+        default="easyocr",
+        type=normalize_ocr_engine,
+        help="OCR engine to benchmark: easyocr or paddle.",
+    )
     parser.add_argument("--gpu", action="store_true")
     parser.add_argument("--detail", type=int, choices=(0, 1), default=0)
     parser.add_argument("--upscale-factor", type=float, default=2.0)
@@ -205,6 +213,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         "fixture_csv": str(args.fixture_csv),
         "total_cases": len(cases),
         "settings": {
+            "engine": args.engine,
             "gpu": args.gpu,
             "detail": args.detail,
             "upscale_factor": args.upscale_factor,
@@ -220,13 +229,12 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         report["status"] = "dry_run" if args.dry_run else "no_cases"
         return report
 
-    import easyocr
     import numpy as np
     from PIL import Image
 
     from checkocr2.image_processing import upscale_image
 
-    reader = easyocr.Reader(["en"], gpu=args.gpu)
+    reader = create_ocr_reader(args.engine, ["en"], gpu=args.gpu)
     fixture_dir = args.fixture_csv.parent
     latencies_ms: list[float] = []
     field_stats: dict[str, dict[str, Any]] = {}

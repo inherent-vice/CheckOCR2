@@ -161,6 +161,64 @@ def launch_source_entrypoint(command: list[str], cwd: Path) -> SmokeProcess:
     )
 
 
+def collect_source_process_ids(root_pid: int) -> set[int]:
+    """Return the launched source PID plus Windows venv redirector children."""
+
+    process_ids = {root_pid}
+    if os.name != "nt":
+        return process_ids
+
+    parent_map = windows_parent_process_map()
+    pending = [root_pid]
+    while pending:
+        parent_pid = pending.pop()
+        for child_pid, child_parent_pid in parent_map.items():
+            if child_parent_pid != parent_pid or child_pid in process_ids:
+                continue
+            process_ids.add(child_pid)
+            pending.append(child_pid)
+    return process_ids
+
+
+def windows_parent_process_map() -> dict[int, int]:
+    command = (
+        "Get-CimInstance Win32_Process | "
+        "Select-Object ProcessId,ParentProcessId | "
+        "ConvertTo-Json -Compress"
+    )
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    try:
+        completed = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", command],
+            check=True,
+            capture_output=True,
+            creationflags=creationflags,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    try:
+        payload = json.loads(completed.stdout or "[]")
+    except json.JSONDecodeError:
+        return {}
+    if isinstance(payload, dict):
+        payload = [payload]
+    if not isinstance(payload, list):
+        return {}
+    parent_map: dict[int, int] = {}
+    for item in payload:
+        if not isinstance(item, dict):
+            continue
+        try:
+            process_id = int(item["ProcessId"])
+            parent_process_id = int(item["ParentProcessId"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        parent_map[process_id] = parent_process_id
+    return parent_map
+
+
 def build_error_report(
     entrypoint: str,
     cwd: Path,
@@ -296,6 +354,7 @@ def run_source_gui_smoke(
             timeout_seconds,
             poll_interval_seconds,
             list_windows=list_windows,
+            collect_process_ids=collect_source_process_ids,
             sleep=sleep,
             clock=clock,
         )

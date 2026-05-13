@@ -20,6 +20,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "delays": {"paste": 0.5, "loading": 2.5},
     "advanced": {
         "ocr_languages": ["en"],
+        "ocr_engine": "easyocr",
         "ocr_max_attempts": 1,
         "ocr_detail_level": 0,
         "click_interval": 0.1,

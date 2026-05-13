@@ -130,5 +130,5 @@ def test_extract_ocr_field_text_runs_cleanup_log_after_errors(tmp_path):
 
     assert result.value == ""
     assert exceptions == ["날짜 추출 중 예외 발생"]
-    assert any("EasyOCR readtext failed: opencv failed" in message for message, _level in events)
+    assert any("OCR readtext failed: opencv failed" in message for message, _level in events)
     assert (f"cleanup 날짜: {image_path}", "DEBUG") in events
