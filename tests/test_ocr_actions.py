@@ -42,6 +42,7 @@ class FakeApp:
         self.work_controller = FakeWorkController(running=running)
         self.ocr_workflow_manager = FakeWorkflow()
         self.message_queue = queue.Queue()
+        self.input_excel_path = SimpleNamespace(get=lambda: "  C:/Input.xlsx  ")
         self.output_folder_path = SimpleNamespace(get=lambda: "  C:/Output  ")
         self.save_detail_images = SimpleNamespace(get=lambda: True)
         self.worker_thread = None
@@ -95,7 +96,7 @@ def test_run_ocr_process_starts_worker_with_current_ui_contract():
     assert worker_calls == [
         (
             app.ocr_workflow_manager.execute_ocr_workflow_threaded,
-            ({"click_point": (1, 2)}, "C:/Output", True),
+            ({"click_point": (1, 2)}, "C:/Output", True, "C:/Input.xlsx"),
             {"name": "checkocr2-ocr-workflow", "on_exception": worker_calls[0][2]["on_exception"]},
         )
     ]

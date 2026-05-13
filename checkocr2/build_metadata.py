@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import sys
 from datetime import UTC, datetime
@@ -14,6 +15,7 @@ from typing import Any
 from . import __version__
 
 BUILD_METADATA_FILENAME = "build_metadata.json"
+PADDLE_PACKAGE_ENV = "CHECKOCR2_PACKAGE_PADDLE"
 FORBIDDEN_RELEASE_DEPENDENCIES = ("opencv-python", "opencv-contrib-python")
 DIRECT_DEPENDENCIES = (
     "easyocr",
@@ -26,6 +28,12 @@ DIRECT_DEPENDENCIES = (
     "pyperclip",
     "torch",
     "torchvision",
+)
+PADDLE_DEPENDENCIES = (
+    "paddleocr",
+    "paddlepaddle",
+    "opencv-python",
+    "opencv-contrib-python",
 )
 
 
@@ -50,17 +58,47 @@ def forbidden_release_dependency_versions(
     }
 
 
-def validate_release_dependency_environment() -> None:
-    forbidden_dependencies = forbidden_release_dependency_versions()
+def paddle_package_enabled() -> bool:
+    return os.environ.get(PADDLE_PACKAGE_ENV, "").strip() == "1"
+
+
+def release_dependency_names(*, include_paddle: bool = False) -> tuple[str, ...]:
+    names = list(DIRECT_DEPENDENCIES)
+    if include_paddle:
+        for package_name in PADDLE_DEPENDENCIES:
+            if package_name not in names:
+                names.append(package_name)
+    return tuple(names)
+
+
+def validate_release_dependency_environment(*, allow_paddle: bool | None = None) -> None:
+    paddle_enabled = paddle_package_enabled() if allow_paddle is None else allow_paddle
+    if paddle_enabled:
+        forbidden_dependencies = forbidden_release_dependency_versions(("opencv-python",))
+    else:
+        forbidden_dependencies = forbidden_release_dependency_versions()
     if forbidden_dependencies:
         formatted = ", ".join(
             f"{package_name}=={version}" for package_name, version in forbidden_dependencies.items()
         )
+        package_profile = "Paddle" if paddle_enabled else "EasyOCR"
         raise RuntimeError(
-            "Release package builds require a clean environment without GUI/contrib OpenCV "
-            f"distributions. Found: {formatted}. Build from a fresh venv with "
+            f"{package_profile} release package builds require a clean environment without "
+            f"forbidden OpenCV distributions. Found: {formatted}. Build from a fresh venv with "
             "requirements-build.txt."
         )
+    if paddle_enabled:
+        missing_paddle_dependencies = [
+            package_name
+            for package_name in ("paddleocr", "paddlepaddle")
+            if _distribution_version(package_name) == "not-installed"
+        ]
+        if missing_paddle_dependencies:
+            missing = ", ".join(missing_paddle_dependencies)
+            raise RuntimeError(
+                "Paddle release package builds require PaddleOCR runtime dependencies. "
+                f"Missing: {missing}. Install paddlepaddle and requirements-paddle.txt first."
+            )
 
 
 def dependency_hash(dependencies: dict[str, str]) -> str:
@@ -68,11 +106,17 @@ def dependency_hash(dependencies: dict[str, str]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def generate_build_metadata(build_date: str | None = None) -> dict[str, Any]:
-    dependencies = dependency_versions()
+def generate_build_metadata(
+    build_date: str | None = None,
+    *,
+    include_paddle: bool | None = None,
+) -> dict[str, Any]:
+    paddle_enabled = paddle_package_enabled() if include_paddle is None else include_paddle
+    dependencies = dependency_versions(release_dependency_names(include_paddle=paddle_enabled))
     return {
         "app_name": "CheckCaptureOCR_V6.1",
         "app_version": __version__,
+        "package_profile": "paddle" if paddle_enabled else "easyocr",
         "build_date": build_date or datetime.now(UTC).replace(microsecond=0).isoformat(),
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
@@ -81,8 +125,12 @@ def generate_build_metadata(build_date: str | None = None) -> dict[str, Any]:
     }
 
 
-def write_build_metadata(path: str | Path) -> dict[str, Any]:
-    metadata_payload = generate_build_metadata()
+def write_build_metadata(
+    path: str | Path,
+    *,
+    include_paddle: bool | None = None,
+) -> dict[str, Any]:
+    metadata_payload = generate_build_metadata(include_paddle=include_paddle)
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(

@@ -97,6 +97,18 @@ def finalize_run_report(
         summary["export_timing_ms"] = export_timing_ms
     if error:
         report.setdefault("errors", []).append(error)
+    fallback_count = sum(
+        int(row.get("ocr_fallback", {}).get("total_count", 0) or 0)
+        for row in report.get("rows", [])
+        if isinstance(row.get("ocr_fallback"), dict)
+    )
+    summary["ocr_fallback_count"] = fallback_count
+    summary["ocr_fallback_rows"] = sum(
+        1
+        for row in report.get("rows", [])
+        if isinstance(row.get("ocr_fallback"), dict)
+        and int(row.get("ocr_fallback", {}).get("total_count", 0) or 0) > 0
+    )
     return report
 
 
@@ -142,6 +154,14 @@ def _row_report(
     }
     if metadata.get("ocr_confidence"):
         report["ocr_confidence"] = metadata["ocr_confidence"]
+    if metadata.get("ocr_fallback"):
+        fallback = dict(metadata["ocr_fallback"])
+        total_count = sum(
+            int(fallback.get(key, 0) or 0)
+            for key in ("date_fallback_count", "rate_fallback_count")
+        )
+        fallback["total_count"] = total_count
+        report["ocr_fallback"] = fallback
     return report
 
 

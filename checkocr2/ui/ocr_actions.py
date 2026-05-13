@@ -34,6 +34,7 @@ def run_ocr_process(
     app._set_runtime_state(RuntimeState.RUNNING)
     current_ui_settings = app.get_current_ui_settings()
     output_dir = app.output_folder_path.get().strip()
+    input_excel_path = app.input_excel_path.get().strip()
     save_details = app.save_detail_images.get()
 
     app.worker_thread = start_worker(
@@ -41,6 +42,7 @@ def run_ocr_process(
         current_ui_settings,
         output_dir,
         save_details,
+        input_excel_path,
         name="checkocr2-ocr-workflow",
         on_exception=lambda exc: handle_worker_exception(app, exc),
     )

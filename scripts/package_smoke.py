@@ -34,6 +34,8 @@ PACKAGE_SMOKE_FAST_OCR_ENV = "CHECKOCR2_PACKAGE_SMOKE_FAST_OCR"
 PACKAGE_SMOKE_STATUS_FILE_ENV = "CHECKOCR2_PACKAGE_SMOKE_STATUS_FILE"
 REQUIRED_METADATA_DISTRIBUTIONS = ("opencv-python-headless",)
 FORBIDDEN_PACKAGED_DISTRIBUTIONS = ("opencv-python", "opencv-contrib-python")
+PADDLE_REQUIRED_METADATA_DISTRIBUTIONS = ("paddleocr", "paddlepaddle")
+PADDLE_FORBIDDEN_PACKAGED_DISTRIBUTIONS = ("opencv-python",)
 SmokeReport = dict[str, Any]
 
 
@@ -119,6 +121,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--require-package-metadata",
         action="store_true",
         help="Fail unless packaged build_metadata.json is present and readable",
+    )
+    parser.add_argument(
+        "--paddle-package",
+        action="store_true",
+        help=(
+            "Validate an explicit PaddleOCR package profile. Allows Paddle's "
+            "opencv-contrib-python dependency while still rejecting opencv-python."
+        ),
     )
     parser.add_argument(
         "--require-ocr-ready",
@@ -500,6 +510,7 @@ def run_package_smoke(
     require_clean_exit: bool = False,
     clean_exit_timeout_seconds: float = DEFAULT_CLEAN_EXIT_TIMEOUT_SECONDS,
     close_window: WindowCloser = post_window_close,
+    paddle_package: bool = False,
 ) -> tuple[int, SmokeReport]:
     exe_path = exe_path.expanduser()
     if not exe_path.exists():
@@ -559,6 +570,7 @@ def run_package_smoke(
         "clean_exit_timeout_seconds": clean_exit_timeout_seconds,
         "ocr_ready_required": require_ocr_ready,
         "ocr_ready_mode": ocr_ready_mode if require_ocr_ready else None,
+        "paddle_package": paddle_package,
         "settings_file_required": require_settings_file,
         "isolated_appdata": isolated_appdata,
         "appdata_dir": str(appdata_dir) if appdata_dir is not None else None,
@@ -591,7 +603,10 @@ def run_package_smoke(
 
         if wait_status == "ok" and window is not None:
             package_metadata = read_packaged_metadata(exe_path)
-            packaged_dependency_audit = audit_packaged_distributions(exe_path)
+            packaged_dependency_audit = audit_packaged_distributions(
+                exe_path,
+                paddle_package=paddle_package,
+            )
             report.update(
                 {
                     "status": "ok",
@@ -625,6 +640,7 @@ def run_package_smoke(
                 dependency_errors = validate_packaged_dependencies(
                     package_metadata,
                     packaged_dependency_audit,
+                    paddle_package=paddle_package,
                 )
                 if dependency_errors:
                     report.update(
@@ -676,7 +692,17 @@ def run_package_smoke(
                 report["ocr_ready_status"] = smoke_status
                 if ready_status == "ok" and smoke_status is not None:
                     report["ocr_ready"] = True
-                    if require_settings_file:
+                    if paddle_package and ocr_ready_mode == "real":
+                        engine_errors = validate_paddle_ocr_ready_status(smoke_status)
+                        if engine_errors:
+                            report.update(
+                                {
+                                    "status": "ocr_engine_mismatch",
+                                    "error": "; ".join(engine_errors),
+                                }
+                            )
+                            exit_code = 1
+                    if require_settings_file and exit_code == 0:
                         expected_appdata_dir = (
                             Path(str(report["appdata_dir"]))
                             if report.get("appdata_dir")
@@ -823,6 +849,23 @@ def validate_smoke_settings_file(
     return None
 
 
+def validate_paddle_ocr_ready_status(smoke_status: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if smoke_status.get("requested_ocr_engine") != "paddle":
+        errors.append(
+            "OCR Ready status requested_ocr_engine must be paddle for --paddle-package"
+        )
+    if smoke_status.get("actual_ocr_engine") != "paddle":
+        errors.append(
+            "OCR Ready status actual_ocr_engine must be paddle for --paddle-package"
+        )
+    if smoke_status.get("ocr_fallback_enabled") is not True:
+        errors.append("OCR Ready status must report EasyOCR blank fallback enabled")
+    if smoke_status.get("ocr_fallback_engine") != "easyocr":
+        errors.append("OCR Ready status ocr_fallback_engine must be easyocr")
+    return errors
+
+
 def read_packaged_metadata(exe_path: Path) -> dict[str, object] | None:
     candidates = [
         exe_path.parent / "_internal" / "checkocr2" / "build_metadata.json",
@@ -835,16 +878,27 @@ def read_packaged_metadata(exe_path: Path) -> dict[str, object] | None:
     return None
 
 
-def audit_packaged_distributions(exe_path: Path) -> dict[str, object]:
+def audit_packaged_distributions(
+    exe_path: Path,
+    *,
+    paddle_package: bool = False,
+) -> dict[str, object]:
     package_root = packaged_internal_root(exe_path)
     distributions = package_distributions(package_root)
     distribution_names = set(distributions)
+    forbidden_distribution_names = (
+        PADDLE_FORBIDDEN_PACKAGED_DISTRIBUTIONS
+        if paddle_package
+        else FORBIDDEN_PACKAGED_DISTRIBUTIONS
+    )
     forbidden_present = sorted(
-        name for name in FORBIDDEN_PACKAGED_DISTRIBUTIONS if name in distribution_names
+        name for name in forbidden_distribution_names if name in distribution_names
     )
     return {
         "root": str(package_root),
         "distributions": distributions,
+        "paddle_package": paddle_package,
+        "forbidden_policy": list(forbidden_distribution_names),
         "forbidden_present": forbidden_present,
     }
 
@@ -911,6 +965,8 @@ def normalize_distribution_name(distribution_name: str) -> str:
 def validate_packaged_dependencies(
     package_metadata: dict[str, object],
     packaged_dependency_audit: dict[str, object],
+    *,
+    paddle_package: bool = False,
 ) -> list[str]:
     errors: list[str] = []
     dependencies = package_metadata.get("dependencies", {})
@@ -918,12 +974,24 @@ def validate_packaged_dependencies(
         errors.append("build metadata dependencies must be an object")
         dependencies = {}
 
-    for required_name in REQUIRED_METADATA_DISTRIBUTIONS:
+    if paddle_package and package_metadata.get("package_profile") != "paddle":
+        errors.append("metadata package_profile must be paddle for --paddle-package")
+
+    required_distribution_names = list(REQUIRED_METADATA_DISTRIBUTIONS)
+    if paddle_package:
+        required_distribution_names.extend(PADDLE_REQUIRED_METADATA_DISTRIBUTIONS)
+
+    for required_name in required_distribution_names:
         version = dependencies.get(required_name)
         if not isinstance(version, str) or not version or version == "not-installed":
             errors.append(f"metadata missing required dependency: {required_name}")
 
-    for forbidden_name in FORBIDDEN_PACKAGED_DISTRIBUTIONS:
+    forbidden_distribution_names = (
+        PADDLE_FORBIDDEN_PACKAGED_DISTRIBUTIONS
+        if paddle_package
+        else FORBIDDEN_PACKAGED_DISTRIBUTIONS
+    )
+    for forbidden_name in forbidden_distribution_names:
         version = dependencies.get(forbidden_name)
         if isinstance(version, str) and version and version != "not-installed":
             errors.append(f"metadata contains forbidden dependency: {forbidden_name}")
@@ -1024,6 +1092,7 @@ def main(argv: list[str] | None = None) -> int:
         appdata_dir=args.appdata_dir,
         min_window_width=args.min_window_width,
         min_window_height=args.min_window_height,
+        paddle_package=args.paddle_package,
     )
     print(json.dumps(report, ensure_ascii=False, sort_keys=True))
     return exit_code

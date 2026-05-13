@@ -22,6 +22,7 @@ class WorkflowExecutionCallbacks:
     get_capture_timing: Callable[[], dict[str, Any]]
     get_ocr_timings: Callable[[], dict[str, Any]]
     get_ocr_confidences: Callable[[], dict[str, Any]]
+    get_ocr_fallbacks: Callable[[], dict[str, Any]]
     elapsed_ms: Callable[[float], float]
     flush_report: Callable[[], None]
     set_current_run_report: Callable[[dict[str, Any], Any], None]
@@ -79,6 +80,7 @@ def execute_legacy_workflow(
             callbacks.clear_ocr_tracking,
             callbacks.get_ocr_timings,
             callbacks.get_ocr_confidences,
+            callbacks.get_ocr_fallbacks,
             row_timing_by_index,
             row_metadata_by_index,
             callbacks.elapsed_ms,

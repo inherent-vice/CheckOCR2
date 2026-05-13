@@ -6,6 +6,7 @@ from checkocr2.exceptions import OCREngineError
 from checkocr2.ocr_engine import (
     OCR_ENGINE_EASYOCR,
     OCR_ENGINE_PADDLE,
+    BlankFallbackOcrReader,
     confidence_is_accepted,
     create_ocr_reader,
     default_ocr_languages,
@@ -13,6 +14,7 @@ from checkocr2.ocr_engine import (
     normalize_confidence_threshold,
     normalize_ocr_engine,
     read_ocr_text,
+    reader_engine_metadata,
 )
 
 
@@ -49,6 +51,58 @@ def test_read_ocr_text_normalizes_reader_failures():
 
     with pytest.raises(OCREngineError, match="readtext failed"):
         read_ocr_text(FailingReader(), "image-array")
+
+
+def test_blank_fallback_reader_uses_primary_when_text_exists():
+    class Reader:
+        def __init__(self, result):
+            self.result = result
+            self.calls = []
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append((image, detail, kwargs))
+            return self.result
+
+    primary = Reader(["2026/05/08"])
+    fallback = Reader(["fallback"])
+    reader = BlankFallbackOcrReader(primary, fallback)
+
+    assert reader.readtext("image", detail=0, allowlist="0123") == ["2026/05/08"]
+    assert primary.calls == [("image", 0, {"allowlist": "0123"})]
+    assert fallback.calls == []
+    assert reader.fallback_count == 0
+
+
+def test_blank_fallback_reader_retries_when_primary_is_blank():
+    class Reader:
+        def __init__(self, result):
+            self.result = result
+            self.calls = []
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append((image, detail, kwargs))
+            return self.result
+
+    primary = Reader(["   "])
+    fallback = Reader(["3.500"])
+    reader = BlankFallbackOcrReader(primary, fallback)
+
+    assert reader.readtext("image-array", detail=0) == ["3.500"]
+    assert primary.calls == [("image-array", 0, {})]
+    assert fallback.calls == [("image-array", 0, {})]
+    assert reader.fallback_count == 1
+
+
+def test_reader_engine_metadata_reports_paddle_fallback_state():
+    reader = BlankFallbackOcrReader(object(), object())
+    reader.fallback_count = 2
+
+    assert reader_engine_metadata(reader) == {
+        "actual_ocr_engine": "paddle",
+        "ocr_fallback_enabled": True,
+        "ocr_fallback_engine": "easyocr",
+        "ocr_fallback_count": 2,
+    }
 
 
 def test_extract_text_with_confidence_handles_easyocr_detail_modes():

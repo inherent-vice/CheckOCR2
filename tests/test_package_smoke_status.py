@@ -32,6 +32,11 @@ def test_build_package_smoke_status_uses_runtime_state_value(tmp_path):
         "runtime_state": "Ready",
         "ocr_ready": True,
         "settings_file": str(settings_file),
+        "requested_ocr_engine": None,
+        "actual_ocr_engine": None,
+        "ocr_fallback_enabled": False,
+        "ocr_fallback_engine": None,
+        "ocr_fallback_count": 0,
         "written_at": "2026-05-11T16:30:00",
     }
 
@@ -52,6 +57,11 @@ def test_write_package_smoke_status_creates_parent_and_writes_json(tmp_path):
         "runtime_state": "OCR Loading",
         "ocr_ready": False,
         "settings_file": None,
+        "requested_ocr_engine": None,
+        "actual_ocr_engine": None,
+        "ocr_fallback_enabled": False,
+        "ocr_fallback_engine": None,
+        "ocr_fallback_count": 0,
         "written_at": "2026-05-11T16:31:00",
     }
 

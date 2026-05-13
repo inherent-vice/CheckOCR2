@@ -86,11 +86,13 @@ def test_legacy_easyocr_adapter_resets_tracking_and_records_timing_and_confidenc
     row_metadata = {}
     ocr_timings = {"stale": 1.0}
     ocr_confidences = {"stale_confidence": 0.1}
+    ocr_fallbacks = {"stale_fallback": 1}
     process_calls = []
 
     def clear_ocr_tracking():
         ocr_timings.clear()
         ocr_confidences.clear()
+        ocr_fallbacks.clear()
 
     def process_single_ocr(date_image, rate_image, save_details):
         assert ocr_timings == {}
@@ -99,6 +101,7 @@ def test_legacy_easyocr_adapter_resets_tracking_and_records_timing_and_confidenc
         ocr_timings["date_ocr_ms"] = 4.0
         ocr_timings["ocr_adapter_ms"] = 88.0
         ocr_confidences["date_confidence"] = 0.91
+        ocr_fallbacks["date_fallback_count"] = 1
         return "2026/05/08", "3.500"
 
     adapter = LegacyEasyOcrAdapter(
@@ -107,6 +110,7 @@ def test_legacy_easyocr_adapter_resets_tracking_and_records_timing_and_confidenc
         clear_ocr_tracking,
         get_ocr_timings=lambda: ocr_timings,
         get_ocr_confidences=lambda: ocr_confidences,
+        get_ocr_fallbacks=lambda: ocr_fallbacks,
         row_timing_by_index=row_timing,
         row_metadata_by_index=row_metadata,
         elapsed_ms=lambda started: 9.5,
@@ -124,11 +128,21 @@ def test_legacy_easyocr_adapter_resets_tracking_and_records_timing_and_confidenc
     assert result.metadata == {"timing_ms": row_timing[1]}
     assert result.metadata["timing_ms"] is row_timing[1]
     assert row_timing[1]["ocr_timing_ms"] == {"date_ocr_ms": 4.0, "ocr_adapter_ms": 88.0}
-    assert row_metadata == {1: {"ocr_confidence": {"date_confidence": 0.91}}}
+    assert row_metadata == {
+        1: {
+            "ocr_confidence": {"date_confidence": 0.91},
+            "ocr_fallback": {"date_fallback_count": 1},
+        }
+    }
     ocr_timings["date_ocr_ms"] = 400.0
     ocr_confidences["date_confidence"] = 0.1
     assert row_timing[1]["ocr_timing_ms"] == {"date_ocr_ms": 4.0, "ocr_adapter_ms": 88.0}
-    assert row_metadata == {1: {"ocr_confidence": {"date_confidence": 0.91}}}
+    assert row_metadata == {
+        1: {
+            "ocr_confidence": {"date_confidence": 0.91},
+            "ocr_fallback": {"date_fallback_count": 1},
+        }
+    }
     assert process_calls == [("date-image", "rate-image", True)]
 
 
@@ -141,6 +155,7 @@ def test_legacy_easyocr_adapter_omits_confidence_metadata_when_empty():
         clear_ocr_tracking=lambda: None,
         get_ocr_timings=lambda: {},
         get_ocr_confidences=lambda: {},
+        get_ocr_fallbacks=lambda: {},
         row_timing_by_index=row_timing,
         row_metadata_by_index=row_metadata,
         elapsed_ms=lambda started: 1.0,

@@ -31,6 +31,7 @@ def test_execute_legacy_workflow_assembles_adapters_and_finalizes_report(tmp_pat
         get_capture_timing=lambda: {"screen_capture_ms": 1.0},
         get_ocr_timings=lambda: {"date_ocr_ms": 2.0, "rate_ocr_ms": 3.0},
         get_ocr_confidences=lambda: {"date_confidence": 0.91},
+        get_ocr_fallbacks=lambda: {"date_fallback_count": 1},
         elapsed_ms=lambda _started_at: 4.0,
         flush_report=lambda: flushed.append(True),
         set_current_run_report=lambda report, path: selected_reports.append((report, path)),
@@ -63,3 +64,4 @@ def test_execute_legacy_workflow_assembles_adapters_and_finalizes_report(tmp_pat
     assert flushed == [True]
     assert run_setup.report["summary"]["processed_count"] == 1
     assert run_setup.report["rows"][0]["ocr_confidence"] == {"date_confidence": 0.91}
+    assert run_setup.report["rows"][0]["ocr_fallback"]["total_count"] == 1

@@ -6,6 +6,8 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from checkocr2.ocr_engine import reader_engine_metadata
+from checkocr2.ocr_reader_lifecycle import configured_ocr_engine
 from checkocr2.package_smoke_status import (
     PACKAGE_SMOKE_STATUS_FILE_ENV,
     write_package_smoke_status,
@@ -44,15 +46,25 @@ def write_package_smoke_status_for_app(
         return None
 
     try:
+        settings_manager = getattr(app, "settings_manager", None)
+        workflow_manager = getattr(app, "ocr_workflow_manager", None)
+        reader = getattr(workflow_manager, "ocr_reader", None)
+        engine_metadata = reader_engine_metadata(reader)
         write_package_smoke_status(
             status_file,
             runtime_state=app.runtime_state,
-            ocr_ready=bool(app.ocr_workflow_manager.ocr_reader),
+            ocr_ready=bool(reader),
             settings_file=getattr(
-                getattr(app, "settings_manager", None),
+                settings_manager,
                 "settings_file",
                 None,
             ),
+            requested_ocr_engine=(
+                configured_ocr_engine(settings_manager)
+                if settings_manager is not None
+                else None
+            ),
+            **engine_metadata,
         )
     except OSError as exc:
         if hasattr(app, "logger"):

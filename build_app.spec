@@ -6,21 +6,54 @@ OneDIR Windowed 배포용 완전한 의존성 포함
 
 import sys
 import os
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_dynamic_libs,
+    collect_submodules,
+    copy_metadata,
+)
 from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
-from checkocr2.build_metadata import validate_release_dependency_environment, write_build_metadata
+from checkocr2.build_metadata import (
+    paddle_package_enabled,
+    validate_release_dependency_environment,
+    write_build_metadata,
+)
 
 # 현재 디렉토리
 block_cipher = None
 app_name = "CheckCaptureOCR_V6.1"
 main_script = "check_capture_ocr.py"
-validate_release_dependency_environment()
+paddle_package = paddle_package_enabled()
+validate_release_dependency_environment(allow_paddle=paddle_package)
 build_metadata_path = os.path.join("build", "generated", "build_metadata.json")
-write_build_metadata(build_metadata_path)
+write_build_metadata(build_metadata_path, include_paddle=paddle_package)
 
 # EasyOCR 모델 및 데이터 파일 수집
 easyocr_datas = collect_data_files('easyocr')
+paddle_datas = []
+paddle_binaries = []
+paddle_runtime_hooks = []
+if paddle_package:
+    paddle_binaries.extend(collect_dynamic_libs('paddle'))
+    paddle_runtime_hooks.append('checkocr2/paddle_runtime_hook.py')
+    for package_name in ('paddleocr', 'paddlex'):
+        paddle_datas.extend(collect_data_files(package_name))
+    for distribution_name in (
+        'paddleocr',
+        'paddlex',
+        'paddlepaddle',
+        'opencv-contrib-python',
+        'imagesize',
+        'pyclipper',
+        'pypdfium2',
+        'python-bidi',
+        'shapely',
+    ):
+        try:
+            paddle_datas.extend(copy_metadata(distribution_name))
+        except Exception:
+            pass
 
 # 추가 데이터 파일들
 added_files = [
@@ -132,6 +165,20 @@ hidden_imports = [
 easyocr_modules = collect_submodules('easyocr')
 hidden_imports.extend(easyocr_modules)
 
+if paddle_package:
+    hidden_imports.extend([
+        'paddle',
+        'paddleocr',
+        'paddlex',
+        'imagesize',
+        'pyclipper',
+        'pypdfium2',
+        'bidi',
+        'shapely',
+    ])
+    for package_name in ('paddleocr', 'paddlex'):
+        hidden_imports.extend(collect_submodules(package_name))
+
 # Keep PyTorch targeted. collect_submodules('torch') pulls optional internals
 # such as tensorboard integration and must stay out unless package smoke proves
 # a concrete missing-module failure.
@@ -145,12 +192,12 @@ hidden_imports.extend(tkinter_modules)
 a = Analysis(
     [main_script],
     pathex=[],
-    binaries=tkinter_binaries,  # tkinter 바이너리 추가
-    datas=added_files + easyocr_datas,
+    binaries=tkinter_binaries + paddle_binaries,  # tkinter/Paddle 바이너리 추가
+    datas=added_files + easyocr_datas + paddle_datas,
     hiddenimports=hidden_imports,
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[],
+    runtime_hooks=paddle_runtime_hooks,
     excludes=[
         # 표준 라이브러리는 제외하지 않음 (torch 등에서 사용)
         # 'test', 'unittest', 'doctest', 'difflib' 등은 제외하지 않음

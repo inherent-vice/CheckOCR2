@@ -24,6 +24,20 @@ def test_tkinter_log_handler_forwards_log_display_event():
     assert events.get_nowait()[0:2] == ("log_display", "WARNING")
 
 
+def test_tkinter_log_handler_does_not_touch_widget_from_emit_thread():
+    events = queue.Queue()
+
+    class UnsafeWidget:
+        def winfo_exists(self):
+            raise RuntimeError("main thread is not in main loop")
+
+    handler = TkinterLogHandler(UnsafeWidget(), events)
+
+    handler.emit(logging.LogRecord("test", logging.INFO, __file__, 1, "threaded", (), None))
+
+    assert events.get_nowait()[0:2] == ("log_display", "INFO")
+
+
 def test_setup_logging_replaces_handlers(tmp_path):
     events = queue.Queue()
     log_path = tmp_path / "ocr_app.log"

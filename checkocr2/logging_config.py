@@ -34,7 +34,7 @@ class TkinterLogHandler(logging.Handler):
         )
 
     def emit(self, record: logging.LogRecord) -> None:
-        if not self.text_widget or not self.text_widget.winfo_exists():
+        if not self.text_widget:
             return
         self.message_queue.put(("log_display", record.levelname, self.format(record)))
 

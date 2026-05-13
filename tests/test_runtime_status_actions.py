@@ -36,6 +36,11 @@ class FakeSettingsManager:
     def __init__(self, settings_file):
         self.settings_file = settings_file
 
+    def get_advanced(self, key, default=None):
+        if key == "ocr_engine":
+            return "easyocr"
+        return default
+
 
 class FakeApp:
     def __init__(self, *, reader=None):
@@ -77,6 +82,11 @@ def test_set_runtime_state_updates_buttons_and_writes_package_status(monkeypatch
                 "runtime_state": RuntimeState.RUNNING,
                 "ocr_ready": True,
                 "settings_file": Path("settings.json"),
+                "requested_ocr_engine": "easyocr",
+                "actual_ocr_engine": None,
+                "ocr_fallback_enabled": False,
+                "ocr_fallback_engine": None,
+                "ocr_fallback_count": 0,
             },
         )
     ]

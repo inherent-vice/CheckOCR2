@@ -34,7 +34,16 @@ def test_finalize_run_report_counts_blank_fields_and_writes_json(tmp_path):
         report,
         rows,
         {0: {"capture_timing_ms": {"click_ms": 1.2}}},
-        {0: {"ocr_confidence": {"date_confidence": 0.9}}},
+        {
+            0: {
+                "ocr_confidence": {"date_confidence": 0.9},
+                "ocr_fallback": {
+                    "date_fallback_count": 1,
+                    "actual_ocr_engine": "paddle",
+                    "ocr_fallback_engine": "easyocr",
+                },
+            }
+        },
     )
     finalize_run_report(
         report,
@@ -55,7 +64,10 @@ def test_finalize_run_report_counts_blank_fields_and_writes_json(tmp_path):
     assert data["summary"]["status_counts"]["capture failed"] == 1
     assert data["summary"]["output_workbook_path"].endswith("source_updated.xlsx")
     assert data["summary"]["export_timing_ms"] == {"export_ms": 3.4}
+    assert data["summary"]["ocr_fallback_count"] == 1
+    assert data["summary"]["ocr_fallback_rows"] == 1
     assert data["rows"][0]["timing_ms"]["capture_timing_ms"]["click_ms"] == 1.2
     assert data["rows"][0]["ocr_confidence"] == {"date_confidence": 0.9}
+    assert data["rows"][0]["ocr_fallback"]["total_count"] == 1
     assert data["rows"][1]["blank_fields"] == ["date"]
     assert data["rows"][1]["failure_reason"] == "capture failed"

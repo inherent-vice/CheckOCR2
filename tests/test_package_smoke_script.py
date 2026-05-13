@@ -59,16 +59,22 @@ def touch_exe(tmp_path: Path) -> Path:
     return exe_path
 
 
-def write_metadata_for_exe(exe_path: Path) -> dict[str, object]:
+def write_metadata_for_exe(
+    exe_path: Path,
+    dependencies: dict[str, str] | None = None,
+    package_profile: str | None = None,
+) -> dict[str, object]:
     metadata = {
         "app_version": "6.1.0",
         "build_date": "2026-05-08T00:00:00+00:00",
-        "dependencies": {
+        "dependencies": dependencies or {
             "opencv-python-headless": "4.10.0.84",
         },
         "python_version": "3.12.6",
         "dependency_hash": "abc123",
     }
+    if package_profile is not None:
+        metadata["package_profile"] = package_profile
     metadata_path = exe_path.parent / "_internal" / "checkocr2" / "build_metadata.json"
     metadata_path.parent.mkdir(parents=True)
     metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
@@ -494,6 +500,100 @@ def test_run_package_smoke_rejects_contrib_opencv_distribution(tmp_path):
     assert report["packaged_dependency_audit"]["forbidden_present"] == [
         "opencv-contrib-python"
     ]
+
+
+def test_run_package_smoke_allows_contrib_opencv_for_paddle_package(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    write_metadata_for_exe(
+        exe_path,
+        {
+            "opencv-python-headless": "4.10.0.84",
+            "opencv-python": "not-installed",
+            "opencv-contrib-python": "4.10.0.84",
+            "paddleocr": "3.5.0",
+            "paddlepaddle": "3.3.1",
+        },
+        package_profile="paddle",
+    )
+    write_dist_info_for_exe(exe_path, "opencv-contrib-python")
+    write_dist_info_for_exe(exe_path, "paddleocr", "3.5.0")
+    write_dist_info_for_exe(exe_path, "paddlepaddle", "3.3.1")
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        paddle_package=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
+    assert report["paddle_package"] is True
+    assert report["packaged_dependency_audit"]["forbidden_policy"] == ["opencv-python"]
+    assert report["packaged_dependency_audit"]["forbidden_present"] == []
+
+
+def test_run_package_smoke_requires_paddle_metadata_for_paddle_package(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    write_metadata_for_exe(exe_path)
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        paddle_package=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_dependency_mismatch"
+    assert "metadata package_profile must be paddle" in report["error"]
+    assert "metadata missing required dependency: paddleocr" in report["error"]
+    assert "metadata missing required dependency: paddlepaddle" in report["error"]
+
+
+def test_run_package_smoke_still_rejects_gui_opencv_for_paddle_package(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    write_metadata_for_exe(
+        exe_path,
+        {
+            "opencv-python-headless": "4.10.0.84",
+            "opencv-python": "4.10.0.84",
+            "opencv-contrib-python": "4.10.0.84",
+            "paddleocr": "3.5.0",
+            "paddlepaddle": "3.3.1",
+        },
+        package_profile="paddle",
+    )
+    write_dist_info_for_exe(exe_path, "opencv-python")
+    write_dist_info_for_exe(exe_path, "opencv-contrib-python")
+    process = FakeProcess(pid=100)
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_package_metadata=True,
+        paddle_package=True,
+        process_launcher=lambda _path: process,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "metadata_dependency_mismatch"
+    assert "metadata contains forbidden dependency: opencv-python" in report["error"]
+    assert "package contains forbidden distribution: opencv-python" in report["error"]
+    assert report["packaged_dependency_audit"]["forbidden_present"] == ["opencv-python"]
 
 
 def test_run_package_smoke_rejects_missing_headless_opencv_metadata(tmp_path):
@@ -954,6 +1054,81 @@ def test_run_package_smoke_can_require_real_ocr_ready_status(tmp_path, monkeypat
     assert report["ocr_ready_status"]["runtime_state"] == "Ready"
     assert os.environ[package_smoke.PACKAGE_SMOKE_FAST_OCR_ENV] == "stale"
     assert package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV not in os.environ
+
+
+def test_run_package_smoke_requires_paddle_engine_status_for_paddle_package(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    def launch(_path: Path) -> FakeProcess:
+        status_path = Path(os.environ[package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV])
+        status_path.write_text(
+            json.dumps(
+                {
+                    "runtime_state": "Ready",
+                    "ocr_ready": True,
+                    "requested_ocr_engine": "paddle",
+                    "actual_ocr_engine": "easyocr",
+                    "ocr_fallback_enabled": False,
+                    "ocr_fallback_engine": None,
+                }
+            ),
+            encoding="utf-8",
+        )
+        return process
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_ocr_ready=True,
+        ocr_ready_mode="real",
+        paddle_package=True,
+        process_launcher=launch,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 1
+    assert report["status"] == "ocr_engine_mismatch"
+    assert "actual_ocr_engine must be paddle" in report["error"]
+
+
+def test_run_package_smoke_accepts_paddle_engine_status_for_paddle_package(tmp_path):
+    exe_path = touch_exe(tmp_path)
+    process = FakeProcess(pid=100)
+
+    def launch(_path: Path) -> FakeProcess:
+        status_path = Path(os.environ[package_smoke.PACKAGE_SMOKE_STATUS_FILE_ENV])
+        status_path.write_text(
+            json.dumps(
+                {
+                    "runtime_state": "Ready",
+                    "ocr_ready": True,
+                    "requested_ocr_engine": "paddle",
+                    "actual_ocr_engine": "paddle",
+                    "ocr_fallback_enabled": True,
+                    "ocr_fallback_engine": "easyocr",
+                }
+            ),
+            encoding="utf-8",
+        )
+        return process
+
+    exit_code, report = package_smoke.run_package_smoke(
+        exe_path,
+        require_ocr_ready=True,
+        ocr_ready_mode="real",
+        paddle_package=True,
+        process_launcher=launch,
+        list_windows=lambda: [
+            package_smoke.WindowInfo(hwnd=10, pid=100, title="Check Capture OCR V6.1")
+        ],
+        sleep=lambda _seconds: None,
+    )
+
+    assert exit_code == 0
+    assert report["status"] == "ok"
 
 
 def test_run_package_smoke_reports_ocr_ready_timeout(tmp_path):

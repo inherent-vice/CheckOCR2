@@ -7,6 +7,9 @@ Date: 2026-05-13
 - Verified package-index latest versions: `paddleocr 3.5.0` and
   `paddlepaddle 3.3.1`; upgraded `.venv` and passed
   `paddle.utils.run_check()` on CPU.
+- Promoted Paddle as the repository default OCR engine after the final
+  promotion bundle passed. EasyOCR remains available as the baseline engine
+  and as the recorded blank fallback.
 - Added fail-closed evidence checks so promotion-mode OCR bundles reject matrix
   regressions automatically and live-smoke checks reject all-blank OCR outputs.
 - Added `scripts/replay_real_data_ocr_run.py` for copied-real-data workbook and
@@ -17,6 +20,10 @@ Date: 2026-05-13
 - On 10 copied real-data rows from `20260513`, default Paddle replay matched
   EasyOCR outputs with no blank/failure increase and improved p95 row timing
   from `1040.870 ms` to `266.721 ms`.
+- Copied-workbook local GUI simulator smoke passed on 10 copied rows from
+  `20260513`; the same-input live comparison accepted Paddle with output
+  changes `0`, blank increase `0`, failure increase `0`, and p95 row timing
+  `2374.435 ms -> 1902.458 ms` (`19.877%` improvement).
 - Refined promotion evidence semantics so selected-candidate matrix failures
   are hard for accuracy, blank, false-positive, and coverage, while crop-level
   p95 regressions can remain warnings when same-input live/replay row p95
@@ -26,8 +33,24 @@ Date: 2026-05-13
   min/mean/max `153.22 / 211.85 / 273.34 ms`.
 - Generated selected EasyOCR-vs-default-Paddle promotion matrix:
   `.analysis_tmp/ocr_engine_matrix_paddle_promotion.json`.
-- Paddle is still not promoted as the repository default until actual GUI live
-  smoke, same-input live comparison, and Paddle-inclusive package smoke pass.
+- Added an explicit Paddle package profile for PyInstaller and package smoke:
+  `CHECKOCR2_PACKAGE_PADDLE=1` records Paddle dependency metadata and
+  `scripts/package_smoke.py --paddle-package` allows Paddle's
+  `opencv-contrib-python` dependency while still rejecting `opencv-python`.
+- Paddle-inclusive package build and real OCR-ready smoke passed from
+  `.analysis_tmp/paddle_package_venv`; accepted artifact:
+  `.analysis_tmp/paddle_package_smoke_real.json`, package size `996.392 MB`,
+  startup/window elapsed `1.156 s`, window `1216x889`, clean exit,
+  `paddleocr 3.5.0`, `paddlepaddle 3.3.1`, `package_profile=paddle`, actual
+  OCR engine `paddle`, fallback enabled to EasyOCR, and fallback count `0`.
+- Final promotion evidence bundle
+  `.analysis_tmp/ocr_evidence_bundle_paddle_promotion_final.json` is
+  `accepted=true`; fixture audit, Paddle benchmark, selected matrix,
+  repeatability, copied-workbook live smoke, and same-input live comparison are
+  all green. Remaining warnings are only crop-level p95 matrix warnings.
+- The Paddle-inclusive OneDIR package is large (`996.392 MB`). It is accepted
+  for this validation slice; package-size/model-cache optimization remains a
+  follow-up deployment task.
 
 ## Completed
 
@@ -417,6 +440,8 @@ python -m venv .analysis_tmp\package_venv
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m pip install -r requirements-build.txt
 $env:PYTHONNOUSERSITE='1'; .\.analysis_tmp\package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
 python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit
+$env:CHECKOCR2_PACKAGE_PADDLE='1'; .\.analysis_tmp\paddle_package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean
+$env:CHECKOCR2_OCR_ENGINE='paddle'; $env:CHECKOCR2_PADDLE_MODE='recognition'; .\.analysis_tmp\paddle_package_venv\Scripts\python.exe scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 180 --require-package-metadata --paddle-package --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 420 --require-settings-file --isolated-appdata --min-window-width 1000 --min-window-height 600 --require-clean-exit
 ```
 
 Before OCR tuning or release decisions that depend on OCR accuracy, also run:
@@ -596,39 +621,45 @@ Latest package verification on 2026-05-12:
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --max-package-size-mb 650 --max-startup-seconds 5`: fast OCR-ready smoke passed with package size `596.349 MB`, startup time `2.234` seconds, metadata, no forbidden OpenCV dist-info, and `Ready` state in the report.
 - `python scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 45 --require-package-metadata --require-ocr-ready --require-settings-file --isolated-appdata --ocr-ready-mode real --ocr-ready-timeout 180 --max-package-size-mb 650 --max-startup-seconds 5 --min-window-width 1000 --min-window-height 600 --require-clean-exit`: real packaged EasyOCR initialization smoke passed with package size `596.409 MB`, startup time `1.125` seconds, window size `1044x788`, clean GUI exit code `0`, metadata build date `2026-05-12T10:50:04+00:00`, no forbidden OpenCV dist-info, isolated settings file under smoke `APPDATA`, temporary profile cleanup, and `Ready` state in the report.
 
+Latest Paddle package verification on 2026-05-13:
+
+- `$env:CHECKOCR2_PACKAGE_PADDLE='1'; .\.analysis_tmp\paddle_package_venv\Scripts\python.exe -m PyInstaller build_app.spec --noconfirm --clean`: Paddle-inclusive build passed.
+- `$env:CHECKOCR2_OCR_ENGINE='paddle'; $env:CHECKOCR2_PADDLE_MODE='recognition'; .\.analysis_tmp\paddle_package_venv\Scripts\python.exe scripts\package_smoke.py dist\CheckCaptureOCR_V6.1\CheckCaptureOCR_V6.1.exe --timeout 180 --require-package-metadata --paddle-package --require-ocr-ready --ocr-ready-mode real --ocr-ready-timeout 420 --require-settings-file --isolated-appdata --min-window-width 1000 --min-window-height 600 --require-clean-exit`: accepted and saved to `.analysis_tmp\paddle_package_smoke_real.json` with package size `996.392 MB`, startup/window elapsed `1.156` seconds, window size `1216x889`, clean GUI exit, `package_profile=paddle`, actual OCR engine `paddle`, fallback enabled to EasyOCR, fallback count `0`, `paddleocr 3.5.0`, `paddlepaddle 3.3.1`, and no packaged `opencv-python`.
+
 Known build warnings: PyInstaller still reports optional `tensorboard`
 collection failure for `torch.utils.tensorboard`; the clean release venv keeps
 that warning non-blocking while package smoke remains green.
 
-## Remaining Evidence Gates
+## Final Paddle Promotion Gates
 
-- Build real OCR crop fixtures using `docs/OCR_FIXTURE_WORKFLOW.md`, promote a
-  manually reviewed `ground_truth.csv` with `scripts\promote_ocr_fixtures.py`,
-  then pass
-  `scripts\audit_ocr_fixtures.py`.
-- Run a same-input 10-row live OCR comparison with
-  `scripts\compare_run_reports.py` before reducing wait times or changing OCR
-  defaults.
-- Use `scripts\prepare_live_smoke_workspace.py` before a 1-2 row GUI live smoke
-  so the run targets an ignored copied workbook and records hash evidence; use
-  `scripts\check_live_smoke_workspace.py` after the run to verify artifacts.
-- Include `.analysis_tmp\live_smoke_check.json` in the final evidence bundle
-  with `--live-smoke-json` and `--require-live-smoke` when OCR release
-  decisions depend on live GUI evidence.
-- Include `.analysis_tmp\ocr_repeatability.json` in the final evidence bundle
-  with `--repeatability-json` and `--require-repeatability` before promoting an
-  OCR candidate as stable.
-- Run `scripts\check_ocr_evidence_bundle.py` after fixture audit, baseline,
-  matrix, live-smoke check, and live-comparison reports to prevent dry-run or
-  failed artifacts from being treated as promotion evidence.
-- Benchmark candidate engines only after fixture baselines exist.
-- Continue package-size cleanup only one measured PyInstaller/dependency change
-  at a time, with clean build and package smoke after each removal.
-- Continue extracting UI panels/dialogs/controller helpers only while targeted
-  tests and source/package smoke stay green. `docs/GUI_PARITY_CHECKLIST.md`
-  now records dated automated launch/package evidence for the three Python
-  entrypoints and built EXE, the canonical source/package smokes enforce the
-  `1000x600` minimum window size plus clean GUI exit, and focused unit tests
-  cover menu, toolbar, shortcut, source icon, file/folder, Excel, and grid
-  parity. The checklist remains broader than those smokes; keep adding manual
-  evidence or granular tests before treating every item as a green gate.
+- Real OCR crop fixtures were built from copied CouponCheck data and audited:
+  `.analysis_tmp\ocr_fixture_audit.json` is accepted with 349 cases.
+- EasyOCR baseline and default Paddle benchmark reports exist and are accepted:
+  `.analysis_tmp\easyocr_baseline.json` and
+  `.analysis_tmp\paddle_korean_baseline.json`.
+- Selected EasyOCR-vs-default-Paddle matrix and three-run Paddle repeatability
+  are accepted:
+  `.analysis_tmp\ocr_engine_matrix_paddle_promotion.json` and
+  `.analysis_tmp\paddle_korean_repeatability.json`.
+- Copied-workbook local GUI simulator smoke is accepted:
+  `.analysis_tmp\live_smoke_check_paddle.json`.
+- Same-input live comparison is accepted:
+  `.analysis_tmp\live_ocr_compare.json`, with no output/blank/failure
+  regression and `19.877%` p95 row timing improvement.
+- Final evidence bundle is accepted:
+  `.analysis_tmp\ocr_evidence_bundle_paddle_promotion_final.json`.
+- Both source launchers pass isolated source GUI smoke with ready state,
+  minimum `1000x600` size, settings-file verification, and clean exit.
+- Paddle-inclusive PyInstaller package builds and package smoke passes with
+  actual engine `paddle`, EasyOCR blank fallback enabled, fallback count `0`,
+  dependency metadata, isolated settings, and clean exit.
+
+## Remaining Follow-Ups
+
+- Package-size/model-cache optimization for the Paddle OneDIR package
+  (`996.392 MB`) should be handled as a separate deployment hardening task.
+- Re-run matrix, repeatability, live smoke, live comparison, and package smoke
+  before changing OCR defaults, preprocessing, model cache behavior, wait
+  timing, fallback rules, or workbook output semantics.
+- Continue UI/controller extraction only while focused tests and source/package
+  smokes remain green.

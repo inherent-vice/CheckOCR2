@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import queue
 
+from checkocr2 import ocr_reader_lifecycle as lifecycle
 from checkocr2.exceptions import OCREngineError
+from checkocr2.ocr_engine import BlankFallbackOcrReader
 from checkocr2.ocr_reader_lifecycle import (
     initialize_easyocr_reader_with_fallback,
     initialize_ocr_reader_with_fallback,
@@ -166,3 +168,33 @@ def test_initialize_ocr_reader_uses_configured_paddle_engine():
     assert "언어: ko, en" in logger.infos[0]
     assert "영어 전용" not in logger.infos[0]
     assert "['ko', 'en']" in logger.infos[1]
+
+
+def test_initialize_configured_paddle_reader_adds_easyocr_blank_fallback(monkeypatch):
+    primary = object()
+    fallback = object()
+    calls = []
+
+    def fake_create_ocr_reader(engine, languages, *, gpu=False):
+        calls.append((engine, list(languages), gpu))
+        return primary if engine == "paddle" else fallback
+
+    monkeypatch.setattr(lifecycle, "create_ocr_reader", fake_create_ocr_reader)
+    logger = FakeLogger()
+    settings = FakeSettings({"ocr_engine": "paddle"})
+    messages = queue.Queue()
+
+    result = initialize_ocr_reader_with_fallback(
+        logger=logger,
+        settings_manager=settings,
+        message_queue=messages,
+    )
+
+    assert isinstance(result, BlankFallbackOcrReader)
+    assert result.primary is primary
+    assert result.fallback is fallback
+    assert calls == [
+        ("paddle", ["ko", "en"], False),
+        ("easyocr", ["en"], False),
+    ]
+    assert any("blank fallback enabled" in message for message in logger.infos)

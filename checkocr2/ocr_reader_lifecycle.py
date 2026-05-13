@@ -10,6 +10,7 @@ from .exceptions import OCREngineError
 from .ocr_engine import (
     OCR_ENGINE_EASYOCR,
     OCR_ENGINE_PADDLE,
+    BlankFallbackOcrReader,
     EasyOcrReaderLike,
     create_easyocr_reader,
     create_ocr_reader,
@@ -69,6 +70,7 @@ def initialize_ocr_reader_with_fallback(
     )
     languages = default_ocr_languages(selected_engine)
     primary_label = engine_label(selected_engine)
+    using_default_factory = reader_factory is None
 
     if reader_factory is None:
         def reader_factory(langs, *, gpu=False):
@@ -81,6 +83,8 @@ def initialize_ocr_reader_with_fallback(
     try:
         logger.info(f"{primary_label} 초기화 중... ({language_label(languages)})")
         reader = reader_factory(languages, gpu=gpu_enabled)
+        if selected_engine == OCR_ENGINE_PADDLE and using_default_factory:
+            reader = add_easyocr_blank_fallback(reader, logger=logger)
         logger.info(
             f"{primary_label} 초기화 완료 - 언어: {languages}, GPU: {gpu_enabled}"
         )
@@ -138,3 +142,17 @@ def fallback_easyocr_reader(
     if selected_engine == OCR_ENGINE_EASYOCR:
         return reader_factory(["en"], gpu=False)
     return create_ocr_reader(OCR_ENGINE_EASYOCR, ["en"], gpu=False)
+
+
+def add_easyocr_blank_fallback(
+    reader: EasyOcrReaderLike,
+    *,
+    logger: LoggerLike,
+) -> EasyOcrReaderLike:
+    try:
+        fallback_reader = create_ocr_reader(OCR_ENGINE_EASYOCR, ["en"], gpu=False)
+    except OCR_INIT_EXCEPTIONS as exc:
+        logger.error(f"PaddleOCR blank fallback unavailable: {exc}")
+        return reader
+    logger.info("PaddleOCR blank fallback enabled: EasyOCR English CPU")
+    return BlankFallbackOcrReader(reader, fallback_reader)

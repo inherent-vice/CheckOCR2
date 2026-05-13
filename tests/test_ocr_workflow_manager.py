@@ -339,6 +339,34 @@ def test_extract_text_handles_ocr_engine_errors_as_blank_field(ocr_module):
     assert any(event[0] == "log" and "readtext failed" in event[1] for event in list(events.queue))
 
 
+def test_extract_text_records_blank_fallback_metadata(ocr_module):
+    from checkocr2.ocr_engine import BlankFallbackOcrReader
+
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings({"upscaling_enabled": False})
+
+    class Reader:
+        def __init__(self, result):
+            self.result = result
+
+        def readtext(self, image, detail=0, **kwargs):
+            return self.result
+
+    manager.ocr_reader = BlankFallbackOcrReader(Reader([""]), Reader(["2026-05-08"]))
+
+    result = manager._extract_text_with_ocr_attempts_internal(
+        Image.new("RGB", (8, 8), "white"),
+        manager._analyze_date_results_internal,
+        "?좎쭨",
+        save_details=False,
+    )
+
+    assert result == "2026/05/08"
+    assert manager._last_ocr_fallbacks["date_fallback_count"] == 1
+    assert manager._last_ocr_fallbacks["actual_ocr_engine"] == "paddle"
+    assert manager._last_ocr_fallbacks["ocr_fallback_engine"] == "easyocr"
+
+
 def test_extract_text_detail_zero_ignores_confidence_threshold_for_parity(ocr_module):
     manager, _events = make_workflow_manager(ocr_module)
     manager.settings_manager = DummySettings(

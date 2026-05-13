@@ -15,6 +15,8 @@ from checkocr2.ocr_engine import (
     extract_text_with_confidence,
     normalize_confidence_threshold,
     read_ocr_text,
+    reader_engine_metadata,
+    reader_fallback_count,
 )
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
 from checkocr2.ocr_field_extraction import extract_ocr_field_text
@@ -72,6 +74,7 @@ class OCRWorkflowManager:
         self._last_capture_timing = {}
         self._last_ocr_timings = {}
         self._last_ocr_confidences = {}
+        self._last_ocr_fallbacks = {}
 
     def initialize_ocr(self):
         self.ocr_reader = initialize_ocr_reader_with_fallback(
@@ -80,7 +83,13 @@ class OCRWorkflowManager:
             message_queue=self.message_queue,
         )
 
-    def execute_ocr_workflow_threaded(self, ui_settings, output_dir_str, save_detail_images_bool):
+    def execute_ocr_workflow_threaded(
+        self,
+        ui_settings,
+        output_dir_str,
+        save_detail_images_bool,
+        input_excel_file=None,
+    ):
         """OCR 워크플로우 실행 (그리드 데이터 기반) - 스레드에서 호출됨"""
         try:
             if not self.ocr_reader:
@@ -88,14 +97,17 @@ class OCRWorkflowManager:
                 self.message_queue.put(("stopped", None))
                 return
 
-            input_excel_file = self.app.input_excel_path.get()
+            if input_excel_file is None:
+                input_excel_file = self.app.input_excel_path.get()
             self._last_capture_timing = {}
             self._last_ocr_timings = {}
             self._last_ocr_confidences = {}
+            self._last_ocr_fallbacks = {}
 
             def clear_ocr_tracking():
                 self._last_ocr_timings = {}
                 self._last_ocr_confidences = {}
+                self._last_ocr_fallbacks = {}
 
             execute_legacy_workflow(
                 ui_settings=ui_settings,
@@ -115,6 +127,7 @@ class OCRWorkflowManager:
                     get_capture_timing=lambda: self._last_capture_timing,
                     get_ocr_timings=lambda: self._last_ocr_timings,
                     get_ocr_confidences=lambda: self._last_ocr_confidences,
+                    get_ocr_fallbacks=lambda: self._last_ocr_fallbacks,
                     elapsed_ms=self._elapsed_ms,
                     flush_report=self._flush_current_run_report,
                     set_current_run_report=self._set_current_run_report,
@@ -190,6 +203,7 @@ class OCRWorkflowManager:
         if self.work_controller.is_stopped:
             return ""
         field_key = "date" if "date" in getattr(analysis_function, "__name__", "") else "rate"
+        fallback_before = reader_fallback_count(self.ocr_reader)
         result = extract_ocr_field_text(
             image_source,
             reader=self.ocr_reader,
@@ -216,6 +230,10 @@ class OCRWorkflowManager:
             normalize_confidence_threshold_func=normalize_confidence_threshold,
             cleanup_temp_ocr_image_func=cleanup_temp_ocr_image,
         )
+        fallback_delta = reader_fallback_count(self.ocr_reader) - fallback_before
+        if fallback_delta > 0:
+            self._last_ocr_fallbacks[f"{field_key}_fallback_count"] = fallback_delta
+            self._last_ocr_fallbacks.update(reader_engine_metadata(self.ocr_reader))
         return result.value
 
     def _ocr_detail_level(self):

@@ -17,6 +17,31 @@ class EasyOcrReaderLike(Protocol):
     def readtext(self, image, detail: int = 0, **kwargs: Any): ...
 
 
+class BlankFallbackOcrReader:
+    """Use a secondary reader only when the primary reader returns no text."""
+
+    def __init__(
+        self,
+        primary: EasyOcrReaderLike,
+        fallback: EasyOcrReaderLike,
+        *,
+        primary_engine: str = OCR_ENGINE_PADDLE,
+        fallback_engine: str = OCR_ENGINE_EASYOCR,
+    ):
+        self.primary = primary
+        self.fallback = fallback
+        self.primary_engine = primary_engine
+        self.fallback_engine = fallback_engine
+        self.fallback_count = 0
+
+    def readtext(self, image, detail: int = 0, **kwargs: Any):
+        primary_results = self.primary.readtext(image, detail=detail, **kwargs)
+        if ocr_results_have_text(primary_results, detail):
+            return primary_results
+        self.fallback_count += 1
+        return self.fallback.readtext(image, detail=detail, **kwargs)
+
+
 def normalize_ocr_engine(value: Any) -> str:
     normalized = str(value or OCR_ENGINE_EASYOCR).strip().lower()
     if normalized in {"", "easy", "easyocr"}:
@@ -92,6 +117,49 @@ def extract_text_with_confidence(results: Sequence[Any], detail: int) -> tuple[s
                 pass
     confidence = statistics.fmean(confidences) if confidences else None
     return " ".join(texts).strip(), confidence
+
+
+def ocr_results_have_text(results: Sequence[Any], detail: int) -> bool:
+    text, _confidence = extract_text_with_confidence(results, detail)
+    return bool(text.strip())
+
+
+def reader_fallback_count(reader: Any) -> int:
+    try:
+        return max(0, int(getattr(reader, "fallback_count", 0) or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def reader_engine_metadata(reader: Any) -> dict[str, Any]:
+    if reader is None:
+        return {
+            "actual_ocr_engine": None,
+            "ocr_fallback_enabled": False,
+            "ocr_fallback_engine": None,
+            "ocr_fallback_count": 0,
+        }
+    if isinstance(reader, BlankFallbackOcrReader):
+        return {
+            "actual_ocr_engine": reader.primary_engine,
+            "ocr_fallback_enabled": True,
+            "ocr_fallback_engine": reader.fallback_engine,
+            "ocr_fallback_count": reader_fallback_count(reader),
+        }
+
+    module_name = type(reader).__module__.casefold()
+    if "ocr_paddle_engine" in module_name:
+        actual_engine = OCR_ENGINE_PADDLE
+    elif module_name.startswith("easyocr"):
+        actual_engine = OCR_ENGINE_EASYOCR
+    else:
+        actual_engine = None
+    return {
+        "actual_ocr_engine": actual_engine,
+        "ocr_fallback_enabled": False,
+        "ocr_fallback_engine": None,
+        "ocr_fallback_count": reader_fallback_count(reader),
+    }
 
 
 def normalize_confidence_threshold(value: Any) -> float:

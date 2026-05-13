@@ -55,6 +55,7 @@ class LegacyEasyOcrAdapter:
     clear_ocr_tracking: Callable[[], None]
     get_ocr_timings: Callable[[], Mapping[str, Any]]
     get_ocr_confidences: Callable[[], Mapping[str, Any]]
+    get_ocr_fallbacks: Callable[[], Mapping[str, Any]]
     row_timing_by_index: dict[int, dict[str, Any]]
     row_metadata_by_index: dict[int, dict[str, Any]]
     elapsed_ms: Callable[[float], float]
@@ -75,4 +76,7 @@ class LegacyEasyOcrAdapter:
         ocr_confidences = self.get_ocr_confidences()
         if ocr_confidences:
             self.row_metadata_by_index.setdefault(context.index, {})["ocr_confidence"] = dict(ocr_confidences)
+        ocr_fallbacks = self.get_ocr_fallbacks()
+        if ocr_fallbacks:
+            self.row_metadata_by_index.setdefault(context.index, {})["ocr_fallback"] = dict(ocr_fallbacks)
         return OcrResult(date_result, rate_result, metadata={"timing_ms": timing})

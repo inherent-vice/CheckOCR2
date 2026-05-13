@@ -19,8 +19,8 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "rate_area": [1069, 89, 1326, 126],
     "delays": {"paste": 0.5, "loading": 2.5},
     "advanced": {
-        "ocr_languages": ["en"],
-        "ocr_engine": "easyocr",
+        "ocr_languages": ["ko", "en"],
+        "ocr_engine": "paddle",
         "ocr_max_attempts": 1,
         "ocr_detail_level": 0,
         "click_interval": 0.1,
