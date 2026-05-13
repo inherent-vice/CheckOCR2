@@ -19,7 +19,7 @@
   컨트롤러, OCR 초기화 포함 주요 UI action/helper가 분리되어 있다.
 - 최근 model seam은 `OcrRow.from_dict()` 입력을 `Mapping[str, Any]`로 넓혀
   legacy grid dict와 workflow row snapshot 타입을 함께 지원한다.
-- 최신 기록 기준 검증은 `ruff`, `pytest` 462개, `compileall`, OCR benchmark
+- 최신 기록 기준 검증은 `ruff`, `pytest` 470개, `compileall`, OCR benchmark
   dry-run, matrix dry-run, source GUI smoke, clean PyInstaller build, real OCR
   package smoke를 통과했다.
 - 최신 기록 기준 source/package smoke는 최소 창 크기 `1000x600`과 clean
@@ -65,17 +65,19 @@ slice만 merge하고 전체 게이트를 다시 실행한다.
 3. 현재 EasyOCR baseline과 matrix 결과를 기록한다.
 4. `detail=1`, field allowlist, confidence threshold, preprocessing,
    wait-time 후보를 기본값 변경 없이 실험한다.
-5. `scripts\prepare_live_smoke_workspace.py --rows 10`으로 live 비교용 복사본
+5. `scripts\check_ocr_repeatability.py`로 후보 benchmark 3회 반복 결과를
+   검증한다.
+6. `scripts\prepare_live_smoke_workspace.py --rows 10`으로 live 비교용 복사본
    workbook과 hash manifest를 만든다.
-6. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
-7. `scripts\check_ocr_evidence_bundle.py`로 not-ready, dry-run, zero-case,
-   coverage-changed, rejected live-comparison artifact를 fail-closed로
-   차단한다. 선택 후보 matrix는 `--require-no-matrix-regressions`로 더
-   엄격하게 검사한다.
-8. 정확도 회귀가 없고 P95 처리시간 또는 패키지 크기가 의미 있게 개선된
+7. 같은 입력 최소 10행의 baseline/candidate run report를 비교한다.
+8. `scripts\check_ocr_evidence_bundle.py`로 not-ready, dry-run, zero-case,
+   coverage-changed, rejected repeatability/live-smoke/live-comparison
+   artifact를 fail-closed로 차단한다. 선택 후보 matrix는
+   `--require-no-matrix-regressions`로 더 엄격하게 검사한다.
+9. 정확도 회귀가 없고 P95 처리시간 또는 패키지 크기가 의미 있게 개선된
    후보만 기본값 승격 대상으로 올린다.
-9. 남은 controller/UI glue를 작은 단위로 계속 추출한다.
-10. 패키지 크기 최적화는 변경마다 clean build와 real package smoke를 통과시킨다.
+10. 남은 controller/UI glue를 작은 단위로 계속 추출한다.
+11. 패키지 크기 최적화는 변경마다 clean build와 real package smoke를 통과시킨다.
 
 ## 검증 명령
 
@@ -97,9 +99,10 @@ python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_aud
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
 python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 10
+python scripts\check_ocr_repeatability.py --benchmark-json .analysis_tmp\repeat_run_1.json .analysis_tmp\repeat_run_2.json .analysis_tmp\repeat_run_3.json --output-json .analysis_tmp\ocr_repeatability.json
 python scripts\check_live_smoke_workspace.py --manifest .analysis_tmp\live_smoke\live_smoke_manifest.json --output-json .analysis_tmp\live_smoke_check.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --repeatability-json .analysis_tmp\ocr_repeatability.json --require-repeatability --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 패키지 영향 변경 게이트:

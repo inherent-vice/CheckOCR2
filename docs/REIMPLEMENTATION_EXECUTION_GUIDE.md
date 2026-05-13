@@ -64,18 +64,20 @@ plan is complete.
    `.analysis_tmp/`.
 3. Create candidate runs for waits, preprocessing, `detail=1`, confidence
    thresholds, field allowlists, or OCR backends without changing defaults.
-4. Use `scripts\prepare_live_smoke_workspace.py` to create a copied workbook
+4. Run three benchmark repeats for the selected candidate and verify them with
+   `scripts\check_ocr_repeatability.py`.
+5. Use `scripts\prepare_live_smoke_workspace.py` to create a copied workbook
    target before a small real GUI smoke or same-input live comparison.
-5. Verify the copied-workbook smoke artifacts with
+6. Verify the copied-workbook smoke artifacts with
    `scripts\check_live_smoke_workspace.py`.
-6. Run a same-input 10-row live OCR comparison between baseline and candidate
+7. Run a same-input 10-row live OCR comparison between baseline and candidate
    run reports.
-7. Adopt or promote a candidate only after fixture, live-smoke, and live
-   comparison evidence shows no output regression and a speed or package-size
-   gain.
-8. Continue package-size cleanup one measured PyInstaller/dependency change at
+8. Adopt or promote a candidate only after fixture, repeatability, live-smoke,
+   and live comparison evidence shows no output regression and a speed or
+   package-size gain.
+9. Continue package-size cleanup one measured PyInstaller/dependency change at
    a time, followed by a clean build and package smoke.
-9. Continue small controller extractions that do not alter UI layout. Good
+10. Continue small controller extractions that do not alter UI layout. Good
    targets are remaining final controller-only branches that can be tested with
    fakes.
 
@@ -96,9 +98,10 @@ threshold:
 
 ```powershell
 python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 10
+python scripts\check_ocr_repeatability.py --benchmark-json .analysis_tmp\repeat_run_1.json .analysis_tmp\repeat_run_2.json .analysis_tmp\repeat_run_3.json --output-json .analysis_tmp\ocr_repeatability.json
 python scripts\check_live_smoke_workspace.py --manifest .analysis_tmp\live_smoke\live_smoke_manifest.json --output-json .analysis_tmp\live_smoke_check.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --repeatability-json .analysis_tmp\ocr_repeatability.json --require-repeatability --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 Accept a candidate only when normalized date/rate accuracy does not regress,

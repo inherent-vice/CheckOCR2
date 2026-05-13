@@ -94,7 +94,7 @@ the package bootstrap and remains available for existing shortcuts.
 ## Known Constraints
 
 - OCR tuning requires real crop fixtures, fixture audit, matrix benchmark
-  evidence, and a same-input live comparison.
+  evidence, three accepted repeatability runs, and a same-input live comparison.
 - Use `scripts/prepare_live_smoke_workspace.py` and
   `scripts/check_live_smoke_workspace.py` to create and verify an ignored copied
   workbook workspace for a small GUI live smoke.

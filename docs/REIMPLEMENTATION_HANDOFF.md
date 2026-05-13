@@ -56,9 +56,9 @@ completion status and the remaining hard blockers, use
   before OCR-default or wait-time changes.
 - `scripts/check_ocr_evidence_bundle.py` is the final OCR evidence guard: it
   rejects not-ready audit reports, dry-run or zero-case benchmark artifacts,
-  matrix coverage failures, missing/rejected copied-workbook live-smoke checks,
-  and rejected live comparisons. Matrix regressions are warnings by default and
-  become failures with
+  matrix coverage failures, missing/rejected repeatability checks,
+  missing/rejected copied-workbook live-smoke checks, and rejected live
+  comparisons. Matrix regressions are warnings by default and become failures with
   `--require-no-matrix-regressions`.
 - `scripts/source_gui_smoke.py` now provides repeatable source-launch, Ready,
   window-title, minimum-window-size, clean-exit, isolated `APPDATA`, and
@@ -78,7 +78,7 @@ completion status and the remaining hard blockers, use
   TensorFlow, Keras, and TensorBoard stacks are explicitly excluded from the
   bundled package.
 
-Latest code gate result: `ruff` passed, `pytest` passed with 462 tests, and
+Latest code gate result: `ruff` passed, `pytest` passed with 470 tests, and
 `compileall` passed. The latest source GUI fast-OCR smoke reached `Ready` with a
 `1044x788` window against the `1000x600` minimum gate. The latest package gate
 uses the 2026-05-12 clean PyInstaller release build plus strict real package
@@ -125,6 +125,17 @@ Focused verification passed with `python -m pytest
 tests\test_check_ocr_evidence_bundle_script.py
 tests\test_check_live_smoke_workspace_script.py --basetemp
 $env:TEMP\checkocr2-live-smoke-safety`.
+
+The latest repeatability evidence slice adds
+`scripts/check_ocr_repeatability.py`,
+`tests/test_check_ocr_repeatability_script.py`, and `--repeatability-json /
+--require-repeatability` support in the final evidence bundle. It requires at
+least three non-dry-run benchmark reports with matching fixture CSVs, OCR
+settings, coverage, accuracy, blank, and false-positive metrics before a
+candidate can be treated as stable. Focused verification passed with
+`python -m pytest tests\test_check_ocr_repeatability_script.py
+tests\test_check_ocr_evidence_bundle_script.py --basetemp
+$env:TEMP\checkocr2-repeatability-bundle3`.
 
 The latest typed-queue boundary slice adds `LegacyQueueMessage` parsing in
 `checkocr2/events.py` and routes `checkocr2/ui/queue_dispatcher.py` through it.

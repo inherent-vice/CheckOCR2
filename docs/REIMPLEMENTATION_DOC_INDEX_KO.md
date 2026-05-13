@@ -39,6 +39,9 @@
 - `scripts/check_live_smoke_workspace.py`와 evidence bundle의
   `--require-live-smoke` 옵션이 추가되어 복사본 GUI smoke 산출물도 최종
   OCR 증거 게이트에 포함할 수 있다.
+- `scripts/check_ocr_repeatability.py`와 evidence bundle의
+  `--require-repeatability` 옵션이 추가되어 OCR 후보 승격 전 3회 반복
+  benchmark 안정성을 요구할 수 있다.
 - 최신 기록 기준 source/package smoke는 `1044x788` 창, clean exit,
   isolated settings, strict package smoke startup `1.125s`, package size
   `596.409 MB`를 확인했다.
@@ -57,7 +60,7 @@
 1. 현재 구조 변경은 `ruff`, focused pytest, full pytest, `compileall`,
    source GUI smoke 순서로 검증한다.
 2. OCR 성능 변경 전에는 crop fixture를 만들고
-   `scripts\check_ocr_evidence_bundle.py --require-live-smoke --require-live-comparison`을
+   `scripts\check_ocr_evidence_bundle.py --require-repeatability --require-live-smoke --require-live-comparison`을
    통과시킨다.
 3. 실제 GUI smoke나 live 비교 전에는
    `scripts\prepare_live_smoke_workspace.py`로 복사본 workbook을 만든다.

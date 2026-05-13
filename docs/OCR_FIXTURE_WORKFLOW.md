@@ -76,15 +76,16 @@ audit once; rerun it here to produce the baseline evidence JSON.
 ```powershell
 python scripts\benchmark_ocr.py --output-json .analysis_tmp\easyocr_baseline.json
 python scripts\benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
+python scripts\check_ocr_repeatability.py --benchmark-json .analysis_tmp\repeat_run_1.json .analysis_tmp\repeat_run_2.json .analysis_tmp\repeat_run_3.json --output-json .analysis_tmp\ocr_repeatability.json
 python scripts\prepare_live_smoke_workspace.py --source-excel <workbook.xlsx> --output-dir .analysis_tmp\live_smoke --rows 10
 python scripts\check_live_smoke_workspace.py --manifest .analysis_tmp\live_smoke\live_smoke_manifest.json --output-json .analysis_tmp\live_smoke_check.json
 python scripts\compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json --require-p95-improvement --min-p95-improvement-percent 10 --output-json .analysis_tmp\live_ocr_compare.json
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --repeatability-json .analysis_tmp\ocr_repeatability.json --require-repeatability --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 Adopt a candidate only when audited fixture accuracy does not regress, blank and
 failure counts do not increase, and same-input live P95 timing improves when a
 speed claim is being made. The evidence bundle gate is the final guard against
-mistaking dry-run, zero-case, not-ready, coverage-changed, or rejected live
-smoke/comparison artifacts for usable OCR evidence; use
+mistaking dry-run, zero-case, not-ready, coverage-changed, non-repeatable, or
+rejected live smoke/comparison artifacts for usable OCR evidence; use
 `--require-no-matrix-regressions` for strict selected-candidate bundles.

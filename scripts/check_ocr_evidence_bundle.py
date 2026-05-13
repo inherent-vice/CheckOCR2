@@ -35,6 +35,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--matrix-json", type=Path, default=DEFAULT_MATRIX_JSON)
     parser.add_argument("--live-comparison-json", type=Path)
     parser.add_argument("--live-smoke-json", type=Path)
+    parser.add_argument("--repeatability-json", type=Path)
     parser.add_argument(
         "--require-live-comparison",
         action="store_true",
@@ -44,6 +45,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--require-live-smoke",
         action="store_true",
         help="Fail unless --live-smoke-json is provided and accepted.",
+    )
+    parser.add_argument(
+        "--require-repeatability",
+        action="store_true",
+        help="Fail unless --repeatability-json is provided and accepted.",
     )
     parser.add_argument(
         "--require-no-matrix-regressions",
@@ -66,8 +72,10 @@ def check_evidence_bundle(
     matrix_report: dict[str, Any],
     live_comparison_report: dict[str, Any] | None = None,
     live_smoke_report: dict[str, Any] | None = None,
+    repeatability_report: dict[str, Any] | None = None,
     require_live_comparison: bool = False,
     require_live_smoke: bool = False,
+    require_repeatability: bool = False,
     require_no_matrix_regressions: bool = False,
 ) -> dict[str, Any]:
     errors: list[str] = []
@@ -83,6 +91,7 @@ def check_evidence_bundle(
             audit_report,
             benchmark_report,
             matrix_report,
+            repeatability_report,
         ),
         "live_comparison": check_live_comparison_report(
             live_comparison_report,
@@ -91,6 +100,10 @@ def check_evidence_bundle(
         "live_smoke": check_live_smoke_report(
             live_smoke_report,
             required=require_live_smoke,
+        ),
+        "repeatability": check_repeatability_report(
+            repeatability_report,
+            required=require_repeatability,
         ),
     }
 
@@ -302,15 +315,45 @@ def check_live_smoke_report(
     return check
 
 
+def check_repeatability_report(
+    report: dict[str, Any] | None,
+    *,
+    required: bool,
+) -> dict[str, Any]:
+    check = base_check("repeatability")
+    if report is None:
+        if required:
+            reject(check, "repeatability is required but missing")
+        else:
+            warn(check, "repeatability not provided")
+        return check
+    if report.get("accepted") is not True or report.get("status") != "ok":
+        reject(check, "repeatability is not accepted")
+    report_errors = report.get("errors")
+    if isinstance(report_errors, list) and report_errors:
+        reject(check, "repeatability contains errors: " + "; ".join(map(str, report_errors)))
+    if not isinstance(report.get("run_count"), int) or report.get("run_count") < 3:
+        reject(check, "repeatability run_count must be at least 3")
+    if not str(report.get("fixture_csv", "") or ""):
+        reject(check, "repeatability fixture_csv is missing")
+    return check
+
+
 def check_artifact_consistency(
     audit_report: dict[str, Any],
     benchmark_report: dict[str, Any],
     matrix_report: dict[str, Any],
+    repeatability_report: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     check = base_check("artifact_consistency")
     audit_fixture = normalized_report_path(audit_report.get("fixture_csv"))
     benchmark_fixture = normalized_report_path(benchmark_report.get("fixture_csv"))
     matrix_fixture = normalized_report_path(matrix_report.get("fixture_csv"))
+    repeatability_fixture = (
+        normalized_report_path(repeatability_report.get("fixture_csv"))
+        if isinstance(repeatability_report, dict)
+        else ""
+    )
     if not audit_fixture:
         reject(check, "fixture audit fixture_csv is missing")
     if not benchmark_fixture:
@@ -321,6 +364,8 @@ def check_artifact_consistency(
         reject(check, "benchmark fixture_csv does not match fixture audit")
     if audit_fixture and matrix_fixture and audit_fixture != matrix_fixture:
         reject(check, "matrix fixture_csv does not match fixture audit")
+    if audit_fixture and repeatability_fixture and audit_fixture != repeatability_fixture:
+        reject(check, "repeatability fixture_csv does not match fixture audit")
 
     audit_total = audit_report.get("total_cases")
     if isinstance(audit_total, int) and audit_total > 0:
@@ -475,8 +520,14 @@ def main(argv: list[str] | None = None) -> int:
                 if args.live_smoke_json is not None
                 else None
             ),
+            repeatability_report=(
+                load_json(args.repeatability_json)
+                if args.repeatability_json is not None
+                else None
+            ),
             require_live_comparison=args.require_live_comparison,
             require_live_smoke=args.require_live_smoke,
+            require_repeatability=args.require_repeatability,
             require_no_matrix_regressions=args.require_no_matrix_regressions,
         )
     except (OSError, json.JSONDecodeError, ValueError) as exc:

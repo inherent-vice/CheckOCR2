@@ -74,6 +74,17 @@ Run the current baseline:
 python scripts/benchmark_ocr.py --output-json .analysis_tmp/easyocr_baseline.json
 ```
 
+Before treating a candidate as stable, run the same benchmark candidate three
+times and check repeatability:
+
+```powershell
+python scripts\check_ocr_repeatability.py --benchmark-json .analysis_tmp\repeat_run_1.json .analysis_tmp\repeat_run_2.json .analysis_tmp\repeat_run_3.json --output-json .analysis_tmp\ocr_repeatability.json
+```
+
+The repeatability checker rejects dry-run reports, mismatched fixture CSVs,
+changed OCR settings, changed fixture coverage, or changed exact accuracy,
+blank-on-expected-nonempty, and false-positive metrics across runs.
+
 Compare preprocessing settings:
 
 ```powershell
@@ -144,21 +155,23 @@ against source data.
 
 ## Evidence Bundle Gate
 
-After the fixture audit, baseline benchmark, matrix benchmark, live-smoke check,
-and live comparison have all been produced, run the bundle gate:
+After the fixture audit, baseline benchmark, matrix benchmark, repeatability
+check, live-smoke check, and live comparison have all been produced, run the
+bundle gate:
 
 ```powershell
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit.json --benchmark-json .analysis_tmp\easyocr_baseline.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --repeatability-json .analysis_tmp\ocr_repeatability.json --require-repeatability --live-smoke-json .analysis_tmp\live_smoke_check.json --require-live-smoke --live-comparison-json .analysis_tmp\live_ocr_compare.json --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle.json
 ```
 
 This command is intentionally fail-closed. It rejects not-ready fixture audits,
-dry-run or zero-case benchmarks, matrix candidates with changed coverage or
-missing or rejected copied-workbook live-smoke checks, and rejected live
-comparisons. Matrix accuracy, blank, false-positive, and P95 regressions are
-reported as warnings because exploratory matrices often contain bad candidates
-by design. Add `--require-no-matrix-regressions` when the matrix contains only
-selected promotion candidates. Omit `--require-live-smoke` and
-`--require-live-comparison` only when auditing fixture OCR accuracy without
+dry-run or zero-case benchmarks, matrix candidates with changed coverage,
+missing or rejected repeatability checks, missing or rejected copied-workbook
+live-smoke checks, and rejected live comparisons. Matrix accuracy, blank,
+false-positive, and P95 regressions are reported as warnings because
+exploratory matrices often contain bad candidates by design. Add
+`--require-no-matrix-regressions` when the matrix contains only selected
+promotion candidates. Omit `--require-repeatability`, `--require-live-smoke`,
+and `--require-live-comparison` only when auditing fixture OCR accuracy without
 making wait-time or runtime-default changes.
 
 ## Acceptance Gate

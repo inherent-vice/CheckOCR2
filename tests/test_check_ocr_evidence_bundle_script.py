@@ -126,6 +126,25 @@ def ok_live_smoke():
     }
 
 
+def ok_repeatability():
+    return {
+        "status": "ok",
+        "accepted": True,
+        "run_count": 3,
+        "min_runs": 3,
+        "fixture_csv": "tests/fixtures/ocr_crops/ground_truth.csv",
+        "settings": {
+            "gpu": False,
+            "detail": 0,
+            "upscale_factor": 2.0,
+            "upscale_method": "LANCZOS",
+            "allowlist_mode": "none",
+        },
+        "errors": [],
+        "warnings": [],
+    }
+
+
 def test_check_evidence_bundle_accepts_real_artifacts_with_live_comparison():
     report = check_evidence_bundle(
         audit_report=ready_audit(),
@@ -133,8 +152,10 @@ def test_check_evidence_bundle_accepts_real_artifacts_with_live_comparison():
         matrix_report=ok_matrix(),
         live_comparison_report=ok_live_comparison(),
         live_smoke_report=ok_live_smoke(),
+        repeatability_report=ok_repeatability(),
         require_live_comparison=True,
         require_live_smoke=True,
+        require_repeatability=True,
     )
 
     assert report["status"] == "ready"
@@ -255,6 +276,59 @@ def test_check_evidence_bundle_rejects_failed_live_smoke_report():
     assert "live smoke contains errors: expected_output_workbook missing" in report["errors"]
 
 
+def test_check_evidence_bundle_requires_repeatability_when_requested():
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=ok_matrix(),
+        require_repeatability=True,
+    )
+
+    assert report["accepted"] is False
+    assert "repeatability is required but missing" in report["errors"]
+
+
+def test_check_evidence_bundle_rejects_failed_repeatability_report():
+    failed_repeatability = {
+        **ok_repeatability(),
+        "status": "not_ready",
+        "accepted": False,
+        "errors": ["run 2 exact_accuracy changed: 0.99 != 1.0"],
+    }
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=ok_matrix(),
+        repeatability_report=failed_repeatability,
+        require_repeatability=True,
+    )
+
+    assert report["accepted"] is False
+    assert "repeatability is not accepted" in report["errors"]
+    assert (
+        "repeatability contains errors: run 2 exact_accuracy changed: 0.99 != 1.0"
+        in report["errors"]
+    )
+
+
+def test_check_evidence_bundle_rejects_repeatability_fixture_mismatch():
+    repeatability = {
+        **ok_repeatability(),
+        "fixture_csv": "tests/fixtures/other/ground_truth.csv",
+    }
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=ok_matrix(),
+        repeatability_report=repeatability,
+    )
+
+    assert report["accepted"] is False
+    assert "repeatability fixture_csv does not match fixture audit" in report["errors"]
+
+
 def test_check_evidence_bundle_rejects_mixed_fixture_artifacts():
     benchmark = {**ok_benchmark(), "total_cases": 1}
     matrix = ok_matrix()
@@ -276,11 +350,13 @@ def test_check_ocr_evidence_bundle_cli_writes_failure_json(tmp_path):
     benchmark_path = tmp_path / "benchmark.json"
     matrix_path = tmp_path / "matrix.json"
     live_smoke_path = tmp_path / "live_smoke.json"
+    repeatability_path = tmp_path / "repeatability.json"
     output_path = tmp_path / "bundle.json"
     audit_path.write_text(json.dumps(ready_audit()), encoding="utf-8")
     benchmark_path.write_text(json.dumps(ok_benchmark()), encoding="utf-8")
     matrix_path.write_text(json.dumps({**ok_matrix(), "dry_run": True}), encoding="utf-8")
     live_smoke_path.write_text(json.dumps(ok_live_smoke()), encoding="utf-8")
+    repeatability_path.write_text(json.dumps(ok_repeatability()), encoding="utf-8")
 
     result = subprocess.run(
         [
@@ -295,6 +371,9 @@ def test_check_ocr_evidence_bundle_cli_writes_failure_json(tmp_path):
             "--live-smoke-json",
             str(live_smoke_path),
             "--require-live-smoke",
+            "--repeatability-json",
+            str(repeatability_path),
+            "--require-repeatability",
             "--output-json",
             str(output_path),
         ],

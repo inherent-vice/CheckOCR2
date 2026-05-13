@@ -33,9 +33,10 @@ OCR engines until these gates pass with real data.
 | Build reviewed OCR crop fixtures | `tests/fixtures/ocr_crops/ground_truth.csv`; `python scripts/promote_ocr_fixtures.py ... --confirm-reviewed`; `python scripts/audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit_current.json` | Promotion gate exists and is tested, but current audit status is still `not_ready`: `Fixture CSV not found: tests\fixtures\ocr_crops\ground_truth.csv`; `total_cases=0`. | Missing |
 | Record real EasyOCR baseline on audited fixtures | `python scripts/benchmark_ocr.py --output-json .analysis_tmp/easyocr_baseline.json` | Only dry-run/zero-case artifacts exist; current dry-run has `status=dry_run`, `total_cases=0`. | Missing |
 | Run OCR matrix on audited fixtures | `python scripts/benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json` | Current matrix artifacts are dry-run/zero-case and rejected by the evidence bundle. | Missing |
+| Prove candidate repeatability across three fixture runs | `python scripts/check_ocr_repeatability.py --benchmark-json repeat_run_1.json repeat_run_2.json repeat_run_3.json ...` | Repeatability checker exists and is tested, but no accepted real three-run artifact is present. | Missing |
 | Run copied-workbook live smoke before speed/default changes | `python scripts/prepare_live_smoke_workspace.py ...`; `python scripts/check_live_smoke_workspace.py ...` | Prepare/check guards exist, but no accepted real live-smoke check artifact is present. | Missing |
 | Run same-input live comparison before speed/default changes | `python scripts/compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json ...` | No accepted live comparison artifact is present. | Missing |
-| Pass final OCR evidence bundle | `python scripts/check_ocr_evidence_bundle.py ... --require-live-smoke --require-live-comparison ...` | Current bundle is rejected: fixture audit not ready, benchmark dry-run, matrix dry-run, live-smoke check missing, live comparison missing. | Missing |
+| Pass final OCR evidence bundle | `python scripts/check_ocr_evidence_bundle.py ... --require-repeatability --require-live-smoke --require-live-comparison ...` | Current bundle is rejected: fixture audit not ready, benchmark dry-run, matrix dry-run, repeatability missing, live-smoke check missing, live comparison missing. | Missing |
 
 ## Current Verifier Snapshot
 
@@ -45,14 +46,14 @@ Commands rerun during this audit:
 python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit_current.json
 python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\easyocr_baseline_dry_run.json
 python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit_current.json --benchmark-json .analysis_tmp\easyocr_baseline_dry_run.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --require-live-smoke --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle_current.json
+python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit_current.json --benchmark-json .analysis_tmp\easyocr_baseline_dry_run.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --require-repeatability --require-live-smoke --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle_current.json
 ```
 
 Observed results:
 
 - `ocr_fixture_audit_current.json`: `status=not_ready`, `ready_for_baseline=false`, `total_cases=0`.
 - `easyocr_baseline_dry_run.json`: `status=dry_run`, `dry_run=true`, `total_cases=0`.
-- `ocr_evidence_bundle_current.json`: `accepted=false`; fixture audit and benchmark checks failed, the matrix check is rejected as a dry-run artifact, and required live-smoke and live-comparison artifacts are missing.
+- `ocr_evidence_bundle_current.json`: `accepted=false`; fixture audit and benchmark checks failed, the matrix check is rejected as a dry-run artifact, and required repeatability, live-smoke, and live-comparison artifacts are missing.
 
 ## Next Required Work
 
@@ -64,11 +65,13 @@ Observed results:
    reviewed file with `scripts\promote_ocr_fixtures.py --confirm-reviewed`.
 4. Pass `scripts\audit_ocr_fixtures.py`.
 5. Run real baseline and matrix benchmarks against the audited fixtures.
-6. Use `scripts\prepare_live_smoke_workspace.py` for the 1-2 row GUI smoke,
+6. Run `scripts\check_ocr_repeatability.py` against three accepted benchmark
+   runs for any OCR candidate being promoted.
+7. Use `scripts\prepare_live_smoke_workspace.py` for the 1-2 row GUI smoke,
    verify it with `scripts\check_live_smoke_workspace.py`, then produce
    baseline and candidate same-input live run reports and pass
    `scripts\compare_run_reports.py`.
-7. Run
-   `scripts\check_ocr_evidence_bundle.py --require-live-smoke --require-live-comparison`;
+8. Run
+   `scripts\check_ocr_evidence_bundle.py --require-repeatability --require-live-smoke --require-live-comparison`;
    only then consider OCR default, wait-time, confidence, preprocessing, or
    engine promotion.
