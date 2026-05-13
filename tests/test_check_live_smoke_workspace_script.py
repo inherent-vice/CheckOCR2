@@ -15,7 +15,10 @@ from checkocr2.run_report import (
     record_row_reports,
     write_run_report,
 )
-from scripts.check_live_smoke_workspace import check_live_smoke_workspace
+from scripts.check_live_smoke_workspace import (
+    check_live_smoke_workspace,
+    has_nonblank_ocr_result,
+)
 from scripts.prepare_live_smoke_workspace import prepare_live_smoke_workspace
 
 
@@ -166,6 +169,54 @@ def test_check_live_smoke_workspace_rejects_stopped_error_and_low_processed_repo
     assert "run report processed_count too small: 0 < 1" in report["errors"]
     assert "run report indicates the smoke run was stopped" in report["errors"]
     assert "run report contains errors: capture failed" in report["errors"]
+
+
+def test_check_live_smoke_workspace_rejects_all_blank_ocr_results(tmp_path):
+    manifest_path = prepare_completed_smoke(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    output_workbook = Path(manifest["expected_output_workbook"])
+    run_report = Path(manifest["expected_run_report"])
+
+    rows, _missing = load_grid_rows(output_workbook)
+    for row in rows:
+        row[DATE_COL] = ""
+        row[RATE_COL] = ""
+    export_grid_rows(rows, output_workbook)
+
+    data = json.loads(run_report.read_text(encoding="utf-8"))
+    for row in data["rows"]:
+        row["date"] = ""
+        row["rate"] = ""
+        row["blank_fields"] = ["date", "rate"]
+    data["summary"]["blank_date_count"] = len(data["rows"])
+    data["summary"]["blank_rate_count"] = len(data["rows"])
+    run_report.write_text(json.dumps(data), encoding="utf-8")
+
+    report = check_live_smoke_workspace(manifest_path)
+
+    assert report["accepted"] is False
+    assert "run report has no nonblank OCR date/rate results" in report["errors"]
+    assert "output workbook has no nonblank OCR date/rate results" in report["errors"]
+
+
+def test_check_live_smoke_workspace_rejects_replay_artifacts_as_live_smoke(tmp_path):
+    manifest_path = prepare_completed_smoke(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    run_report = Path(manifest["expected_run_report"])
+    data = json.loads(run_report.read_text(encoding="utf-8"))
+    data["execution_mode"] = "real_data_replay"
+    run_report.write_text(json.dumps(data), encoding="utf-8")
+
+    report = check_live_smoke_workspace(manifest_path)
+
+    assert report["accepted"] is False
+    assert "run report is a real-data replay artifact, not a live GUI smoke" in report["errors"]
+
+
+def test_has_nonblank_ocr_result_accepts_canonical_grid_columns():
+    assert has_nonblank_ocr_result([{DATE_COL: "2026/05/13", RATE_COL: ""}]) is True
+    assert has_nonblank_ocr_result([{DATE_COL: "", RATE_COL: "2.750"}]) is True
+    assert has_nonblank_ocr_result([{DATE_COL: "", RATE_COL: ""}]) is False
 
 
 def test_check_live_smoke_workspace_cli_rejects_repo_output_json(tmp_path):

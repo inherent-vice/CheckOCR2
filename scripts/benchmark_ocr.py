@@ -15,7 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from checkocr2.ocr_engine import create_ocr_reader, normalize_ocr_engine  # noqa: E402
+from checkocr2.ocr_engine import (  # noqa: E402
+    create_ocr_reader,
+    default_ocr_languages,
+    normalize_ocr_engine,
+)
 
 FIELD_ALLOWLISTS = {
     "date": "0123456789./-",
@@ -234,7 +238,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
 
     from checkocr2.image_processing import upscale_image
 
-    reader = create_ocr_reader(args.engine, ["en"], gpu=args.gpu)
+    reader = create_ocr_reader(args.engine, default_ocr_languages(args.engine), gpu=args.gpu)
     fixture_dir = args.fixture_csv.parent
     latencies_ms: list[float] = []
     field_stats: dict[str, dict[str, Any]] = {}

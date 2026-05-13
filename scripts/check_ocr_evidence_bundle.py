@@ -80,12 +80,18 @@ def check_evidence_bundle(
 ) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
+    strict_matrix_regressions = (
+        require_no_matrix_regressions
+        or require_live_comparison
+        or require_live_smoke
+        or require_repeatability
+    )
     checks = {
         "fixture_audit": check_fixture_audit(audit_report),
         "benchmark": check_benchmark_report(benchmark_report, "benchmark"),
         "matrix": check_matrix_report(
             matrix_report,
-            require_no_regressions=require_no_matrix_regressions,
+            require_no_regressions=strict_matrix_regressions,
         ),
         "artifact_consistency": check_artifact_consistency(
             audit_report,
@@ -115,6 +121,7 @@ def check_evidence_bundle(
     return {
         "status": "ready" if accepted else "not_ready",
         "accepted": accepted,
+        "strict_matrix_regressions": strict_matrix_regressions,
         "checks": checks,
         "errors": errors,
         "warnings": warnings,

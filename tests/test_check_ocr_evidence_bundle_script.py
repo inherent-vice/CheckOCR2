@@ -231,6 +231,27 @@ def test_check_evidence_bundle_can_require_no_matrix_regressions():
     assert any("failed accuracy_not_regressed" in error for error in report["errors"])
 
 
+def test_check_evidence_bundle_treats_required_live_gate_as_promotion_mode():
+    matrix = ok_matrix()
+    matrix["comparisons"][0]["against_baseline"]["accuracy_not_regressed"] = False
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=matrix,
+        live_comparison_report=ok_live_comparison(),
+        live_smoke_report=ok_live_smoke(),
+        repeatability_report=ok_repeatability(),
+        require_live_comparison=True,
+        require_live_smoke=True,
+        require_repeatability=True,
+    )
+
+    assert report["accepted"] is False
+    assert report["strict_matrix_regressions"] is True
+    assert any("failed accuracy_not_regressed" in error for error in report["errors"])
+
+
 def test_check_evidence_bundle_requires_live_comparison_when_requested():
     report = check_evidence_bundle(
         audit_report=ready_audit(),

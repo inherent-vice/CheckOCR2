@@ -306,4 +306,4 @@ def test_benchmark_uses_selected_ocr_engine(tmp_path, monkeypatch):
 
     assert report["status"] == "ok"
     assert report["settings"]["engine"] == "paddle"
-    assert calls == [("paddle", ["en"], True)]
+    assert calls == [("paddle", ["ko", "en"], True)]

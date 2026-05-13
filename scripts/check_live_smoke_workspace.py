@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from checkocr2.excel_io import load_grid_rows  # noqa: E402
+from checkocr2.models import DATE_COL, RATE_COL  # noqa: E402
 from scripts.prepare_live_smoke_workspace import (  # noqa: E402
     DEFAULT_MANIFEST_NAME,
     DEFAULT_OUTPUT_DIR,
@@ -31,6 +32,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-json", type=Path)
     parser.add_argument("--allow-repo-output", action="store_true")
     parser.add_argument("--min-processed", type=positive_int, default=DEFAULT_MIN_PROCESSED)
+    parser.add_argument(
+        "--allow-blank-results",
+        action="store_true",
+        help="Allow completed smoke artifacts where every OCR date/rate result is blank.",
+    )
     return parser.parse_args(argv)
 
 
@@ -45,6 +51,7 @@ def check_live_smoke_workspace(
     manifest_path: Path,
     *,
     min_processed: int = DEFAULT_MIN_PROCESSED,
+    require_nonblank_results: bool = True,
 ) -> dict[str, Any]:
     """Check that a prepared live-smoke workspace has completed safely."""
 
@@ -93,11 +100,13 @@ def check_live_smoke_workspace(
         output_dir=output_dir,
         expected_output_workbook=expected_output_workbook,
         min_processed=min_processed,
+        require_nonblank_results=require_nonblank_results,
         errors=errors,
     )
     check_output_workbook(
         expected_output_workbook,
         expected_rows=int_value(manifest.get("row_count")),
+        require_nonblank_results=require_nonblank_results,
         errors=errors,
         warnings=warnings,
     )
@@ -190,10 +199,13 @@ def check_run_report(
     output_dir: Path | None,
     expected_output_workbook: Path | None,
     min_processed: int,
+    require_nonblank_results: bool,
     errors: list[str],
 ) -> None:
     if not report:
         return
+    if report.get("execution_mode") == "real_data_replay":
+        errors.append("run report is a real-data replay artifact, not a live GUI smoke")
     if smoke_input is not None and normalize_path(report.get("input_excel_path")) != normalize_path(smoke_input):
         errors.append(
             "run report input_excel_path mismatch: "
@@ -227,12 +239,15 @@ def check_run_report(
     if not isinstance(rows, list) or len(rows) < min_processed:
         row_count = len(rows) if isinstance(rows, list) else 0
         errors.append(f"run report row count too small: {row_count} < {min_processed}")
+    elif require_nonblank_results and not has_nonblank_ocr_result(rows):
+        errors.append("run report has no nonblank OCR date/rate results")
 
 
 def check_output_workbook(
     output_workbook: Path | None,
     *,
     expected_rows: int,
+    require_nonblank_results: bool,
     errors: list[str],
     warnings: list[str],
 ) -> None:
@@ -251,6 +266,54 @@ def check_output_workbook(
         errors.append("output workbook has no rows")
     elif all(not any(str(value or "").strip() for value in row.values()) for row in rows):
         warnings.append("output workbook rows are all blank")
+    if require_nonblank_results:
+        output_rows = load_output_ocr_rows(output_workbook, errors)
+        if output_rows and not has_nonblank_ocr_result(output_rows):
+            errors.append("output workbook has no nonblank OCR date/rate results")
+
+
+def load_output_ocr_rows(path: Path, errors: list[str]) -> list[dict[str, str]]:
+    try:
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(path, read_only=True, data_only=True)
+        worksheet = workbook.active
+        header = next(worksheet.iter_rows(min_row=1, max_row=1, values_only=True), None)
+        if not header:
+            errors.append("output workbook has no header row")
+            return []
+        columns = {string_cell(value): index for index, value in enumerate(header)}
+        missing = [column for column in (DATE_COL, RATE_COL) if column not in columns]
+        if missing:
+            errors.append("output workbook missing OCR result columns: " + ", ".join(missing))
+            return []
+        rows: list[dict[str, str]] = []
+        for raw_row in worksheet.iter_rows(min_row=2, values_only=True):
+            rows.append(
+                {
+                    "date": string_cell(raw_row[columns[DATE_COL]]),
+                    "rate": string_cell(raw_row[columns[RATE_COL]]),
+                }
+            )
+        return rows
+    except Exception as exc:  # pragma: no cover - defensive CLI boundary
+        errors.append(f"output workbook OCR result columns could not be read: {exc}")
+        return []
+
+
+def string_cell(value: object) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def has_nonblank_ocr_result(rows: list[dict[str, Any]]) -> bool:
+    for row in rows:
+        if str(row.get("date", "") or "").strip() or str(row.get("rate", "") or "").strip():
+            return True
+        if str(row.get(DATE_COL, "") or "").strip() or str(row.get(RATE_COL, "") or "").strip():
+            return True
+    return False
 
 
 def load_json_file(path: Path | None, errors: list[str], *, label: str) -> dict[str, Any]:
@@ -325,7 +388,11 @@ def is_relative_to(path: Path, parent: Path) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    report = check_live_smoke_workspace(args.manifest, min_processed=args.min_processed)
+    report = check_live_smoke_workspace(
+        args.manifest,
+        min_processed=args.min_processed,
+        require_nonblank_results=not args.allow_blank_results,
+    )
     try:
         validate_checker_output_path(
             args.output_json,

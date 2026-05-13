@@ -26,6 +26,13 @@ def normalize_ocr_engine(value: Any) -> str:
     raise OCREngineError(f"unsupported OCR engine: {value}")
 
 
+def default_ocr_languages(engine: Any) -> list[str]:
+    engine_name = normalize_ocr_engine(engine)
+    if engine_name == OCR_ENGINE_PADDLE:
+        return ["ko", "en"]
+    return ["en"]
+
+
 def create_ocr_reader(
     engine: Any,
     languages: Sequence[str],

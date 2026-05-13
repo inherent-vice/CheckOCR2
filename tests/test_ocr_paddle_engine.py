@@ -70,14 +70,14 @@ def test_create_paddleocr_reader_wraps_text_recognition_module(monkeypatch):
         types.SimpleNamespace(TextRecognition=FakeTextRecognition),
     )
 
-    reader = create_paddleocr_reader(["en"], gpu=False)
+    reader = create_paddleocr_reader(["ko", "en"], gpu=False)
 
     assert isinstance(reader, PaddleOcrReaderAdapter)
     assert created["device"] == "cpu"
     assert created["engine"] == "paddle_static"
     assert created["engine_config"]["device_type"] == "cpu"
     assert created["engine_config"]["run_mode"] == "paddle"
-    assert created["model_name"] == "en_PP-OCRv5_mobile_rec"
+    assert created["model_name"] == "korean_PP-OCRv5_mobile_rec"
     assert created["enable_mkldnn"] is False
     assert reader.readtext("image") == ["ok"]
 
@@ -99,12 +99,12 @@ def test_create_paddleocr_reader_can_use_full_pipeline(monkeypatch):
         types.SimpleNamespace(PaddleOCR=FakePaddleOCR),
     )
 
-    reader = create_paddleocr_reader(["en"], gpu=False)
+    reader = create_paddleocr_reader(["ko", "en"], gpu=False)
 
-    assert created["lang"] == "en"
+    assert created["lang"] == "korean"
     assert created["ocr_version"] == "PP-OCRv5"
     assert created["text_detection_model_name"] == "PP-OCRv5_mobile_det"
-    assert created["text_recognition_model_name"] == "en_PP-OCRv5_mobile_rec"
+    assert created["text_recognition_model_name"] == "korean_PP-OCRv5_mobile_rec"
     assert created["use_doc_orientation_classify"] is False
     assert reader.readtext("image") == ["ok"]
 

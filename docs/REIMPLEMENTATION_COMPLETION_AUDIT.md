@@ -1,6 +1,6 @@
 # Reimplementation Completion Audit
 
-Date: 2026-05-12
+Date: 2026-05-13
 
 ## Objective
 
@@ -13,11 +13,36 @@ passing unit tests or partial smoke checks.
 
 Status: **not complete**.
 
-The structural modernization and package gates are green, but the real OCR
-evidence chain remains blocked by missing reviewed crop fixtures and missing
-same-input live comparison reports. Do not mark the plan complete and do not
-promote OCR defaults, waits, confidence thresholds, preprocessing, or alternate
-OCR engines until these gates pass with real data.
+The structural modernization and package gates are green. The copied-real-data
+OCR fixture, benchmark, matrix, and repeatability evidence has progressed, and
+PaddleOCR 3.5.0 with PaddlePaddle 3.3.1 is installed in `.venv`. The real
+completion blockers are now the actual GUI copied-workbook live smoke,
+same-input live comparison, and Paddle-inclusive package smoke. Do not mark the
+plan complete and do not promote PaddleOCR as the default until those gates pass
+with real data.
+
+## 2026-05-13 Evidence Update
+
+- Package-index checks show `paddleocr 3.5.0` is latest and `paddlepaddle 3.3.1`
+  is latest for this Windows/Python 3.12 environment; `.venv` was upgraded and
+  `paddle.utils.run_check()` passed on CPU.
+- Paddle defaults now use `["ko", "en"]`, selecting
+  `korean_PP-OCRv5_mobile_rec` for the Korean CouponCheck workflow while
+  leaving EasyOCR at `["en"]`.
+- Copied real data was prepared for `20260513`, `20260512`, and `20260511`.
+  The local fixture audit has 349 cases: 177 date and 172 rate.
+- Latest default Paddle fixture baseline:
+  exact accuracy `0.9799426934097422`, date `0.9943502824858758`,
+  rate `0.9651162790697675`, blank count `0`, false positive count `0`,
+  p95 `188.42 ms`.
+- Copied-real-data replay on 10 rows from `20260513` accepted EasyOCR vs
+  default Paddle comparison: output changes `0`, blank increase `0`, failure
+  increase `0`, p95 row time `1040.870 ms -> 266.721 ms` (`74.375%`
+  improvement).
+- This replay is explicitly marked `execution_mode=real_data_replay` and is
+  not accepted as a substitute for the actual GUI live-smoke gate.
+- `en_PP-OCRv5_mobile_rec` and `PP-OCRv5_server_rec` were rejected on the same
+  replay because they introduced blank-rate regressions.
 
 ## Prompt-To-Artifact Checklist
 
@@ -30,48 +55,49 @@ OCR engines until these gates pass with real data.
 | Keep runtime settings and logs out of repo root | `checkocr2/settings.py`, `checkocr2/logging_config.py`, `tests/test_logging_and_main.py` | Tests verify APPDATA settings/log placement and no repo-root `ocr_app.log` creation. | Done |
 | Keep worker, stop-state, Excel blank, date validation, and exception safety fixes | `tests/test_worker.py`, `tests/test_work_controller.py`, `tests/test_excel_table_modules.py`, `tests/test_ocr_field_analysis.py` | Full suite currently includes these regressions and passes. | Done |
 | Keep package release gate green | Clean PyInstaller build plus `scripts/package_smoke.py ... --ocr-ready-mode real ... --require-clean-exit` | Strict package smoke: `596.409 MB`, startup `1.125s`, build date `2026-05-12T10:50:04+00:00`, `Ready`, isolated settings, clean exit. | Done |
-| Build reviewed OCR crop fixtures | `tests/fixtures/ocr_crops/ground_truth.csv`; `python scripts/promote_ocr_fixtures.py ... --confirm-reviewed`; `python scripts/audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit_current.json` | Promotion gate exists and is tested, but current audit status is still `not_ready`: `Fixture CSV not found: tests\fixtures\ocr_crops\ground_truth.csv`; `total_cases=0`. | Missing |
-| Record real EasyOCR baseline on audited fixtures | `python scripts/benchmark_ocr.py --output-json .analysis_tmp/easyocr_baseline.json` | Only dry-run/zero-case artifacts exist; current dry-run has `status=dry_run`, `total_cases=0`. | Missing |
-| Run OCR matrix on audited fixtures | `python scripts/benchmark_ocr_matrix.py --allowlist-modes none,field --output-json .analysis_tmp/ocr_benchmark_matrix_allowlist.json` | Current matrix artifacts are dry-run/zero-case and rejected by the evidence bundle. | Missing |
-| Prove candidate repeatability across three fixture runs | `python scripts/check_ocr_repeatability.py --benchmark-json repeat_run_1.json repeat_run_2.json repeat_run_3.json ...` | Repeatability checker exists and is tested, but no accepted real three-run artifact is present. | Missing |
+| Build reviewed OCR crop fixtures | `.analysis_tmp/ocr_crops/ground_truth.csv`; `python scripts/audit_ocr_fixtures.py --output-json .analysis_tmp/ocr_fixture_audit.json` | Local copied-real-data fixture audit is accepted with 349 cases. The committed `tests/fixtures/ocr_crops/ground_truth.csv` remains absent by design because real crops/raw text are not committed. | Partial |
+| Record real EasyOCR baseline on audited fixtures | `python scripts/benchmark_ocr.py --engine easyocr --fixture-csv .analysis_tmp/ocr_crops/ground_truth.csv --output-json .analysis_tmp/easyocr_baseline.json` | Accepted local EasyOCR baseline exists: 349 cases, exact accuracy `0.9426934097421203`. | Done |
+| Run OCR matrix on audited fixtures | `python scripts/benchmark_ocr_matrix.py --engines easyocr,paddle --output-json .analysis_tmp/ocr_engine_matrix.json` | Non-dry-run local matrix exists. Strict promotion still depends on live-smoke/live-comparison artifacts. | Partial |
+| Prove candidate repeatability across three fixture runs | `python scripts/check_ocr_repeatability.py --benchmark-json ... --output-json .analysis_tmp/ocr_repeatability.json` | Accepted Paddle repeatability exists for three runs. Latest default Paddle model is `korean_PP-OCRv5_mobile_rec`; repeatability should be refreshed for that exact model before promotion. | Partial |
 | Run copied-workbook live smoke before speed/default changes | `python scripts/prepare_live_smoke_workspace.py ...`; `python scripts/check_live_smoke_workspace.py ...` | Prepare/check guards exist, but no accepted real live-smoke check artifact is present. | Missing |
 | Run same-input live comparison before speed/default changes | `python scripts/compare_run_reports.py .analysis_tmp\baseline_run_report.json .analysis_tmp\candidate_run_report.json ...` | No accepted live comparison artifact is present. | Missing |
-| Pass final OCR evidence bundle | `python scripts/check_ocr_evidence_bundle.py ... --require-repeatability --require-live-smoke --require-live-comparison ...` | Current bundle is rejected: fixture audit not ready, benchmark dry-run, matrix dry-run, repeatability missing, live-smoke check missing, live comparison missing. | Missing |
+| Pass final OCR evidence bundle | `python scripts/check_ocr_evidence_bundle.py ... --require-repeatability --require-live-smoke --require-live-comparison ...` | Current final bundle is still rejected because actual GUI live smoke and same-input live comparison are missing. | Missing |
 
 ## Current Verifier Snapshot
 
-Commands rerun during this audit:
+Current local evidence artifacts:
 
-```powershell
-python scripts\audit_ocr_fixtures.py --output-json .analysis_tmp\ocr_fixture_audit_current.json
-python scripts\benchmark_ocr.py --dry-run --allow-empty-fixture --output-json .analysis_tmp\easyocr_baseline_dry_run.json
-python scripts\benchmark_ocr_matrix.py --dry-run --allow-empty-fixture --allowlist-modes none,field --output-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json
-python scripts\check_ocr_evidence_bundle.py --audit-json .analysis_tmp\ocr_fixture_audit_current.json --benchmark-json .analysis_tmp\easyocr_baseline_dry_run.json --matrix-json .analysis_tmp\ocr_benchmark_matrix_allowlist.json --require-repeatability --require-live-smoke --require-live-comparison --output-json .analysis_tmp\ocr_evidence_bundle_current.json
-```
-
-Observed results:
-
-- `ocr_fixture_audit_current.json`: `status=not_ready`, `ready_for_baseline=false`, `total_cases=0`.
-- `easyocr_baseline_dry_run.json`: `status=dry_run`, `dry_run=true`, `total_cases=0`.
-- `ocr_evidence_bundle_current.json`: `accepted=false`; fixture audit and benchmark checks failed, the matrix check is rejected as a dry-run artifact, and required repeatability, live-smoke, and live-comparison artifacts are missing.
+- `.analysis_tmp/ocr_fixture_audit.json`: accepted, 349 cases, 177 date,
+  172 rate.
+- `.analysis_tmp/easyocr_baseline.json`: accepted local EasyOCR baseline,
+  exact accuracy `0.9426934097421203`.
+- `.analysis_tmp/paddle_korean_baseline.json`: accepted latest default Paddle
+  fixture baseline, exact accuracy `0.9799426934097422`, blank count `0`,
+  false positive count `0`, p95 `188.42 ms`.
+- `.analysis_tmp/real_data_replay/easyocr_vs_paddle_default_latest_replay_compare.json`:
+  accepted copied-real-data replay comparison, output changes `0`, p95 row
+  time `1040.870 ms -> 266.721 ms`.
+- `.analysis_tmp/live_smoke_check.json` and `.analysis_tmp/ocr_evidence_bundle.json`:
+  still not ready because the actual GUI live-smoke workbook/report is missing
+  and the promotion bundle now treats matrix regressions as hard failures. A
+  selected-candidate matrix/report must be used for final promotion.
 
 ## Next Required Work
 
-1. Collect representative date/rate detail screenshots locally under an ignored
-   directory such as `.analysis_tmp\detail_images`.
-2. Run `scripts\prepare_ocr_fixtures.py` to create
-   `tests\fixtures\ocr_crops\ground_truth_draft.csv`.
-3. Manually review every crop against the authoritative source and promote the
-   reviewed file with `scripts\promote_ocr_fixtures.py --confirm-reviewed`.
-4. Pass `scripts\audit_ocr_fixtures.py`.
-5. Run real baseline and matrix benchmarks against the audited fixtures.
-6. Run `scripts\check_ocr_repeatability.py` against three accepted benchmark
-   runs for any OCR candidate being promoted.
-7. Use `scripts\prepare_live_smoke_workspace.py` for the 1-2 row GUI smoke,
-   verify it with `scripts\check_live_smoke_workspace.py`, then produce
-   baseline and candidate same-input live run reports and pass
+1. Run the actual GUI workflow against the prepared copied workbook in
+   `.analysis_tmp\live_smoke`, never the production network workbook.
+2. Verify the produced workbook/report with
+   `scripts\check_live_smoke_workspace.py`.
+3. Preserve same-input EasyOCR and default Paddle live run reports, then pass
    `scripts\compare_run_reports.py`.
-8. Run
+4. Refresh repeatability for the exact default Paddle model
+   `korean_PP-OCRv5_mobile_rec` if promotion is being considered.
+5. Produce or select a promotion matrix that contains only the candidate being
+   promoted, so unrelated exploratory candidates cannot hide regressions or
+   fail the final bundle.
+6. Build a Paddle-inclusive package and pass package smoke with acceptable
+   startup, size, metadata, and model-cache behavior.
+7. Run
    `scripts\check_ocr_evidence_bundle.py --require-repeatability --require-live-smoke --require-live-comparison`;
    only then consider OCR default, wait-time, confidence, preprocessing, or
    engine promotion.

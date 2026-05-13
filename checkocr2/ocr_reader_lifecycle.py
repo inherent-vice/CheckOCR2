@@ -13,6 +13,7 @@ from .ocr_engine import (
     EasyOcrReaderLike,
     create_easyocr_reader,
     create_ocr_reader,
+    default_ocr_languages,
     normalize_ocr_engine,
 )
 
@@ -62,11 +63,11 @@ def initialize_ocr_reader_with_fallback(
     reader_factory: ReaderFactory | None = None,
     engine_name: str | None = None,
 ) -> EasyOcrReaderLike | None:
-    languages = ["en"]
     gpu_enabled = False
     selected_engine = normalize_ocr_engine(
         engine_name or configured_ocr_engine(settings_manager)
     )
+    languages = default_ocr_languages(selected_engine)
     primary_label = engine_label(selected_engine)
 
     if reader_factory is None:
@@ -78,7 +79,7 @@ def initialize_ocr_reader_with_fallback(
             )
 
     try:
-        logger.info(f"{primary_label} 초기화 중... (영어 전용)")
+        logger.info(f"{primary_label} 초기화 중... ({language_label(languages)})")
         reader = reader_factory(languages, gpu=gpu_enabled)
         logger.info(
             f"{primary_label} 초기화 완료 - 언어: {languages}, GPU: {gpu_enabled}"
@@ -121,6 +122,12 @@ def engine_label(engine_name: str) -> str:
     if engine_name == OCR_ENGINE_PADDLE:
         return "PaddleOCR"
     return "EasyOCR"
+
+
+def language_label(languages: Sequence[str]) -> str:
+    if list(languages) == ["en"]:
+        return "영어 전용"
+    return "언어: " + ", ".join(languages)
 
 
 def fallback_easyocr_reader(

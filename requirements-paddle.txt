@@ -3,7 +3,7 @@
 # Install PaddlePaddle CPU first from the official Paddle index, then install
 # this file:
 #
-#   python -m pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+#   python -m pip install paddlepaddle==3.3.1
 #   python -m pip install -r requirements-paddle.txt
 #
 # Keep this separate from requirements-runtime.txt until Paddle-inclusive

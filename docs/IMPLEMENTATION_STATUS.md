@@ -1,6 +1,24 @@
 # Implementation Status
 
-Date: 2026-05-12
+Date: 2026-05-13
+
+## 2026-05-13 PaddleOCR Update
+
+- Verified package-index latest versions: `paddleocr 3.5.0` and
+  `paddlepaddle 3.3.1`; upgraded `.venv` and passed
+  `paddle.utils.run_check()` on CPU.
+- Added fail-closed evidence checks so promotion-mode OCR bundles reject matrix
+  regressions automatically and live-smoke checks reject all-blank OCR outputs.
+- Added `scripts/replay_real_data_ocr_run.py` for copied-real-data workbook and
+  image replay. Replay reports are marked `execution_mode=real_data_replay` and
+  are rejected by the live-smoke checker as substitutes for actual GUI runs.
+- Set Paddle validation defaults to `["ko", "en"]`, selecting
+  `korean_PP-OCRv5_mobile_rec`; EasyOCR remains `["en"]`.
+- On 10 copied real-data rows from `20260513`, default Paddle replay matched
+  EasyOCR outputs with no blank/failure increase and improved p95 row timing
+  from `1040.870 ms` to `266.721 ms`.
+- Paddle is still not promoted as the repository default until actual GUI live
+  smoke, same-input live comparison, and Paddle-inclusive package smoke pass.
 
 ## Completed
 

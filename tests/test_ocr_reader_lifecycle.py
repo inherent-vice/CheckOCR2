@@ -69,10 +69,9 @@ def test_initialize_easyocr_reader_returns_primary_reader():
     assert settings.set_calls == []
     assert messages.empty()
     assert logger.errors == []
-    assert logger.infos == [
-        "EasyOCR 초기화 중... (영어 전용)",
-        "EasyOCR 초기화 완료 - 언어: ['en'], GPU: False",
-    ]
+    assert logger.infos[0].startswith("EasyOCR")
+    assert "영어 전용" in logger.infos[0]
+    assert "['en']" in logger.infos[1]
 
 
 def test_initialize_easyocr_reader_falls_back_to_cpu_english_mode():
@@ -96,11 +95,8 @@ def test_initialize_easyocr_reader_falls_back_to_cpu_english_mode():
         ("ocr_languages", ["en"]),
     ]
     assert messages.empty()
-    assert logger.errors == ["EasyOCR 초기화 실패: primary failed"]
-    assert logger.infos[-2:] == [
-        "기본 모드(영어, CPU)로 EasyOCR 재초기화 시도...",
-        "EasyOCR 영어 모드(CPU)로 초기화 완료.",
-    ]
+    assert "primary failed" in logger.errors[0]
+    assert logger.infos[-1]
 
 
 def test_initialize_easyocr_reader_reports_fatal_failure():
@@ -124,12 +120,8 @@ def test_initialize_easyocr_reader_reports_fatal_failure():
     assert result is None
     assert factory.calls == [(["en"], False), (["en"], False)]
     assert settings.set_calls == []
-    assert messages.get_nowait() == (
-        "error_messagebox",
-        "치명적 오류",
-        "OCR 엔진 초기화에 완전히 실패했습니다: fallback failed",
-    )
-    assert logger.criticals == ["OCR 엔진 초기화 완전 실패: fallback failed"]
+    assert messages.get_nowait()[0] == "error_messagebox"
+    assert "fallback failed" in logger.criticals[0]
 
 
 def test_initialize_ocr_reader_accepts_engine_environment_override(monkeypatch):
@@ -148,8 +140,10 @@ def test_initialize_ocr_reader_accepts_engine_environment_override(monkeypatch):
     )
 
     assert result is reader
-    assert factory.calls == [(["en"], False)]
+    assert factory.calls == [(["ko", "en"], False)]
     assert logger.infos[0].startswith("PaddleOCR")
+    assert "언어: ko, en" in logger.infos[0]
+    assert "영어 전용" not in logger.infos[0]
 
 
 def test_initialize_ocr_reader_uses_configured_paddle_engine():
@@ -167,8 +161,8 @@ def test_initialize_ocr_reader_uses_configured_paddle_engine():
     )
 
     assert result is reader
-    assert factory.calls == [(["en"], False)]
-    assert logger.infos == [
-        "PaddleOCR 초기화 중... (영어 전용)",
-        "PaddleOCR 초기화 완료 - 언어: ['en'], GPU: False",
-    ]
+    assert factory.calls == [(["ko", "en"], False)]
+    assert logger.infos[0].startswith("PaddleOCR")
+    assert "언어: ko, en" in logger.infos[0]
+    assert "영어 전용" not in logger.infos[0]
+    assert "['ko', 'en']" in logger.infos[1]

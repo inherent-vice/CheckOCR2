@@ -8,6 +8,7 @@ from checkocr2.ocr_engine import (
     OCR_ENGINE_PADDLE,
     confidence_is_accepted,
     create_ocr_reader,
+    default_ocr_languages,
     extract_text_with_confidence,
     normalize_confidence_threshold,
     normalize_ocr_engine,
@@ -82,6 +83,11 @@ def test_normalize_ocr_engine_accepts_supported_names():
     assert normalize_ocr_engine("paddleocr") == OCR_ENGINE_PADDLE
     with pytest.raises(OCREngineError, match="unsupported OCR engine"):
         normalize_ocr_engine("tesseract")
+
+
+def test_default_ocr_languages_uses_korean_paddle_model_language():
+    assert default_ocr_languages(OCR_ENGINE_EASYOCR) == ["en"]
+    assert default_ocr_languages(OCR_ENGINE_PADDLE) == ["ko", "en"]
 
 
 def test_create_ocr_reader_dispatches_to_requested_factory():
