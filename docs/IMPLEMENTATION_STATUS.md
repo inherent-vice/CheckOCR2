@@ -17,6 +17,15 @@ Date: 2026-05-13
 - On 10 copied real-data rows from `20260513`, default Paddle replay matched
   EasyOCR outputs with no blank/failure increase and improved p95 row timing
   from `1040.870 ms` to `266.721 ms`.
+- Refined promotion evidence semantics so selected-candidate matrix failures
+  are hard for accuracy, blank, false-positive, and coverage, while crop-level
+  p95 regressions can remain warnings when same-input live/replay row p95
+  already proves speed improvement.
+- Generated accepted latest-default Paddle repeatability evidence:
+  `.analysis_tmp/paddle_korean_repeatability.json`, three runs, p95
+  min/mean/max `153.22 / 211.85 / 273.34 ms`.
+- Generated selected EasyOCR-vs-default-Paddle promotion matrix:
+  `.analysis_tmp/ocr_engine_matrix_paddle_promotion.json`.
 - Paddle is still not promoted as the repository default until actual GUI live
   smoke, same-input live comparison, and Paddle-inclusive package smoke pass.
 

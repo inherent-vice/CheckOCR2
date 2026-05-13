@@ -26,6 +26,11 @@ MATRIX_REGRESSION_FLAGS = (
     "false_positive_not_increased",
     "p95_latency_not_increased",
 )
+MATRIX_PROMOTION_REQUIRED_FLAGS = (
+    "accuracy_not_regressed",
+    "blank_not_increased",
+    "false_positive_not_increased",
+)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -92,6 +97,7 @@ def check_evidence_bundle(
         "matrix": check_matrix_report(
             matrix_report,
             require_no_regressions=strict_matrix_regressions,
+            require_latency_no_regression=require_no_matrix_regressions,
         ),
         "artifact_consistency": check_artifact_consistency(
             audit_report,
@@ -176,6 +182,7 @@ def check_matrix_report(
     report: dict[str, Any],
     *,
     require_no_regressions: bool = False,
+    require_latency_no_regression: bool = False,
 ) -> dict[str, Any]:
     check = base_check("matrix")
     if report.get("dry_run") is True:
@@ -213,6 +220,7 @@ def check_matrix_report(
                 comparison,
                 index,
                 require_no_regressions=require_no_regressions,
+                require_latency_no_regression=require_latency_no_regression,
             )
     return check
 
@@ -223,6 +231,7 @@ def check_matrix_comparison(
     index: int,
     *,
     require_no_regressions: bool,
+    require_latency_no_regression: bool,
 ) -> None:
     if not isinstance(comparison, dict):
         reject(check, f"matrix comparison {index} is not an object")
@@ -237,6 +246,7 @@ def check_matrix_comparison(
         against,
         f"matrix comparison {key}",
         require_no_regressions=require_no_regressions,
+        require_latency_no_regression=require_latency_no_regression,
     )
     field_comparisons = against.get("field_comparisons")
     if not isinstance(field_comparisons, dict) or not field_comparisons:
@@ -251,6 +261,7 @@ def check_matrix_comparison(
             field_result,
             f"matrix comparison {key} field {field}",
             require_no_regressions=require_no_regressions,
+            require_latency_no_regression=require_latency_no_regression,
         )
 
 
@@ -260,6 +271,7 @@ def check_matrix_flags(
     label: str,
     *,
     require_no_regressions: bool,
+    require_latency_no_regression: bool,
 ) -> None:
     if result.get("coverage_unchanged") is not True:
         reject(check, f"{label} failed coverage_unchanged")
@@ -269,10 +281,29 @@ def check_matrix_flags(
         if result.get(flag) is True:
             continue
         message = f"{label} failed {flag}"
-        if require_no_regressions:
+        if should_reject_matrix_flag(
+            flag,
+            require_no_regressions=require_no_regressions,
+            require_latency_no_regression=require_latency_no_regression,
+        ):
             reject(check, message)
         else:
             warn(check, message)
+
+
+def should_reject_matrix_flag(
+    flag: str,
+    *,
+    require_no_regressions: bool,
+    require_latency_no_regression: bool,
+) -> bool:
+    if not require_no_regressions:
+        return False
+    if flag in MATRIX_PROMOTION_REQUIRED_FLAGS:
+        return True
+    if flag == "p95_latency_not_increased":
+        return require_latency_no_regression
+    return False
 
 
 def check_live_comparison_report(

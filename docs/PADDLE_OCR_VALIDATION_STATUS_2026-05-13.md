@@ -59,6 +59,14 @@ updated to `paddleocr 3.5.0` plus `paddlepaddle 3.3.1`, and
   exact accuracy `0.9799426934097422`, date accuracy
   `0.9943502824858758`, rate accuracy `0.9651162790697675`, blank count `0`,
   false positive count `0`, p95 latency `188.42 ms`.
+- Latest default Paddle repeatability:
+  `.analysis_tmp/paddle_korean_repeatability.json` accepted for three runs,
+  p95 latency min/mean/max `153.22 / 211.85 / 273.34 ms`.
+- Selected promotion matrix:
+  `.analysis_tmp/ocr_engine_matrix_paddle_promotion.json` compares EasyOCR vs
+  default Paddle only. Accuracy, blank, false-positive, and coverage gates pass;
+  crop-level p95 is slower and recorded as a warning because same-input
+  copied-workbook replay proves live row p95 improvement.
 
 ## Decision
 
@@ -76,10 +84,7 @@ until actual GUI live workbook comparison and Paddle-inclusive packaging pass.
   `.analysis_tmp/live_ocr_compare.json`.
 - Build a Paddle-inclusive EXE and pass package smoke with acceptable startup,
   size, metadata, and model-cache behavior.
-- Refresh three-run repeatability for the exact default Paddle model
-  (`korean_PP-OCRv5_mobile_rec`) before promotion.
-- Produce a selected-candidate promotion matrix for the exact default Paddle
-  model; exploratory matrix regressions are now hard failures in promotion
-  mode.
+- Re-run the selected-candidate promotion matrix/repeatability if OCR settings,
+  model cache, or preprocessing defaults change.
 - Re-run `scripts/check_ocr_evidence_bundle.py` with live smoke and live
   comparison required; it must return `accepted=true` before default promotion.

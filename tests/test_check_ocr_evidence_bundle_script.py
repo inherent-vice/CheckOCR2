@@ -252,6 +252,45 @@ def test_check_evidence_bundle_treats_required_live_gate_as_promotion_mode():
     assert any("failed accuracy_not_regressed" in error for error in report["errors"])
 
 
+def test_check_evidence_bundle_allows_matrix_p95_regression_when_live_speed_passes():
+    matrix = ok_matrix()
+    matrix["comparisons"][0]["against_baseline"]["p95_latency_not_increased"] = False
+    matrix["comparisons"][0]["against_baseline"]["field_comparisons"]["rate"][
+        "p95_latency_not_increased"
+    ] = False
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=matrix,
+        live_comparison_report=ok_live_comparison(),
+        live_smoke_report=ok_live_smoke(),
+        repeatability_report=ok_repeatability(),
+        require_live_comparison=True,
+        require_live_smoke=True,
+        require_repeatability=True,
+    )
+
+    assert report["accepted"] is True
+    assert report["errors"] == []
+    assert any("failed p95_latency_not_increased" in warning for warning in report["warnings"])
+
+
+def test_check_evidence_bundle_explicit_no_matrix_regressions_rejects_p95_regression():
+    matrix = ok_matrix()
+    matrix["comparisons"][0]["against_baseline"]["p95_latency_not_increased"] = False
+
+    report = check_evidence_bundle(
+        audit_report=ready_audit(),
+        benchmark_report=ok_benchmark(),
+        matrix_report=matrix,
+        require_no_matrix_regressions=True,
+    )
+
+    assert report["accepted"] is False
+    assert any("failed p95_latency_not_increased" in error for error in report["errors"])
+
+
 def test_check_evidence_bundle_requires_live_comparison_when_requested():
     report = check_evidence_bundle(
         audit_report=ready_audit(),
