@@ -11,13 +11,21 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from checkocr2.ocr_text import clean_date_text, clean_rate_text  # noqa: E402
+from checkocr2.exceptions import OCREngineError  # noqa: E402
+from checkocr2.ocr_paddle_engine import create_paddleocr_pipeline_reader  # noqa: E402
+from checkocr2.ocr_text import (  # noqa: E402  # noqa: E402
+    clean_date_text,
+    clean_rate_text,
+    is_valid_date_format,
+    is_valid_rate_format,
+)
 from checkocr2.paths import sanitize_filename  # noqa: E402
 
 DEFAULT_OUTPUT_DIR = Path(".analysis_tmp/ocr_crops")
@@ -26,7 +34,17 @@ DEFAULT_DATE_ROI = "0.62,0,0.80,0.075"
 DEFAULT_RATE_ROI = "0.80,0,1.0,0.075"
 DEFAULT_FULL_DATE_ROI = "0.63,0.158,0.79,0.23"
 DEFAULT_FULL_RATE_ROI = "0.81,0.158,0.985,0.23"
-FIELDNAMES = ["crop_path", "field", "expected_text", "source_run", "notes"]
+DEFAULT_FULL_609X428_DATE_ROI = "0.575,0.229,0.772,0.285"
+DEFAULT_FULL_609X428_RATE_ROI = "0.74,0.243,0.928,0.299"
+FULL_SCAN_IMAGE_SIZE = (884, 496)
+FIELDNAMES = [
+    "crop_path",
+    "field",
+    "expected_text",
+    "source_run",
+    "source_image_path",
+    "notes",
+]
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -65,6 +83,8 @@ def extract_real_data_ocr_fixtures(
     rate_roi: str = DEFAULT_RATE_ROI,
     full_date_roi: str = DEFAULT_FULL_DATE_ROI,
     full_rate_roi: str = DEFAULT_FULL_RATE_ROI,
+    full_609x428_date_roi: str = DEFAULT_FULL_609X428_DATE_ROI,
+    full_609x428_rate_roi: str = DEFAULT_FULL_609X428_RATE_ROI,
     layout: str = "auto",
     limit: int = 0,
     overwrite: bool = False,
@@ -79,6 +99,8 @@ def extract_real_data_ocr_fixtures(
         rate_roi=rate_roi,
         full_date_roi=full_date_roi,
         full_rate_roi=full_rate_roi,
+        full_609x428_date_roi=full_609x428_date_roi,
+        full_609x428_rate_roi=full_609x428_rate_roi,
         layout=layout,
         limit=limit,
         overwrite=overwrite,
@@ -96,6 +118,8 @@ def extract_real_data_ocr_fixture_days(
     rate_roi: str = DEFAULT_RATE_ROI,
     full_date_roi: str = DEFAULT_FULL_DATE_ROI,
     full_rate_roi: str = DEFAULT_FULL_RATE_ROI,
+    full_609x428_date_roi: str = DEFAULT_FULL_609X428_DATE_ROI,
+    full_609x428_rate_roi: str = DEFAULT_FULL_609X428_RATE_ROI,
     layout: str = "auto",
     limit: int = 0,
     overwrite: bool = False,
@@ -116,6 +140,10 @@ def extract_real_data_ocr_fixture_days(
         "full": {
             "date": parse_roi(full_date_roi, "full date"),
             "rate": parse_roi(full_rate_roi, "full rate"),
+        },
+        "full_609x428": {
+            "date": parse_roi(full_609x428_date_roi, "full 609x428 date"),
+            "rate": parse_roi(full_609x428_rate_roi, "full 609x428 rate"),
         },
     }
     for day_dir in resolved_day_dirs:
@@ -231,12 +259,18 @@ def plan_day_fixture_rows(
             missing_images.append(f"{day_dir.name}/{code}")
             continue
         image_layout = layout_for_image(image_path, layout)
+        roi_profile = roi_profile_for_image(image_path, layout)
         for field in ("date", "rate"):
             expected_text = normalize_expected(field, expected.get(field, ""))
             if not expected_text:
                 skipped_blank_expected += 1
                 continue
-            roi = roi_by_layout[image_layout][field]
+            roi = select_roi_for_field(
+                image_path=image_path,
+                field=field,
+                roi_profile=roi_profile,
+                roi_by_layout=roi_by_layout,
+            )
             output_name = fixture_filename(len(rows) + 1, day_dir.name, code, field)
             destination = output_dir / output_name
             if destination.exists() and not overwrite and not dry_run:
@@ -255,10 +289,12 @@ def plan_day_fixture_rows(
                     "field": field,
                     "expected_text": expected_text,
                     "source_run": day_dir.name,
-                        "notes": (
-                            f"source={day_dir.name}/images/{code}.png; "
-                            "expected_from_updated_workbook; "
-                            f"layout={image_layout}; "
+                    "source_image_path": str(image_path),
+                    "notes": (
+                        f"source={day_dir.name}/images/{code}.png; "
+                        "expected_from_updated_workbook; "
+                        f"layout={image_layout}; "
+                            f"roi_profile={roi_profile}; "
                             f"roi={format_roi(roi)}"
                         ),
                 }
@@ -300,7 +336,97 @@ def layout_for_image(image_path: Path, layout: str) -> str:
         return layout
     with Image.open(image_path) as image:
         width, height = image.size
-    return "cropped" if width >= 800 and height >= 470 else "full"
+    return "cropped" if width <= 500 and height <= 250 else "full"
+
+
+def roi_profile_for_image(image_path: Path, layout: str) -> str:
+    image_layout = layout_for_image(image_path, layout)
+    if image_layout == "cropped":
+        return "cropped"
+    with Image.open(image_path) as image:
+        if image.size == (609, 428):
+            return "full_609x428"
+        if image.size == FULL_SCAN_IMAGE_SIZE:
+            return "full_scan"
+    return "full"
+
+
+_FULL_SCAN_READER: Any | None = None
+_FULL_SCAN_ROI_CACHE: dict[tuple[str, int], dict[str, tuple[float, float, float, float] | None]] = {}
+
+
+def get_full_scan_reader() -> Any:
+    global _FULL_SCAN_READER
+    if _FULL_SCAN_READER is None:
+        _FULL_SCAN_READER = create_paddleocr_pipeline_reader(["ko", "en"], gpu=False)
+    return _FULL_SCAN_READER
+
+
+def select_roi_for_field(
+    *,
+    image_path: Path,
+    field: str,
+    roi_profile: str,
+    roi_by_layout: dict[str, dict[str, tuple[float, float, float, float]]],
+    reader: Any | None = None,
+) -> tuple[float, float, float, float]:
+    if roi_profile == "full_scan":
+        scan_roi = select_full_scan_roi(image_path=image_path, field=field, reader=reader)
+        if scan_roi is not None:
+            return scan_roi
+        roi_profile = "full"
+    return roi_by_layout[roi_profile][field]
+
+
+def select_full_scan_roi(
+    *,
+    image_path: Path,
+    field: str,
+    reader: Any | None = None,
+) -> tuple[float, float, float, float] | None:
+    return select_full_scan_rois(image_path=image_path, reader=reader).get(field)
+
+
+def select_full_scan_rois(
+    *,
+    image_path: Path,
+    reader: Any | None = None,
+) -> dict[str, tuple[float, float, float, float] | None]:
+    if reader is None:
+        try:
+            reader = get_full_scan_reader()
+        except OCREngineError:
+            return {"date": None, "rate": None}
+    if not hasattr(reader, "reader") or not hasattr(reader.reader, "ocr"):
+        return {"date": None, "rate": None}
+
+    reader_key = id(reader.reader)
+    cache_key = (str(image_path.resolve()), reader_key)
+    cached = _FULL_SCAN_ROI_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    with Image.open(image_path) as image:
+        width, height = image.size
+        try:
+            raw_results = reader.reader.ocr(np.array(image.convert("RGB")))
+        except Exception:
+            return {"date": None, "rate": None}
+
+    rois: dict[str, tuple[float, float, float, float] | None] = {"date": None, "rate": None}
+    for top, left, right, bottom, text in iter_full_scan_candidates(raw_results):
+        candidate_roi = box_to_roi((left, top, right, bottom), width, height)
+        normalized_date = normalize_expected("date", text)
+        if rois["date"] is None and is_valid_date_format(normalized_date):
+            rois["date"] = candidate_roi
+        normalized_rate = normalize_expected("rate", text)
+        if rois["rate"] is None and is_valid_rate_format(normalized_rate):
+            rois["rate"] = candidate_roi
+        if rois["date"] is not None and rois["rate"] is not None:
+            break
+
+    _FULL_SCAN_ROI_CACHE[cache_key] = rois
+    return rois
 
 
 def validate_inputs(
@@ -420,6 +546,56 @@ def crop_and_save(
         if cropped.width <= 0 or cropped.height <= 0:
             raise ValueError(f"empty crop for {source}: {box}")
         cropped.save(destination)
+
+
+def iter_full_scan_candidates(raw_results: Any) -> list[tuple[int, int, int, int, str]]:
+    candidates: list[tuple[int, int, int, int, str]] = []
+    for item in listify(raw_results):
+        polys = value_from_item(item, "dt_polys")
+        texts = value_from_item(item, "rec_texts")
+        if polys is None or texts is None:
+            continue
+        for poly, text in zip(listify(polys), listify(texts), strict=False):
+            if not text:
+                continue
+            points = [tuple(point) for point in poly]
+            xs = [int(point[0]) for point in points]
+            ys = [int(point[1]) for point in points]
+            candidates.append((min(ys), min(xs), max(xs), max(ys), str(text).strip()))
+    candidates.sort(key=lambda entry: (entry[0], entry[1]))
+    return candidates
+
+
+def box_to_roi(
+    box: tuple[int, int, int, int],
+    width: int,
+    height: int,
+    *,
+    pad_x: int = 4,
+    pad_y: int = 2,
+) -> tuple[float, float, float, float]:
+    left, top, right, bottom = box
+    left = max(0, left - pad_x)
+    top = max(0, top - pad_y)
+    right = min(width, right + pad_x)
+    bottom = min(height, bottom + pad_y)
+    return (left / width, top / height, right / width, bottom / height)
+
+
+def value_from_item(item: Any, key: str) -> Any:
+    if isinstance(item, dict):
+        return item.get(key)
+    return getattr(item, key, None)
+
+
+def listify(value: Any) -> list[Any]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    if isinstance(value, tuple):
+        return list(value)
+    return [value]
 
 
 def roi_to_box(

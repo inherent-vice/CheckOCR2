@@ -33,6 +33,13 @@ class FakeLabel(FakeWidget):
 class FakeCombobox(FakeWidget):
     created = []
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.bind_calls = []
+
+    def bind(self, sequence, callback):
+        self.bind_calls.append((sequence, callback))
+
 
 class FakeVar:
     def __init__(self, value=None):
@@ -56,6 +63,7 @@ class FakeSettingsManager:
     def __init__(self):
         self.values = {
             "skip_kbp_code": False,
+            "rate_decimal_places": 4,
             "upscaling_enabled": False,
             "upscaling_factor": 3.0,
             "upscaling_method": "BICUBIC",
@@ -74,6 +82,7 @@ class FakeApp:
         self.sections = []
         self.save_detail_images = FakeVar(True)
         self.skip_kbp_var = None
+        self.rate_decimal_places = FakeVar(3)
         self.enable_upscaling = FakeVar(True)
         self.upscaling_factor = FakeVar(2.0)
         self.upscaling_method = FakeVar("LANCZOS")
@@ -115,6 +124,7 @@ def test_create_options_panel_builds_option_controls(monkeypatch):
 
     assert app.sections[0][0:3] == (parent, "⚙️ 옵션 설정", False)
     assert app.skip_kbp_var.value is False
+    assert app.rate_decimal_places.set_calls == [4]
     assert app.enable_upscaling.set_calls == [False]
     assert app.upscaling_factor.set_calls == [3.0]
     assert app.upscaling_method.set_calls == ["BICUBIC"]
@@ -132,6 +142,11 @@ def test_create_options_panel_builds_option_controls(monkeypatch):
     assert FakeCheckbutton.created[2].kwargs["variable"] is app.enable_upscaling
     assert FakeCheckbutton.created[2].kwargs["command"] == app.on_upscaling_toggle
 
+    assert FakeCombobox.created[0].kwargs["textvariable"] is app.rate_decimal_places
+    assert FakeCombobox.created[0].kwargs["values"] == [1, 2, 3, 4, 5, 6]
+    assert FakeCombobox.created[0].kwargs["state"] == "readonly"
+    assert FakeCombobox.created[0].bind_calls[0][0] == "<<ComboboxSelected>>"
+
     assert app.factor_combo.kwargs["textvariable"] is app.upscaling_factor
     assert app.factor_combo.kwargs["values"] == [1.5, 2.0, 2.5, 3.0, 4.0]
     assert app.factor_combo.kwargs["state"] == "readonly"
@@ -142,6 +157,7 @@ def test_create_options_panel_builds_option_controls(monkeypatch):
 
     assert app.settings_manager.calls == [
         ("skip_kbp_code", True),
+        ("rate_decimal_places", 3),
         ("upscaling_enabled", True),
         ("upscaling_factor", 2.0),
         ("upscaling_method", "LANCZOS"),

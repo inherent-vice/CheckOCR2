@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from datetime import datetime
 
+from .ocr_runtime_options import DEFAULT_RATE_DECIMAL_PLACES, normalize_rate_decimal_places
+
 
 def is_valid_date_format(value: str) -> bool:
     if not re.fullmatch(r"\d{4}/\d{2}/\d{2}", value):
@@ -21,7 +23,22 @@ def is_valid_rate_format(value: str) -> bool:
 
 
 def clean_date_text(text: str) -> str:
+    for match in re.finditer(r"(?<!\d)((?:19|20)\d{2})\D*(\d{1,2})\D*(\d{1,2})(?!\d)", text):
+        year, month, day = match.groups()
+        candidate = f"{year}/{month.zfill(2)}/{day.zfill(2)}"
+        if is_valid_date_format(candidate):
+            return candidate
+
     cleaned = re.sub(r"[^\d]", "", text)
+    for start in range(0, max(0, len(cleaned) - 7)):
+        chunk = cleaned[start : start + 8]
+        if len(chunk) < 8:
+            continue
+        if not chunk.startswith(("19", "20")):
+            continue
+        candidate = f"{chunk[:4]}/{chunk[4:6]}/{chunk[6:]}"
+        if is_valid_date_format(candidate):
+            return candidate
     if len(cleaned) == 8:
         return f"{cleaned[:4]}/{cleaned[4:6]}/{cleaned[6:]}"
     if len(cleaned) == 6:
@@ -38,13 +55,15 @@ def clean_date_text(text: str) -> str:
     return text
 
 
-def clean_rate_text(text: str) -> str:
+def clean_rate_text(text: str, precision: int = DEFAULT_RATE_DECIMAL_PLACES) -> str:
+    precision = normalize_rate_decimal_places(precision)
     cleaned = (
         text.replace("%", "")
         .replace(" ", "")
         .replace(",", ".")
-        .replace("·", ".")
         .replace("쨌", ".")
+        .replace("·", ".")
+        .replace("ㆍ", ".")
     )
     cleaned = re.sub(r"[^\d.]", "", cleaned)
     if cleaned.count(".") > 1:
@@ -53,16 +72,23 @@ def clean_rate_text(text: str) -> str:
 
     if re.fullmatch(r"\d+\.\d+", cleaned):
         try:
-            return f"{float(cleaned):.3f}"
+            return f"{float(cleaned):.{precision}f}"
         except ValueError:
             return cleaned
-    if re.fullmatch(r"\d+", cleaned) and 2 <= len(cleaned) <= 5:
-        if len(cleaned) == 2:
-            return f"{cleaned[0]}.{cleaned[1]}00"
-        if len(cleaned) == 3:
-            return f"{cleaned[0]}.{cleaned[1:]}0" if cleaned[1:] != "00" else f"{cleaned[0]}.000"
-        if len(cleaned) == 4:
-            return f"{cleaned[0]}.{cleaned[1:]}"
-        if len(cleaned) == 5:
-            return f"{cleaned[:2]}.{cleaned[2:]}"
+    if re.fullmatch(r"\d+\.", cleaned):
+        try:
+            return f"{float(cleaned[:-1]):.{precision}f}"
+        except ValueError:
+            return cleaned[:-1]
+    if re.fullmatch(r"\d+", cleaned):
+        if len(cleaned) == 1:
+            return f"{cleaned}.{('0' * precision)}"
+        if len(cleaned) <= 6:
+            # CouponCheck rates in this repo stay below 10, so digit-only OCR output
+            # is usually a missing decimal point rather than a missing leading digit.
+            candidate = f"{cleaned[0]}.{cleaned[1:]}"
+            try:
+                return f"{float(candidate):.{precision}f}"
+            except ValueError:
+                return candidate
     return cleaned

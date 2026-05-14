@@ -125,7 +125,7 @@ def test_run_source_gui_smoke_reports_ready_and_settings_file(tmp_path):
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=1200,
                 height=850,
             )
@@ -158,7 +158,7 @@ def test_run_source_gui_smoke_can_require_minimum_window_size(tmp_path):
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=1200,
                 height=850,
             )
@@ -184,7 +184,7 @@ def test_run_source_gui_smoke_rejects_small_window_size(tmp_path):
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=900,
                 height=850,
             )
@@ -211,7 +211,7 @@ def test_run_source_gui_smoke_can_require_clean_exit(tmp_path):
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=1200,
                 height=850,
             )
@@ -248,7 +248,7 @@ def test_run_source_gui_smoke_reports_clean_exit_timeout(tmp_path):
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=1200,
                 height=850,
             )
@@ -284,7 +284,7 @@ def test_run_source_gui_smoke_reports_clean_exit_request_failure(tmp_path):
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=1200,
                 height=850,
             )
@@ -321,7 +321,7 @@ def test_run_source_gui_smoke_rejects_already_exited_process_as_clean_exit(tmp_p
             package_smoke.WindowInfo(
                 hwnd=10,
                 pid=100,
-                title="📊 Check Capture OCR V6.1",
+                title="📊 Check Capture OCR V7.0",
                 width=1200,
                 height=850,
             )

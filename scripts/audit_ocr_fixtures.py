@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -87,10 +88,13 @@ def audit_fixtures(
 
         normalized_expected = normalize(field, expected_text)
         if expected_text and normalized_expected != expected_text:
-            report["errors"].append(
-                f"expected_text is not normalized for {crop_path_value}: "
-                f"{expected_text} -> {normalized_expected}"
-            )
+            if field == "rate" and is_integer_rate_alias(expected_text, normalized_expected):
+                pass
+            else:
+                report["errors"].append(
+                    f"expected_text is not normalized for {crop_path_value}: "
+                    f"{expected_text} -> {normalized_expected}"
+                )
         if not expected_text:
             report["blank_expected_cases"] += 1
             report["errors"].append(f"blank expected_text for {crop_path_value}")
@@ -173,6 +177,12 @@ def display_path(fixture_dir: Path, path: Path) -> str:
         return path.resolve().relative_to(fixture_dir.resolve()).as_posix()
     except ValueError:
         return str(path)
+
+
+def is_integer_rate_alias(expected_text: str, normalized_expected: str) -> bool:
+    if not re.fullmatch(r"\d+", expected_text):
+        return False
+    return normalized_expected == f"{expected_text}.000"
 
 
 def write_or_print_report(report: dict[str, Any], output_json: Path | None) -> None:

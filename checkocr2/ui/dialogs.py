@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from tkinter import messagebox
 
+from checkocr2 import __display_version__
 from checkocr2.build_metadata import format_build_metadata, load_build_metadata
 
 SHORTCUTS_TITLE = "키보드 단축키"
@@ -20,7 +21,7 @@ ABOUT_TITLE = "프로그램 정보"
 
 
 def build_about_text(build_summary: str) -> str:
-    return f"""📋 Check Capture OCR - V6
+    return f"""📋 Check Capture OCR - {__display_version__}
 OCR 자동화 애플리케이션 (EasyOCR 기반)
 
 {build_summary}"""

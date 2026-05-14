@@ -11,7 +11,7 @@ EXPECTED_SHORTCUTS_TEXT = """🎹 키보드 단축키:
 • Ctrl+L: 마지막 설정 불러오기
 • Ctrl+O: Excel 파일 로드 (그리드)"""
 EXPECTED_ABOUT_TITLE = "프로그램 정보"
-EXPECTED_ABOUT_TEXT = """📋 Check Capture OCR - V6
+EXPECTED_ABOUT_TEXT = """📋 Check Capture OCR - V7.0
 OCR 자동화 애플리케이션 (EasyOCR 기반)
 
 Build: test"""
@@ -30,7 +30,7 @@ def test_show_about_dialog_includes_build_summary(monkeypatch):
 
     monkeypatch.setattr(
         "checkocr2.ui.dialogs.load_build_metadata",
-        lambda: {"app_version": "V6.1", "python_version": "3.12"},
+        lambda: {"app_version": "7.0.0", "python_version": "3.12"},
     )
     monkeypatch.setattr("checkocr2.ui.dialogs.format_build_metadata", lambda _metadata: "Build: test")
 

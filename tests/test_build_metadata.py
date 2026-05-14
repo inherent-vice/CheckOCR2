@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from checkocr2 import __version__
 from checkocr2.build_metadata import (
     DIRECT_DEPENDENCIES,
     PADDLE_DEPENDENCIES,
@@ -19,7 +20,7 @@ def test_build_metadata_includes_versions_and_stable_hash():
     metadata_payload = generate_build_metadata(build_date="2026-05-08T00:00:00+00:00")
 
     assert metadata_payload["app_name"] == "CheckCaptureOCR_V6.1"
-    assert metadata_payload["app_version"]
+    assert metadata_payload["app_version"] == __version__
     assert metadata_payload["package_profile"] == "easyocr"
     assert metadata_payload["python_version"]
     assert set(DIRECT_DEPENDENCIES).issubset(metadata_payload["dependencies"])

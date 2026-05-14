@@ -36,6 +36,8 @@ from checkocr2.ocr_engine import (  # noqa: E402
     read_ocr_text,
 )
 from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field  # noqa: E402
+from checkocr2.ocr_field_extraction import select_field_text_from_ocr_results  # noqa: E402
+from checkocr2.ocr_paddle_engine import create_paddleocr_pipeline_reader  # noqa: E402
 from checkocr2.paths import updated_workbook_path  # noqa: E402
 from checkocr2.run_report import (  # noqa: E402
     create_run_report,
@@ -47,13 +49,17 @@ from checkocr2.run_report import (  # noqa: E402
 from scripts.benchmark_ocr import FIELD_ALLOWLISTS  # noqa: E402
 from scripts.extract_real_data_ocr_fixtures import (  # noqa: E402
     DEFAULT_DATE_ROI,
+    DEFAULT_FULL_609X428_DATE_ROI,
+    DEFAULT_FULL_609X428_RATE_ROI,
     DEFAULT_FULL_DATE_ROI,
     DEFAULT_FULL_RATE_ROI,
     DEFAULT_RATE_ROI,
     format_roi,
     layout_for_image,
     parse_roi,
+    roi_profile_for_image,
     roi_to_box,
+    select_roi_for_field,
     validate_layout,
 )
 
@@ -73,6 +79,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--rate-roi", default=DEFAULT_RATE_ROI)
     parser.add_argument("--full-date-roi", default=DEFAULT_FULL_DATE_ROI)
     parser.add_argument("--full-rate-roi", default=DEFAULT_FULL_RATE_ROI)
+    parser.add_argument(
+        "--full-609x428-date-roi",
+        default=DEFAULT_FULL_609X428_DATE_ROI,
+    )
+    parser.add_argument(
+        "--full-609x428-rate-roi",
+        default=DEFAULT_FULL_609X428_RATE_ROI,
+    )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--detail", type=int, choices=(0, 1), default=0)
     parser.add_argument("--allowlist-mode", choices=("none", "field"), default="none")
@@ -99,6 +113,8 @@ def replay_real_data_ocr_run(
     rate_roi: str = DEFAULT_RATE_ROI,
     full_date_roi: str = DEFAULT_FULL_DATE_ROI,
     full_rate_roi: str = DEFAULT_FULL_RATE_ROI,
+    full_609x428_date_roi: str = DEFAULT_FULL_609X428_DATE_ROI,
+    full_609x428_rate_roi: str = DEFAULT_FULL_609X428_RATE_ROI,
     limit: int = 0,
     detail: int = 0,
     allowlist_mode: str = "none",
@@ -151,6 +167,10 @@ def replay_real_data_ocr_run(
             "date": parse_roi(full_date_roi, "full date"),
             "rate": parse_roi(full_rate_roi, "full rate"),
         },
+        "full_609x428": {
+            "date": parse_roi(full_609x428_date_roi, "full 609x428 date"),
+            "rate": parse_roi(full_609x428_rate_roi, "full 609x428 rate"),
+        },
     }
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -159,6 +179,7 @@ def replay_real_data_ocr_run(
         if reader is not None
         else create_ocr_reader(engine, default_ocr_languages(engine), gpu=gpu)
     )
+    rate_reader = None
     report = create_run_report(
         output_dir=str(output_dir),
         input_excel_path=str(input_excel),
@@ -205,25 +226,48 @@ def replay_real_data_ocr_run(
 
         try:
             image_layout = layout_for_image(image_path, layout)
+            roi_profile = roi_profile_for_image(image_path, layout)
+            date_roi = select_roi_for_field(
+                image_path=image_path,
+                field="date",
+                roi_profile=roi_profile,
+                roi_by_layout=roi_by_layout,
+                reader=ocr_reader,
+            )
             date_result = replay_field(
                 reader=ocr_reader,
                 image_path=image_path,
-                roi=roi_by_layout[image_layout]["date"],
+                source_image_path=image_path,
+                roi=date_roi,
                 field="date",
                 detail=detail,
                 allowlist_mode=allowlist_mode,
                 upscale_factor=upscale_factor,
                 upscale_method=upscale_method,
             )
-            rate_result = replay_field(
-                reader=ocr_reader,
+            if engine == "paddle" and rate_reader is None:
+                rate_reader = create_paddleocr_pipeline_reader(
+                    default_ocr_languages(engine),
+                    gpu=gpu,
+                )
+            rate_roi = select_roi_for_field(
                 image_path=image_path,
-                roi=roi_by_layout[image_layout]["rate"],
+                field="rate",
+                roi_profile=roi_profile,
+                roi_by_layout=roi_by_layout,
+                reader=rate_reader if rate_reader is not None else ocr_reader,
+            )
+            rate_result = replay_field(
+                reader=rate_reader if rate_reader is not None else ocr_reader,
+                image_path=image_path,
+                source_image_path=image_path,
+                roi=rate_roi,
                 field="rate",
                 detail=detail,
                 allowlist_mode=allowlist_mode,
                 upscale_factor=upscale_factor,
                 upscale_method=upscale_method,
+                use_pipeline_reader=engine == "paddle",
             )
             date_analysis = analyze_date_field(date_result["raw_text"], "date")
             rate_analysis = analyze_rate_field(rate_result["raw_text"], "rate")
@@ -233,6 +277,9 @@ def replay_real_data_ocr_run(
             timing.update(
                 {
                     "layout": image_layout,
+                    "roi_profile": roi_profile,
+                    "date_roi": format_roi(date_roi),
+                    "rate_roi": format_roi(rate_roi),
                     "date_total_ms": date_result["timing_ms"],
                     "rate_total_ms": rate_result["timing_ms"],
                 }
@@ -319,26 +366,34 @@ def replay_field(
     *,
     reader: Any,
     image_path: Path,
+    source_image_path: Path | None,
     roi: tuple[float, float, float, float],
     field: str,
     detail: int,
     allowlist_mode: str,
     upscale_factor: float,
     upscale_method: str,
+    use_pipeline_reader: bool = False,
 ) -> dict[str, Any]:
     started = time.perf_counter()
+    allowlist = FIELD_ALLOWLISTS.get(field) if allowlist_mode == "field" else None
     with Image.open(image_path) as source:
         image = source.convert("RGB")
-        crop = image.crop(roi_to_box(roi, image.width, image.height))
+    crop = image.crop(roi_to_box(roi, image.width, image.height))
     processed = upscale_image(
         crop,
         enabled=upscale_factor > 1.0,
         factor=upscale_factor,
         method=upscale_method,
     )
-    allowlist = FIELD_ALLOWLISTS.get(field) if allowlist_mode == "field" else None
     results = read_ocr_text(reader, np.array(processed), detail=detail, allowlist=allowlist)
-    raw_text, confidence = extract_text_with_confidence(results, detail)
+    if use_pipeline_reader:
+        raw_text = select_field_text_from_ocr_results(results, field)
+        confidence = None
+        if not raw_text:
+            raw_text, confidence = extract_text_with_confidence(results, detail)
+    else:
+        raw_text, confidence = extract_text_with_confidence(results, detail)
     return {
         "raw_text": raw_text,
         "confidence": confidence,
@@ -408,6 +463,8 @@ def main(argv: list[str] | None = None) -> int:
             rate_roi=args.rate_roi,
             full_date_roi=args.full_date_roi,
             full_rate_roi=args.full_rate_roi,
+            full_609x428_date_roi=args.full_609x428_date_roi,
+            full_609x428_rate_roi=args.full_609x428_rate_roi,
             limit=args.limit,
             detail=args.detail,
             allowlist_mode=args.allowlist_mode,

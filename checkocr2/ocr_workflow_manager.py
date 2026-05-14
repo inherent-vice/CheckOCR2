@@ -22,7 +22,7 @@ from checkocr2.ocr_field_analysis import analyze_date_field, analyze_rate_field
 from checkocr2.ocr_field_extraction import extract_ocr_field_text
 from checkocr2.ocr_pair_processing import process_ocr_image_pair
 from checkocr2.ocr_reader_lifecycle import initialize_ocr_reader_with_fallback
-from checkocr2.ocr_runtime_options import minimum_confidence, ocr_detail_level
+from checkocr2.ocr_runtime_options import minimum_confidence, ocr_detail_level, rate_decimal_places
 from checkocr2.ocr_text import (
     clean_date_text,
     clean_rate_text,
@@ -239,6 +239,9 @@ class OCRWorkflowManager:
     def _ocr_detail_level(self):
         return ocr_detail_level(self.settings_manager)
 
+    def _rate_decimal_places(self):
+        return rate_decimal_places(self.settings_manager)
+
     def _minimum_confidence(self, field_key):
         return minimum_confidence(self.settings_manager, field_key)
 
@@ -249,7 +252,11 @@ class OCRWorkflowManager:
         return result.value
 
     def _analyze_rate_results_internal(self, raw_text, field_name="금리"):
-        result = analyze_rate_field(raw_text, field_name)
+        result = analyze_rate_field(
+            raw_text,
+            field_name,
+            precision=self._rate_decimal_places(),
+        )
         for message, level in result.log_events:
             self.message_queue.put(("log", message, level))
         return result.value
@@ -264,7 +271,7 @@ class OCRWorkflowManager:
         return clean_date_text(text)
 
     def _clean_rate_text_internal(self, text):
-        return clean_rate_text(text)
+        return clean_rate_text(text, self._rate_decimal_places())
 
     def _generate_ocr_summary_internal(self, processed_count, total_items):
         return build_ocr_summary_action(self.data_manager.excel_data, total_items)

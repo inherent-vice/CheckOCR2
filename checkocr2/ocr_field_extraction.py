@@ -18,6 +18,7 @@ from .ocr_engine import (
     normalize_confidence_threshold,
     read_ocr_text,
 )
+from .ocr_field_analysis import analyze_date_field, analyze_rate_field
 
 
 class LoggerLike(Protocol):
@@ -29,6 +30,53 @@ class OcrFieldExtractionResult:
     value: str
     timing_ms: dict[str, float] = field(default_factory=dict)
     confidence: float | None = None
+
+
+def select_field_text_from_ocr_results(
+    results: Any,
+    field_key: str,
+) -> str:
+    texts = ocr_result_texts(results)
+    field = field_key.lower()
+    if field == "date":
+        for text in texts:
+            analysis = analyze_date_field(text, "date")
+            if analysis.value:
+                return analysis.value
+        return ""
+    if field == "rate":
+        for text in texts:
+            if not any(separator in text for separator in (".", ",", "%")):
+                continue
+            analysis = analyze_rate_field(text, "rate")
+            if analysis.value:
+                return analysis.value
+        for text in texts:
+            analysis = analyze_rate_field(text, "rate")
+            if analysis.value:
+                return analysis.value
+        return ""
+    return ""
+
+
+def ocr_result_texts(results: Any) -> list[str]:
+    texts: list[str] = []
+    if results is None:
+        return texts
+    try:
+        iterator = iter(results)
+    except TypeError:
+        return [str(results).strip()]
+    for item in iterator:
+        if isinstance(item, str):
+            text = item.strip()
+        elif isinstance(item, list | tuple) and len(item) >= 2:
+            text = str(item[1]).strip()
+        else:
+            text = str(item).strip()
+        if text:
+            texts.append(text)
+    return texts
 
 
 def elapsed_ms(started_at: float, *, timer: Callable[[], float] = perf_counter) -> float:

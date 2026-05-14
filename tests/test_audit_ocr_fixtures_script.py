@@ -38,6 +38,26 @@ def test_audit_fixtures_accepts_minimum_date_and_rate_cases(tmp_path):
     assert report["image_size"]["min_height"] == 8
 
 
+def test_audit_fixtures_accepts_integer_rate_expected_text(tmp_path):
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    write_crop(fixture_dir / "rate.png")
+    fixture_csv = fixture_dir / "ground_truth.csv"
+    fixture_csv.write_text(
+        "crop_path,field,expected_text,source_run,notes\n"
+        "rate.png,rate,7,manual,\n",
+        encoding="utf-8",
+    )
+
+    report = audit_fixtures(
+        fixture_csv, min_total=1, min_by_field={"date": 0, "rate": 1}
+    )
+
+    assert report["status"] == "ready"
+    assert report["ready_for_baseline"] is True
+    assert report["errors"] == []
+
+
 def test_audit_fixtures_reports_missing_duplicate_and_threshold_errors(tmp_path):
     fixture_dir = tmp_path / "fixtures"
     fixture_dir.mkdir()

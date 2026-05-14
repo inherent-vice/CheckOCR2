@@ -34,6 +34,7 @@ def collect_ui_settings(app: Any) -> dict[str, Any]:
         },
         "save_detail_images": app.save_detail_images.get(),
         "skip_kbp_code": app.skip_kbp_var.get(),
+        "rate_decimal_places": app.rate_decimal_places.get(),
         "upscaling": {
             "enabled": app.enable_upscaling.get(),
             "factor": app.upscaling_factor.get(),
@@ -75,6 +76,7 @@ def apply_ui_settings(app: Any, settings_dict: dict[str, Any] | None) -> None:
     app.loading_delay.set(delays.get("loading", 2.5))
     app.save_detail_images.set(settings_dict.get("save_detail_images", True))
     app.skip_kbp_var.set(settings_dict.get("skip_kbp_code", True))
+    app.rate_decimal_places.set(settings_dict.get("rate_decimal_places", 3))
 
     upscaling_settings = settings_dict.get("upscaling", {})
     app.enable_upscaling.set(upscaling_settings.get("enabled", True))
@@ -88,6 +90,7 @@ def apply_ui_settings(app: Any, settings_dict: dict[str, Any] | None) -> None:
 def save_advanced_settings(app: Any) -> None:
     try:
         app.settings_manager.set_advanced("skip_kbp_code", app.skip_kbp_var.get())
+        app.settings_manager.set_advanced("rate_decimal_places", app.rate_decimal_places.get())
         app.settings_manager.set_advanced("upscaling_enabled", app.enable_upscaling.get())
         app.settings_manager.set_advanced("upscaling_factor", app.upscaling_factor.get())
         app.settings_manager.set_advanced("upscaling_method", app.upscaling_method.get())

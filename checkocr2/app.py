@@ -7,6 +7,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox
 
+from checkocr2 import __display_version__
 from checkocr2.data_manager import DataManager
 from checkocr2.logging_config import setup_logging
 from checkocr2.ocr_workflow_manager import OCRWorkflowManager
@@ -165,7 +166,7 @@ __all__ = ["CheckCaptureOCRApp", "main"]
 class CheckCaptureOCRApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("📊 Check Capture OCR V6.1")
+        self.title(f"📊 Check Capture OCR {__display_version__}")
         self.geometry("1200x850")
 
         # 아이콘 설정 개선 (창과 작업표시줄 모두 적용)
@@ -210,6 +211,9 @@ class CheckCaptureOCRApp(tk.Tk):
         self.paste_delay = tk.DoubleVar(value=0.5)
         self.loading_delay = tk.DoubleVar(value=2.5)
         self.save_detail_images = tk.BooleanVar(value=True)
+        self.rate_decimal_places = tk.IntVar(
+            value=self.settings_manager.get_advanced("rate_decimal_places", 3)
+        )
         self.confidence_threshold = tk.DoubleVar(value=20.0)
         self.theme_var = tk.StringVar()
 

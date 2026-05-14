@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import statistics
 import sys
 import time
@@ -20,12 +21,19 @@ from checkocr2.ocr_engine import (  # noqa: E402
     default_ocr_languages,
     normalize_ocr_engine,
 )
+from checkocr2.ocr_field_extraction import (  # noqa: E402
+    select_field_text_from_ocr_results,
+)
+from checkocr2.ocr_paddle_engine import (  # noqa: E402
+    create_paddleocr_pipeline_reader,
+)
 
 FIELD_ALLOWLISTS = {
     "date": "0123456789./-",
     "rate": "0123456789.,%",
 }
 DRAFT_NOTE_MARKERS = ("review_required", "expected_from_run_report")
+ROI_PROFILE_RE = re.compile(r"roi_profile=([a-z0-9_]+)")
 
 
 def parse_args() -> argparse.Namespace:
@@ -155,6 +163,44 @@ def allowlist_for_field(field: str, mode: str) -> str | None:
     return FIELD_ALLOWLISTS.get(field.lower())
 
 
+def roi_profile_from_notes(notes: str) -> str:
+    match = ROI_PROFILE_RE.search(notes)
+    if match:
+        return match.group(1)
+    return "cropped"
+
+
+def resolve_source_image_path(
+    case: dict[str, str],
+    fixture_dir: Path,
+) -> Path | None:
+    source_image_path = str(case.get("source_image_path", "") or "").strip()
+    if source_image_path:
+        candidate = Path(source_image_path)
+        if candidate.exists():
+            return candidate
+        if not candidate.is_absolute():
+            resolved = (fixture_dir / candidate).resolve()
+            if resolved.exists():
+                return resolved
+
+    notes = str(case.get("notes", "") or "")
+    source_match = re.search(r"source=([^;]+)", notes)
+    if not source_match:
+        return None
+    source_rel = source_match.group(1).strip()
+    if not source_rel:
+        return None
+
+    for sibling in fixture_dir.parent.iterdir():
+        if not sibling.is_dir() or not sibling.name.startswith("real_data"):
+            continue
+        candidate = (sibling / source_rel).resolve()
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def extract_text(results: list[Any], detail: int) -> tuple[str, float | None]:
     from checkocr2.ocr_engine import extract_text_with_confidence
 
@@ -239,6 +285,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
     from checkocr2.image_processing import upscale_image
 
     reader = create_ocr_reader(args.engine, default_ocr_languages(args.engine), gpu=args.gpu)
+    rate_reader = None
     fixture_dir = args.fixture_csv.parent
     latencies_ms: list[float] = []
     field_stats: dict[str, dict[str, Any]] = {}
@@ -253,6 +300,7 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
         stats["total_cases"] += 1
         expected = normalize(field, case.get("expected_text", ""))
         crop_path_value = case.get("crop_path", "")
+        roi_profile = roi_profile_from_notes(str(case.get("notes", "") or ""))
         try:
             crop_path = resolve_crop_path(fixture_dir, crop_path_value)
         except ValueError as exc:
@@ -282,6 +330,14 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             continue
 
         start = time.perf_counter()
+        allowlist = allowlist_for_field(field, allowlist_mode)
+        source_image_path = resolve_source_image_path(case, fixture_dir)
+        if args.engine == "paddle" and field_key == "rate" and rate_reader is None:
+            rate_reader = create_paddleocr_pipeline_reader(
+                default_ocr_languages(args.engine),
+                gpu=args.gpu,
+            )
+        active_reader = rate_reader if args.engine == "paddle" and field_key == "rate" and rate_reader is not None else reader
         image = Image.open(crop_path).convert("RGB")
         image = upscale_image(
             image,
@@ -289,15 +345,18 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
             factor=args.upscale_factor,
             method=args.upscale_method,
         )
-        allowlist = allowlist_for_field(field, allowlist_mode)
-        readtext_kwargs: dict[str, Any] = {"detail": args.detail}
+        raw_text = ""
+        confidence: float | None = None
+        readtext_kwargs = {"detail": args.detail}
         if allowlist is not None:
             readtext_kwargs["allowlist"] = allowlist
-        raw_results = reader.readtext(np.array(image), **readtext_kwargs)
+        raw_results = active_reader.readtext(np.array(image), **readtext_kwargs)
+        if args.engine == "paddle" and field_key == "rate":
+            raw_text = select_field_text_from_ocr_results(raw_results, field)
+        else:
+            raw_text, confidence = extract_text(raw_results, args.detail)
         latency = (time.perf_counter() - start) * 1000
         latencies_ms.append(latency)
-
-        raw_text, confidence = extract_text(raw_results, args.detail)
         normalized = normalize(field, raw_text)
         matched = normalized == expected
         exact += int(matched)
@@ -321,6 +380,8 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any]:
                 "normalized": normalized,
                 "confidence": confidence,
                 "allowlist": allowlist,
+                "roi_profile": roi_profile,
+                "ocr_source_path": str(source_image_path) if source_image_path else None,
                 "latency_ms": round(latency, 2),
                 "matched": matched,
             }

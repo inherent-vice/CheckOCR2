@@ -307,3 +307,76 @@ def test_benchmark_uses_selected_ocr_engine(tmp_path, monkeypatch):
     assert report["status"] == "ok"
     assert report["settings"]["engine"] == "paddle"
     assert calls == [("paddle", ["ko", "en"], True)]
+
+
+def test_benchmark_uses_paddle_pipeline_reader_for_rate_fields(
+    tmp_path,
+    monkeypatch,
+):
+    from scripts import benchmark_ocr
+
+    fixture_dir = tmp_path / "fixtures"
+    fixture_dir.mkdir()
+    for name in ("date.png", "rate.png"):
+        Image.new("RGB", (8, 8), "white").save(fixture_dir / name)
+    fixture_csv = fixture_dir / "ground_truth.csv"
+    fixture_csv.write_text(
+        "crop_path,field,expected_text\n"
+        "date.png,date,2026/05/13\n"
+        "rate.png,rate,6.820\n",
+        encoding="utf-8",
+    )
+    crop_calls = []
+    pipeline_calls = []
+
+    class FakeReader:
+        def __init__(self, outputs, calls):
+            self.outputs = iter(outputs)
+            self.calls = calls
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append({"detail": detail, "kwargs": kwargs})
+            return next(self.outputs)
+
+    def fake_create_ocr_reader(engine, languages, *, gpu=False):
+        assert engine == "paddle"
+        assert list(languages) == ["ko", "en"]
+        assert gpu is False
+        return FakeReader([["2026-05-13"]], crop_calls)
+
+    def fake_create_pipeline_reader(languages, *, gpu=False):
+        assert list(languages) == ["ko", "en"]
+        assert gpu is False
+        return FakeReader([["6.82000"]], pipeline_calls)
+
+    monkeypatch.setattr(benchmark_ocr, "create_ocr_reader", fake_create_ocr_reader)
+    monkeypatch.setattr(
+        benchmark_ocr,
+        "create_paddleocr_pipeline_reader",
+        fake_create_pipeline_reader,
+    )
+
+    report = run_benchmark(
+        Namespace(
+            fixture_csv=fixture_csv,
+            limit=0,
+            allow_empty_fixture=False,
+            dry_run=False,
+            engine="paddle",
+            gpu=False,
+            detail=0,
+            upscale_factor=1.0,
+            upscale_method="LANCZOS",
+            allowlist_mode="field",
+        )
+    )
+
+    assert report["status"] == "ok"
+    assert report["evaluated_cases"] == 2
+    assert report["exact_accuracy"] == pytest.approx(1.0)
+    assert len(crop_calls) == 1
+    assert len(pipeline_calls) == 1
+    assert crop_calls[0]["kwargs"]["allowlist"] == FIELD_ALLOWLISTS["date"]
+    assert pipeline_calls[0]["kwargs"]["allowlist"] == FIELD_ALLOWLISTS["rate"]
+    assert report["results"][0]["matched"] is True
+    assert report["results"][1]["matched"] is True

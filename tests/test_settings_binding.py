@@ -71,6 +71,7 @@ def make_app():
         loading_delay=FakeVar(2.5),
         save_detail_images=FakeVar(True),
         skip_kbp_var=FakeVar(True),
+        rate_decimal_places=FakeVar(3),
         enable_upscaling=FakeVar(True),
         upscaling_factor=FakeVar(2.0),
         upscaling_method=FakeVar("LANCZOS"),
@@ -103,6 +104,7 @@ def test_collect_ui_settings_preserves_legacy_payload_shape():
         "delays": {"paste": 0.5, "loading": 2.5},
         "save_detail_images": False,
         "skip_kbp_code": False,
+        "rate_decimal_places": 3,
         "upscaling": {"enabled": True, "factor": 3.0, "method": "LANCZOS"},
     }
 
@@ -130,6 +132,7 @@ def test_apply_ui_settings_writes_vars_and_advanced_settings():
             "delays": {"paste": 1.25, "loading": 4.5},
             "save_detail_images": False,
             "skip_kbp_code": False,
+            "rate_decimal_places": 4,
             "upscaling": {"enabled": False, "factor": 1.5, "method": "BICUBIC"},
             "advanced": {"ui_theme": "modern_dark"},
         },
@@ -153,6 +156,7 @@ def test_apply_ui_settings_writes_vars_and_advanced_settings():
     assert app.loading_delay.get() == 4.5
     assert app.save_detail_images.get() is False
     assert app.skip_kbp_var.get() is False
+    assert app.rate_decimal_places.get() == 4
     assert app.enable_upscaling.get() is False
     assert app.upscaling_factor.get() == 1.5
     assert app.upscaling_method.get() == "BICUBIC"
@@ -165,6 +169,7 @@ def test_apply_ui_settings_uses_existing_legacy_defaults_for_partial_payloads():
     app.loading_delay.set(9.9)
     app.save_detail_images.set(False)
     app.skip_kbp_var.set(False)
+    app.rate_decimal_places.set(9)
     app.enable_upscaling.set(False)
     app.upscaling_factor.set(9.9)
     app.upscaling_method.set("NEAREST")
@@ -182,6 +187,7 @@ def test_apply_ui_settings_uses_existing_legacy_defaults_for_partial_payloads():
     assert app.loading_delay.get() == 2.5
     assert app.save_detail_images.get() is True
     assert app.skip_kbp_var.get() is True
+    assert app.rate_decimal_places.get() == 3
     assert app.enable_upscaling.get() is True
     assert app.upscaling_factor.get() == 2.0
     assert app.upscaling_method.get() == "LANCZOS"
@@ -190,6 +196,7 @@ def test_apply_ui_settings_uses_existing_legacy_defaults_for_partial_payloads():
 def test_save_advanced_settings_persists_expected_keys_and_logs_success():
     app = make_app()
     app.skip_kbp_var.set(False)
+    app.rate_decimal_places.set(4)
     app.enable_upscaling.set(False)
     app.upscaling_factor.set(1.5)
     app.upscaling_method.set("BICUBIC")
@@ -198,6 +205,7 @@ def test_save_advanced_settings_persists_expected_keys_and_logs_success():
 
     assert app.settings_manager.advanced_values == {
         "skip_kbp_code": False,
+        "rate_decimal_places": 4,
         "upscaling_enabled": False,
         "upscaling_factor": 1.5,
         "upscaling_method": "BICUBIC",
@@ -234,6 +242,7 @@ def test_legacy_app_settings_methods_delegate_to_settings_binding(ocr_module):
 
     app.save_advanced_ui_to_settings()
     assert app.settings_manager.advanced_values["skip_kbp_code"] is False
+    assert app.settings_manager.advanced_values["rate_decimal_places"] == 3
 
     app.quick_save_settings()
     assert app.settings_manager.current_settings["input_excel_path"] == "input.xlsx"

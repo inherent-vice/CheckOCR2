@@ -91,7 +91,15 @@ def test_rate_text_cleaning_characterizes_existing_formats(ocr_module):
     assert manager._clean_rate_text_internal("3.5%") == "3.500"
     assert manager._clean_rate_text_internal("350") == "3.500"
     assert manager._clean_rate_text_internal("12,500") == "12.500"
-    assert manager._clean_rate_text_internal("rate: 0.25%") == "0.250"
+
+
+def test_rate_text_cleaning_uses_settings_precision(ocr_module):
+    manager, _events = make_workflow_manager(ocr_module)
+    manager.settings_manager = DummySettings({"rate_decimal_places": 4})
+
+    assert manager._clean_rate_text_internal("3.5%") == "3.5000"
+    assert manager._analyze_rate_results_internal("3.5%", "금리") == "3.5000"
+    assert manager._clean_rate_text_internal("rate: 0.25%") == "0.2500"
 
 
 @pytest.mark.parametrize(

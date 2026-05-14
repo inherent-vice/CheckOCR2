@@ -22,6 +22,7 @@ from checkocr2.models import (
     OcrRow,
     Region,
 )
+from checkocr2.ocr_field_extraction import select_field_text_from_ocr_results
 from checkocr2.ocr_text import clean_date_text, clean_rate_text, is_valid_date_format
 from checkocr2.paths import clean_folder_path, sanitize_filename, updated_workbook_path
 from checkocr2.settings import SettingsStore
@@ -168,9 +169,37 @@ def test_cleanup_temp_ocr_image_reports_remove_failure():
 def test_ocr_text_helpers_match_existing_normalization():
     assert clean_date_text("2024-05-01") == "2024/05/01"
     assert clean_date_text("24.05.01") == "2024/05/01"
+    assert clean_date_text("2026/05/05 D0D") == "2026/05/05"
+    assert clean_date_text("202605050") == "2026/05/05"
     assert clean_rate_text("3.5%") == "3.500"
     assert clean_rate_text("12,500") == "12.500"
     assert clean_rate_text("10·25") == "10.250"
+    assert clean_rate_text("3.5%", 4) == "3.5000"
+
+
+def test_ocr_rate_helpers_cover_digit_only_and_trailing_dot_cases():
+    assert clean_rate_text("4.") == "4.000"
+    assert clean_rate_text("7") == "7.000"
+    assert clean_rate_text("274000") == "2.740"
+    assert clean_rate_text("28900") == "2.890"
+    assert clean_rate_text("7", 2) == "7.00"
+
+
+def test_select_field_text_from_ocr_results_prefers_first_valid_full_image_field():
+    results = [
+        "표준코드",
+        "KR310206GFA2",
+        "–",
+        "2026/06/13",
+        "2.77000",
+        "발행일",
+        "2025.10.13",
+        "월",
+        "2",
+    ]
+
+    assert select_field_text_from_ocr_results(results, "date") == "2026/06/13"
+    assert select_field_text_from_ocr_results(results, "rate") == "2.770"
 
 
 def test_ocr_date_validation_rejects_non_calendar_dates():

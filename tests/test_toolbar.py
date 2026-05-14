@@ -112,7 +112,7 @@ def test_create_simple_toolbar_builds_runtime_controls_and_theme_combo(monkeypat
     assert root_toolbar.kwargs["height"] == 35
     assert root_toolbar.grid_calls[-1] == {"row": 0, "column": 0, "sticky": "ew", "padx": 0, "pady": 0}
     assert root_toolbar.pack_propagate_calls == [False]
-    assert FakeLabel.created[0].kwargs["text"] == "📊 Check Capture OCR V6.1"
+    assert FakeLabel.created[0].kwargs["text"] == "📊 Check Capture OCR V7.0"
 
     assert [button.kwargs["text"] for button in FakeButton.created] == [
         "🚀 OCR 시작 (F5)",

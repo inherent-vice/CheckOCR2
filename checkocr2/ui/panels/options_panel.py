@@ -22,6 +22,7 @@ class OptionsPanelHost(Protocol):
     settings_manager: SettingsManagerLike
     save_detail_images: object
     skip_kbp_var: object
+    rate_decimal_places: object
     enable_upscaling: object
     upscaling_factor: object
     upscaling_method: object
@@ -77,6 +78,37 @@ def create_options_panel(app: OptionsPanelHost, parent: object) -> None:
     )
     app.theme_manager.register_widget(skip_kbp_cb, CHECKBOX_STYLE)
     skip_kbp_cb.pack(anchor="w", pady=(0, 8))
+
+    rate_frame = tk.Frame(section)
+    app.theme_manager.register_widget(rate_frame, {"bg": "white"})
+    rate_frame.pack(fill="x", pady=(0, 8))
+
+    rate_lbl = tk.Label(rate_frame, text="금리 자리수:", font=common_font, width=10)
+    app.theme_manager.register_widget(rate_lbl, {"bg": "white", "fg": "on_surface"})
+    rate_lbl.pack(side="left")
+
+    app.rate_decimal_places.set(app.settings_manager.get_advanced("rate_decimal_places", 3))
+    rate_combo = ttk.Combobox(
+        rate_frame,
+        textvariable=app.rate_decimal_places,
+        values=[1, 2, 3, 4, 5, 6],
+        width=6,
+        state="readonly",
+        font=common_font,
+        style="TCombobox",
+    )
+    app.theme_manager.register_widget(rate_combo, {"bg": "white"})
+    rate_combo.pack(side="left", padx=(5, 10))
+    rate_combo.bind("<<ComboboxSelected>>", lambda _event: app.save_advanced_ui_to_settings())
+
+    rate_desc = tk.Label(
+        rate_frame,
+        text="(기본 3)",
+        font=(common_font[0], common_font[1] - 1),
+        foreground="gray",
+    )
+    app.theme_manager.register_widget(rate_desc, {"bg": "white", "fg": "outline"})
+    rate_desc.pack(side="left")
 
     app.enable_upscaling.set(app.settings_manager.get_advanced("upscaling_enabled", True))
     app.upscaling_factor.set(app.settings_manager.get_advanced("upscaling_factor", 2.0))

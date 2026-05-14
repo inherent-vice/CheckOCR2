@@ -6,6 +6,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Protocol
 
+from checkocr2 import __display_version__
+
 
 class ThemeManagerLike(Protocol):
     available_themes: dict[str, dict[str, str]]
@@ -38,7 +40,11 @@ def create_simple_toolbar(app: ToolbarHost) -> None:
     toolbar.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
     toolbar.pack_propagate(False)
 
-    title_lbl = tk.Label(toolbar, text="📊 Check Capture OCR V6.1", font=("Segoe UI", 11, "bold"))
+    title_lbl = tk.Label(
+        toolbar,
+        text=f"📊 Check Capture OCR {__display_version__}",
+        font=("Segoe UI", 11, "bold"),
+    )
     app.theme_manager.register_widget(title_lbl, {"bg": "primary", "fg": "white"})
     title_lbl.pack(side="left", padx=8, pady=6)
 
