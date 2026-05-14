@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import sys
 
+from checkocr2.launcher_bootstrap import ensure_repo_venv
+
+ensure_repo_venv()
+
 from checkocr2 import app as _app_module
 from checkocr2.app import CheckCaptureOCRApp, main
 

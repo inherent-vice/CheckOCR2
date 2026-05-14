@@ -97,7 +97,7 @@ def create_options_panel(app: OptionsPanelHost, parent: object) -> None:
         font=common_font,
         style="TCombobox",
     )
-    app.theme_manager.register_widget(rate_combo, {"bg": "white"})
+    app.theme_manager.register_widget(rate_combo, {"style": "TCombobox"})
     rate_combo.pack(side="left", padx=(5, 10))
     rate_combo.bind("<<ComboboxSelected>>", lambda _event: app.save_advanced_ui_to_settings())
 
