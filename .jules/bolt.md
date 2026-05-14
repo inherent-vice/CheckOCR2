@@ -1,0 +1,3 @@
+## 2025-02-24 - Pre-compiling Regex & str.translate over chaining replace
+**Learning:** In a performance-obsessed environment where text extraction runs on every row (like parsing dates and rates), chaining multiple `.replace()` calls in Python strings is noticeably slower than pre-building a replacement dictionary and using `str.translate()`. Furthermore, frequently matched regexes inside looping/recursive methods (like `clean_date_text` looking for format `\d{4}/\d{2}/\d{2}`) should be hoisted out and pre-compiled via `re.compile()`.
+**Action:** Always reach for `str.maketrans` and `str.translate` when doing 3+ explicit character replacements on strings, and pre-compile regular expressions at the module scope when they're guaranteed to run frequently per item.
