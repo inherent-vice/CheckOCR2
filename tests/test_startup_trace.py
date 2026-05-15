@@ -45,9 +45,30 @@ def test_paddle_model_cache_state_reports_official_model_presence(tmp_path):
 
     assert state == {
         "cache_dir": str(tmp_path / "official_models"),
+        "model_roots": [str(tmp_path / "official_models")],
         "all_present": False,
         "models": {
             "korean_PP-OCRv5_mobile_rec": True,
             "missing_model": False,
         },
     }
+
+
+def test_paddle_model_cache_state_reports_configured_model_root(tmp_path):
+    model_root = tmp_path / "paddle_models"
+    (model_root / "korean_PP-OCRv5_mobile_rec").mkdir(parents=True)
+
+    state = paddle_model_cache_state(
+        ["korean_PP-OCRv5_mobile_rec"],
+        environ={
+            "PADDLE_PDX_CACHE_HOME": str(tmp_path / "cache"),
+            "CHECKOCR2_PADDLE_MODEL_ROOT": str(model_root),
+        },
+    )
+
+    assert state["all_present"] is True
+    assert state["model_roots"] == [
+        str(model_root),
+        str(tmp_path / "cache" / "official_models"),
+    ]
+    assert state["models"] == {"korean_PP-OCRv5_mobile_rec": True}

@@ -228,9 +228,12 @@ def paddle_recognition_model(languages: Sequence[str]) -> str:
 
 def packaged_model_dir(model_name: str) -> Path | None:
     model_root = os.environ.get("CHECKOCR2_PADDLE_MODEL_ROOT")
+    bundled_model_root = os.environ.get("CHECKOCR2_BUNDLED_PADDLE_MODEL_ROOT")
     candidates: list[Path] = []
     if model_root:
         candidates.append(Path(model_root))
+    if bundled_model_root:
+        candidates.append(Path(bundled_model_root))
 
     runtime_root = getattr(sys, "_MEIPASS", None)
     if runtime_root:
@@ -259,6 +262,11 @@ def paddle_runtime_diagnostics(model_names: Sequence[str] = ()) -> dict[str, Any
         "executable": sys.executable,
         "meipass": str(getattr(sys, "_MEIPASS", "")),
         "model_root": os.environ.get("CHECKOCR2_PADDLE_MODEL_ROOT"),
+        "bundled_model_root": os.environ.get("CHECKOCR2_BUNDLED_PADDLE_MODEL_ROOT"),
+        "deploy_dir": os.environ.get("CHECKOCR2_DEPLOY_DIR"),
+        "model_mirror_status": os.environ.get("CHECKOCR2_PADDLE_MODEL_MIRROR_STATUS"),
+        "model_mirror_error": os.environ.get("CHECKOCR2_PADDLE_MODEL_MIRROR_ERROR"),
+        "cache_error": os.environ.get("CHECKOCR2_PADDLE_CACHE_ERROR"),
         "pdx_cache": os.environ.get("PADDLE_PDX_CACHE_HOME"),
         "paddle_home": os.environ.get("PADDLE_HOME"),
         "paddleocr_home": os.environ.get("PADDLEOCR_HOME"),

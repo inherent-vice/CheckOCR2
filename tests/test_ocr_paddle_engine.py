@@ -11,6 +11,7 @@ from checkocr2.ocr_paddle_engine import (
     PaddleOcrReaderAdapter,
     create_paddleocr_reader,
     extract_paddle_text_scores,
+    packaged_model_dir,
     paddle_recognition_model,
     paddle_runtime_diagnostics,
 )
@@ -119,15 +120,47 @@ def test_paddle_recognition_model_uses_korean_model_when_requested():
 def test_paddle_runtime_diagnostics_reports_packaged_model(monkeypatch, tmp_path):
     model_root = tmp_path / "paddle_models"
     (model_root / "korean_PP-OCRv5_mobile_rec").mkdir(parents=True)
+    bundled_model_root = tmp_path / "bundled_models"
     monkeypatch.setenv("CHECKOCR2_PADDLE_MODEL_ROOT", str(model_root))
+    monkeypatch.setenv("CHECKOCR2_BUNDLED_PADDLE_MODEL_ROOT", str(bundled_model_root))
+    monkeypatch.setenv("CHECKOCR2_DEPLOY_DIR", str(tmp_path / "deploy"))
     monkeypatch.setenv("PADDLE_PDX_CACHE_HOME", str(tmp_path / "paddle_cache"))
+    monkeypatch.setenv("CHECKOCR2_PADDLE_MODEL_MIRROR_STATUS", "ready")
 
     diagnostics = paddle_runtime_diagnostics(["korean_PP-OCRv5_mobile_rec"])
 
     assert diagnostics["pdx_cache"] == str(tmp_path / "paddle_cache")
+    assert diagnostics["bundled_model_root"] == str(bundled_model_root)
+    assert diagnostics["deploy_dir"] == str(tmp_path / "deploy")
+    assert diagnostics["model_mirror_status"] == "ready"
     assert diagnostics["packaged_models"] == {
         "korean_PP-OCRv5_mobile_rec": str(model_root / "korean_PP-OCRv5_mobile_rec")
     }
+
+
+def test_packaged_model_dir_prefers_local_runtime_mirror(monkeypatch, tmp_path):
+    local_root = tmp_path / "local_models"
+    bundled_root = tmp_path / "bundled_models"
+    (local_root / "korean_PP-OCRv5_mobile_rec").mkdir(parents=True)
+    (bundled_root / "korean_PP-OCRv5_mobile_rec").mkdir(parents=True)
+    monkeypatch.setenv("CHECKOCR2_PADDLE_MODEL_ROOT", str(local_root))
+    monkeypatch.setenv("CHECKOCR2_BUNDLED_PADDLE_MODEL_ROOT", str(bundled_root))
+
+    assert packaged_model_dir("korean_PP-OCRv5_mobile_rec") == (
+        local_root / "korean_PP-OCRv5_mobile_rec"
+    )
+
+
+def test_packaged_model_dir_falls_back_to_bundled_model(monkeypatch, tmp_path):
+    local_root = tmp_path / "missing_local_models"
+    bundled_root = tmp_path / "bundled_models"
+    (bundled_root / "korean_PP-OCRv5_mobile_rec").mkdir(parents=True)
+    monkeypatch.setenv("CHECKOCR2_PADDLE_MODEL_ROOT", str(local_root))
+    monkeypatch.setenv("CHECKOCR2_BUNDLED_PADDLE_MODEL_ROOT", str(bundled_root))
+
+    assert packaged_model_dir("korean_PP-OCRv5_mobile_rec") == (
+        bundled_root / "korean_PP-OCRv5_mobile_rec"
+    )
 
 
 def test_create_paddleocr_reader_reports_import_failure(monkeypatch):

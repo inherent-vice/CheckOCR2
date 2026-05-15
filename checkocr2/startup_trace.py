@@ -63,12 +63,18 @@ def paddle_model_cache_state(
     *,
     environ: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    root = paddlex_cache_dir(environ) / "official_models"
+    env = os.environ if environ is None else environ
+    cache_root = paddlex_cache_dir(env) / "official_models"
+    roots = [cache_root]
+    configured_model_root = env.get("CHECKOCR2_PADDLE_MODEL_ROOT")
+    if configured_model_root:
+        roots.insert(0, Path(configured_model_root))
     models: dict[str, bool] = {}
     for model_name in model_names:
-        models[str(model_name)] = (root / str(model_name)).is_dir()
+        models[str(model_name)] = any((root / str(model_name)).is_dir() for root in roots)
     return {
-        "cache_dir": str(root),
+        "cache_dir": str(cache_root),
+        "model_roots": [str(root) for root in roots],
         "all_present": all(models.values()) if models else False,
         "models": models,
     }
