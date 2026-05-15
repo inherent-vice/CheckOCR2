@@ -15,6 +15,7 @@ from typing import Any
 from . import __version__
 
 BUILD_METADATA_FILENAME = "build_metadata.json"
+APP_PACKAGE_NAME = "CheckCaptureOCR_V7.0"
 PADDLE_PACKAGE_ENV = "CHECKOCR2_PACKAGE_PADDLE"
 FORBIDDEN_RELEASE_DEPENDENCIES = ("opencv-python", "opencv-contrib-python")
 DIRECT_DEPENDENCIES = (
@@ -114,7 +115,7 @@ def generate_build_metadata(
     paddle_enabled = paddle_package_enabled() if include_paddle is None else include_paddle
     dependencies = dependency_versions(release_dependency_names(include_paddle=paddle_enabled))
     return {
-        "app_name": "CheckCaptureOCR_V6.1",
+        "app_name": APP_PACKAGE_NAME,
         "app_version": __version__,
         "package_profile": "paddle" if paddle_enabled else "easyocr",
         "build_date": build_date or datetime.now(UTC).replace(microsecond=0).isoformat(),

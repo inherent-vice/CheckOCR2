@@ -4,6 +4,7 @@ import json
 
 from checkocr2 import __version__
 from checkocr2.build_metadata import (
+    APP_PACKAGE_NAME,
     DIRECT_DEPENDENCIES,
     PADDLE_DEPENDENCIES,
     dependency_hash,
@@ -19,7 +20,7 @@ from checkocr2.build_metadata import (
 def test_build_metadata_includes_versions_and_stable_hash():
     metadata_payload = generate_build_metadata(build_date="2026-05-08T00:00:00+00:00")
 
-    assert metadata_payload["app_name"] == "CheckCaptureOCR_V6.1"
+    assert metadata_payload["app_name"] == APP_PACKAGE_NAME
     assert metadata_payload["app_version"] == __version__
     assert metadata_payload["package_profile"] == "easyocr"
     assert metadata_payload["python_version"]

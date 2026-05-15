@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 """
-Check Capture OCR V6.1 - PyInstaller 빌드 설정
+Check Capture OCR V7.0 - PyInstaller 빌드 설정
 OneDIR Windowed 배포용 완전한 의존성 포함
 """
 
@@ -15,6 +15,7 @@ from PyInstaller.utils.hooks import (
 from PyInstaller.building.api import PYZ, EXE, COLLECT
 from PyInstaller.building.build_main import Analysis
 from checkocr2.build_metadata import (
+    APP_PACKAGE_NAME,
     paddle_package_enabled,
     validate_release_dependency_environment,
     write_build_metadata,
@@ -22,7 +23,7 @@ from checkocr2.build_metadata import (
 
 # 현재 디렉토리
 block_cipher = None
-app_name = "CheckCaptureOCR_V6.1"
+app_name = APP_PACKAGE_NAME
 main_script = "check_capture_ocr.py"
 paddle_package = paddle_package_enabled()
 validate_release_dependency_environment(allow_paddle=paddle_package)

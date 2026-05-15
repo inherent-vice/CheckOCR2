@@ -153,12 +153,25 @@ def split_entrypoint(entrypoint: str) -> list[str]:
 
 
 def launch_source_entrypoint(command: list[str], cwd: Path) -> SmokeProcess:
+    command = resolve_repo_python_command(command, cwd)
     return subprocess.Popen(
         command,
         cwd=str(cwd),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
+
+
+def resolve_repo_python_command(command: list[str], cwd: Path) -> list[str]:
+    if not command:
+        return command
+    executable_name = Path(command[0]).name.casefold()
+    if executable_name not in {"python", "python.exe"}:
+        return command
+    venv_python = cwd / ".venv" / "Scripts" / "python.exe"
+    if not venv_python.exists():
+        return command
+    return [str(venv_python), *command[1:]]
 
 
 def collect_source_process_ids(root_pid: int) -> set[int]:

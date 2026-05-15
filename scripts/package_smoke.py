@@ -82,7 +82,7 @@ def positive_int(value: str) -> int:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("exe_path", type=Path, help="Path to CheckCaptureOCR_V6.1.exe")
+    parser.add_argument("exe_path", type=Path, help="Path to the Check Capture OCR package executable")
     parser.add_argument(
         "--title-fragment",
         default=DEFAULT_TITLE_FRAGMENT,

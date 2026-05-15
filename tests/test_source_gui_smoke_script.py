@@ -90,6 +90,17 @@ def test_collect_source_process_ids_includes_descendants(monkeypatch):
     assert source_gui_smoke.collect_source_process_ids(100) == {100, 200, 300}
 
 
+def test_resolve_repo_python_command_prefers_checkout_venv(tmp_path):
+    venv_python = tmp_path / ".venv" / "Scripts" / "python.exe"
+    venv_python.parent.mkdir(parents=True)
+    venv_python.write_text("", encoding="utf-8")
+
+    assert source_gui_smoke.resolve_repo_python_command(
+        ["python", "check_capture_ocr.py"],
+        tmp_path,
+    ) == [str(venv_python), "check_capture_ocr.py"]
+
+
 def test_run_source_gui_smoke_reports_ready_and_settings_file(tmp_path):
     process = FakeProcess(pid=100)
     launched = []
