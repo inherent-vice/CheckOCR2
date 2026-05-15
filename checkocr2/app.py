@@ -212,7 +212,7 @@ class CheckCaptureOCRApp(tk.Tk):
         self.loading_delay = tk.DoubleVar(value=2.5)
         self.save_detail_images = tk.BooleanVar(value=True)
         self.rate_decimal_places = tk.IntVar(
-            value=self.settings_manager.get_advanced("rate_decimal_places", 3)
+            value=self.settings_manager.get_advanced("rate_decimal_places", 4)
         )
         self.confidence_threshold = tk.DoubleVar(value=20.0)
         self.theme_var = tk.StringVar()

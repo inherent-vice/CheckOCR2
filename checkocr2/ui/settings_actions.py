@@ -64,6 +64,6 @@ def reset_advanced_settings_and_ui(
     if ask_confirm("확인", "모든 고급 설정을 기본값으로 되돌리시겠습니까?"):
         app.settings_manager.reset_advanced_settings()
         app.skip_kbp_var.set(app.settings_manager.get_advanced("skip_kbp_code", True))
-        app.rate_decimal_places.set(app.settings_manager.get_advanced("rate_decimal_places", 3))
+        app.rate_decimal_places.set(app.settings_manager.get_advanced("rate_decimal_places", 4))
         show_info("완료", "고급 설정이 초기화되었습니다.")
         app.logger.info("고급 설정이 기본값으로 초기화되었습니다.")

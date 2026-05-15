@@ -71,7 +71,7 @@ def make_app():
         loading_delay=FakeVar(2.5),
         save_detail_images=FakeVar(True),
         skip_kbp_var=FakeVar(True),
-        rate_decimal_places=FakeVar(3),
+        rate_decimal_places=FakeVar(4),
         enable_upscaling=FakeVar(True),
         upscaling_factor=FakeVar(2.0),
         upscaling_method=FakeVar("LANCZOS"),
@@ -104,7 +104,7 @@ def test_collect_ui_settings_preserves_legacy_payload_shape():
         "delays": {"paste": 0.5, "loading": 2.5},
         "save_detail_images": False,
         "skip_kbp_code": False,
-        "rate_decimal_places": 3,
+        "rate_decimal_places": 4,
         "upscaling": {"enabled": True, "factor": 3.0, "method": "LANCZOS"},
     }
 
@@ -187,7 +187,7 @@ def test_apply_ui_settings_uses_existing_legacy_defaults_for_partial_payloads():
     assert app.loading_delay.get() == 2.5
     assert app.save_detail_images.get() is True
     assert app.skip_kbp_var.get() is True
-    assert app.rate_decimal_places.get() == 3
+    assert app.rate_decimal_places.get() == 4
     assert app.enable_upscaling.get() is True
     assert app.upscaling_factor.get() == 2.0
     assert app.upscaling_method.get() == "LANCZOS"
@@ -242,7 +242,7 @@ def test_legacy_app_settings_methods_delegate_to_settings_binding(ocr_module):
 
     app.save_advanced_ui_to_settings()
     assert app.settings_manager.advanced_values["skip_kbp_code"] is False
-    assert app.settings_manager.advanced_values["rate_decimal_places"] == 3
+    assert app.settings_manager.advanced_values["rate_decimal_places"] == 4
 
     app.quick_save_settings()
     assert app.settings_manager.current_settings["input_excel_path"] == "input.xlsx"

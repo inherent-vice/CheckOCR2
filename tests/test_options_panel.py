@@ -157,7 +157,7 @@ def test_create_options_panel_builds_option_controls(monkeypatch):
 
     assert app.settings_manager.calls == [
         ("skip_kbp_code", True),
-        ("rate_decimal_places", 3),
+        ("rate_decimal_places", 4),
         ("upscaling_enabled", True),
         ("upscaling_factor", 2.0),
         ("upscaling_method", "LANCZOS"),

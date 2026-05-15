@@ -88,18 +88,18 @@ def test_date_text_cleaning_characterizes_existing_formats(ocr_module):
 def test_rate_text_cleaning_characterizes_existing_formats(ocr_module):
     manager, _events = make_workflow_manager(ocr_module)
 
-    assert manager._clean_rate_text_internal("3.5%") == "3.500"
-    assert manager._clean_rate_text_internal("350") == "3.500"
-    assert manager._clean_rate_text_internal("12,500") == "12.500"
+    assert manager._clean_rate_text_internal("3.5%") == "3.5000"
+    assert manager._clean_rate_text_internal("350") == "3.5000"
+    assert manager._clean_rate_text_internal("12,500") == "12.5000"
 
 
 def test_rate_text_cleaning_uses_settings_precision(ocr_module):
     manager, _events = make_workflow_manager(ocr_module)
-    manager.settings_manager = DummySettings({"rate_decimal_places": 4})
+    manager.settings_manager = DummySettings({"rate_decimal_places": 3})
 
-    assert manager._clean_rate_text_internal("3.5%") == "3.5000"
-    assert manager._analyze_rate_results_internal("3.5%", "금리") == "3.5000"
-    assert manager._clean_rate_text_internal("rate: 0.25%") == "0.2500"
+    assert manager._clean_rate_text_internal("3.5%") == "3.500"
+    assert manager._analyze_rate_results_internal("3.5%", "금리") == "3.500"
+    assert manager._clean_rate_text_internal("rate: 0.25%") == "0.250"
 
 
 @pytest.mark.parametrize(
@@ -149,10 +149,10 @@ def test_rate_text_cleaning_uses_settings_precision(ocr_module):
             "_analyze_rate_results_internal",
             "3.5%",
             "표면금리",
-            "3.500",
+            "3.5000",
             [
                 ("[표면금리] 원본 텍스트: '3.5%'", "DEBUG"),
-                ("[표면금리] 유효한 금리: '3.500'", "DEBUG"),
+                ("[표면금리] 유효한 금리: '3.5000'", "DEBUG"),
             ],
         ),
         (
@@ -699,7 +699,7 @@ def test_execute_workflow_writes_run_report_with_row_timing(
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["summary"]["processed_count"] == 1
     assert report["rows"][0]["date"] == "2026/05/08"
-    assert report["rows"][0]["rate"] == "3.500"
+    assert report["rows"][0]["rate"] == "3.5000"
     assert "capture_timing_ms" in report["rows"][0]["timing_ms"]
     assert "ocr_timing_ms" in report["rows"][0]["timing_ms"]
     assert "update_ms" in report["rows"][0]["timing_ms"]

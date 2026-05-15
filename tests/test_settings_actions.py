@@ -25,7 +25,7 @@ class FakeSettingsManager:
         self.default_advanced = {
             "ui_theme": "modern_blue",
             "skip_kbp_code": True,
-            "rate_decimal_places": 3,
+            "rate_decimal_places": 4,
         }
         self.advanced_theme = "modern_dark"
         self.advanced_skip_value = True
@@ -206,7 +206,7 @@ def test_reset_advanced_settings_and_ui_resets_when_confirmed(monkeypatch):
     def get_advanced(key, default=None):
         events.append(("get_advanced", key, default))
         if key == "rate_decimal_places":
-            return 3
+            return 4
         return False
 
     monkeypatch.setattr(settings_actions.messagebox, "askyesno", askyesno)
@@ -225,12 +225,12 @@ def test_reset_advanced_settings_and_ui_resets_when_confirmed(monkeypatch):
 
     assert app.settings_manager.reset_called is True
     assert app.skip_kbp_var.get() is False
-    assert app.rate_decimal_places.get() == 3
+    assert app.rate_decimal_places.get() == 4
     assert events == [
         ("askyesno", "확인", "모든 고급 설정을 기본값으로 되돌리시겠습니까?"),
         ("reset_advanced_settings",),
         ("get_advanced", "skip_kbp_code", True),
-        ("get_advanced", "rate_decimal_places", 3),
+        ("get_advanced", "rate_decimal_places", 4),
         ("showinfo", "완료", "고급 설정이 초기화되었습니다."),
         ("log", "고급 설정이 기본값으로 초기화되었습니다."),
     ]

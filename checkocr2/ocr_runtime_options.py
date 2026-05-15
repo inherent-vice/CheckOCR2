@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-DEFAULT_RATE_DECIMAL_PLACES = 3
+DEFAULT_RATE_DECIMAL_PLACES = 4
 MIN_RATE_DECIMAL_PLACES = 1
 MAX_RATE_DECIMAL_PLACES = 6
 

@@ -171,17 +171,17 @@ def test_ocr_text_helpers_match_existing_normalization():
     assert clean_date_text("24.05.01") == "2024/05/01"
     assert clean_date_text("2026/05/05 D0D") == "2026/05/05"
     assert clean_date_text("202605050") == "2026/05/05"
-    assert clean_rate_text("3.5%") == "3.500"
-    assert clean_rate_text("12,500") == "12.500"
-    assert clean_rate_text("10·25") == "10.250"
-    assert clean_rate_text("3.5%", 4) == "3.5000"
+    assert clean_rate_text("3.5%") == "3.5000"
+    assert clean_rate_text("12,500") == "12.5000"
+    assert clean_rate_text("10·25") == "10.2500"
+    assert clean_rate_text("3.5%", 3) == "3.500"
 
 
 def test_ocr_rate_helpers_cover_digit_only_and_trailing_dot_cases():
-    assert clean_rate_text("4.") == "4.000"
-    assert clean_rate_text("7") == "7.000"
-    assert clean_rate_text("274000") == "2.740"
-    assert clean_rate_text("28900") == "2.890"
+    assert clean_rate_text("4.") == "4.0000"
+    assert clean_rate_text("7") == "7.0000"
+    assert clean_rate_text("274000") == "2.7400"
+    assert clean_rate_text("28900") == "2.8900"
     assert clean_rate_text("7", 2) == "7.00"
 
 

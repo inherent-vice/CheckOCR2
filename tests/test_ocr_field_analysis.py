@@ -51,10 +51,10 @@ def test_analyze_rate_field_preserves_valid_and_invalid_logs():
     valid = analyze_rate_field("3.5%", "rate")
     invalid = analyze_rate_field("rate", "rate")
 
-    assert valid.value == "3.500"
+    assert valid.value == "3.5000"
     assert valid.log_events == (
         ("[rate] 원본 텍스트: '3.5%'", "DEBUG"),
-        ("[rate] 유효한 금리: '3.500'", "DEBUG"),
+        ("[rate] 유효한 금리: '3.5000'", "DEBUG"),
     )
     assert invalid.value == ""
     assert invalid.log_events == (
@@ -64,12 +64,12 @@ def test_analyze_rate_field_preserves_valid_and_invalid_logs():
 
 
 def test_analyze_rate_field_honors_custom_precision():
-    result = analyze_rate_field("3.5%", "rate", precision=4)
+    result = analyze_rate_field("3.5%", "rate", precision=3)
 
-    assert result.value == "3.5000"
+    assert result.value == "3.500"
     assert result.log_events == (
         ("[rate] 원본 텍스트: '3.5%'", "DEBUG"),
-        ("[rate] 유효한 금리: '3.5000'", "DEBUG"),
+        ("[rate] 유효한 금리: '3.500'", "DEBUG"),
     )
 
 

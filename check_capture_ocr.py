@@ -8,8 +8,8 @@ from checkocr2.launcher_bootstrap import ensure_repo_venv
 
 ensure_repo_venv()
 
-from checkocr2 import app as _app_module
-from checkocr2.app import CheckCaptureOCRApp, main
+from checkocr2 import app as _app_module  # noqa: E402
+from checkocr2.app import CheckCaptureOCRApp, main  # noqa: E402
 
 __all__ = ["CheckCaptureOCRApp", "main"]
 

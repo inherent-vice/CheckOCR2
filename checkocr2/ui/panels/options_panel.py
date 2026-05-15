@@ -87,7 +87,7 @@ def create_options_panel(app: OptionsPanelHost, parent: object) -> None:
     app.theme_manager.register_widget(rate_lbl, {"bg": "white", "fg": "on_surface"})
     rate_lbl.pack(side="left")
 
-    app.rate_decimal_places.set(app.settings_manager.get_advanced("rate_decimal_places", 3))
+    app.rate_decimal_places.set(app.settings_manager.get_advanced("rate_decimal_places", 4))
     rate_combo = ttk.Combobox(
         rate_frame,
         textvariable=app.rate_decimal_places,
@@ -103,7 +103,7 @@ def create_options_panel(app: OptionsPanelHost, parent: object) -> None:
 
     rate_desc = tk.Label(
         rate_frame,
-        text="(기본 3)",
+        text="(기본 4)",
         font=(common_font[0], common_font[1] - 1),
         foreground="gray",
     )

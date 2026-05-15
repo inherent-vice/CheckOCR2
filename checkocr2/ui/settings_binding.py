@@ -76,7 +76,7 @@ def apply_ui_settings(app: Any, settings_dict: dict[str, Any] | None) -> None:
     app.loading_delay.set(delays.get("loading", 2.5))
     app.save_detail_images.set(settings_dict.get("save_detail_images", True))
     app.skip_kbp_var.set(settings_dict.get("skip_kbp_code", True))
-    app.rate_decimal_places.set(settings_dict.get("rate_decimal_places", 3))
+    app.rate_decimal_places.set(settings_dict.get("rate_decimal_places", 4))
 
     upscaling_settings = settings_dict.get("upscaling", {})
     app.enable_upscaling.set(upscaling_settings.get("enabled", True))

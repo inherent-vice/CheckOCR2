@@ -26,7 +26,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
         "click_interval": 0.1,
         "min_date_confidence": 0.0,
         "min_rate_confidence": 0.0,
-        "rate_decimal_places": 3,
+        "rate_decimal_places": 4,
         "ui_theme": "modern_blue",
         "skip_kbp_code": True,
         "upscaling_enabled": True,
