@@ -43,10 +43,14 @@ def load_grid_rows(file_path: str | os.PathLike[str]) -> tuple[list[dict[str, st
     col_map, missing = resolve_columns(list(df.columns))
 
     rows: list[dict[str, str]] = []
-    for _, source_row in df.iterrows():
+
+    # Pre-resolve column names to avoid repeated lookups
+    code_col = col_map.get(CODE_COL)
+    name_col = col_map.get(NAME_COL)
+
+    # df.to_dict('records') is ~10x faster than df.iterrows()
+    for source_row in df.to_dict("records"):
         row = empty_row()
-        code_col = col_map.get(CODE_COL)
-        name_col = col_map.get(NAME_COL)
         if code_col and code_col in source_row:
             row[CODE_COL] = _excel_cell_text(source_row[code_col])
         if name_col and name_col in source_row:
