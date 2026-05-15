@@ -12,6 +12,7 @@ from checkocr2.ocr_paddle_engine import (
     create_paddleocr_reader,
     extract_paddle_text_scores,
     paddle_recognition_model,
+    paddle_runtime_diagnostics,
 )
 
 
@@ -113,6 +114,20 @@ def test_create_paddleocr_reader_can_use_full_pipeline(monkeypatch):
 def test_paddle_recognition_model_uses_korean_model_when_requested():
     assert paddle_recognition_model(["ko"]) == "korean_PP-OCRv5_mobile_rec"
     assert paddle_recognition_model(["en"]) == "en_PP-OCRv5_mobile_rec"
+
+
+def test_paddle_runtime_diagnostics_reports_packaged_model(monkeypatch, tmp_path):
+    model_root = tmp_path / "paddle_models"
+    (model_root / "korean_PP-OCRv5_mobile_rec").mkdir(parents=True)
+    monkeypatch.setenv("CHECKOCR2_PADDLE_MODEL_ROOT", str(model_root))
+    monkeypatch.setenv("PADDLE_PDX_CACHE_HOME", str(tmp_path / "paddle_cache"))
+
+    diagnostics = paddle_runtime_diagnostics(["korean_PP-OCRv5_mobile_rec"])
+
+    assert diagnostics["pdx_cache"] == str(tmp_path / "paddle_cache")
+    assert diagnostics["packaged_models"] == {
+        "korean_PP-OCRv5_mobile_rec": str(model_root / "korean_PP-OCRv5_mobile_rec")
+    }
 
 
 def test_create_paddleocr_reader_reports_import_failure(monkeypatch):

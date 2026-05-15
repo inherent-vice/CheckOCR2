@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from .packaged_paths import packaged_file_path
 from .settings import APP_NAME
 
 _PROCESS_STARTED_AT = time.perf_counter()
@@ -19,6 +20,10 @@ _SESSION_ID = uuid.uuid4().hex[:12]
 
 
 def startup_trace_path(environ: Mapping[str, str] | None = None) -> Path:
+    packaged_trace = packaged_file_path("startup_trace.jsonl")
+    if packaged_trace is not None:
+        return packaged_trace
+
     env = os.environ if environ is None else environ
     appdata = env.get("APPDATA")
     if appdata:

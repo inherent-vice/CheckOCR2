@@ -12,6 +12,8 @@ import pytest
 
 from checkocr2.logging_config import (
     TkinterLogHandler,
+    default_log_path,
+    default_session_log_path,
     install_global_exception_handlers,
     log_session_banner,
     reset_logging,
@@ -115,6 +117,17 @@ def test_setup_logging_defaults_to_rotating_appdata_log(tmp_path, monkeypatch):
     assert rotating, "rotating file handler must be attached to the root logger"
     assert rotating[0].maxBytes == 128
     assert rotating[0].backupCount == 2
+
+
+def test_default_log_paths_use_packaged_exe_directory(tmp_path, monkeypatch):
+    exe_path = tmp_path / "CheckCaptureOCR_V7.0.exe"
+    exe_path.write_text("", encoding="utf-8")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(exe_path))
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+
+    assert default_log_path() == tmp_path / "ocr_app.log"
+    assert default_session_log_path().parent == tmp_path / "sessions"
 
 
 def test_setup_logging_captures_third_party_logger(tmp_path):

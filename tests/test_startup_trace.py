@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 from checkocr2.startup_trace import (
@@ -21,6 +22,16 @@ def test_record_startup_event_writes_jsonl_under_appdata(tmp_path, monkeypatch):
     assert payload["trace_detail"] == "sample.txt"
     assert payload["elapsed_ms"] >= 0
     assert payload["session_id"]
+
+
+def test_startup_trace_path_uses_packaged_exe_directory(tmp_path, monkeypatch):
+    exe_path = tmp_path / "CheckCaptureOCR_V7.0.exe"
+    exe_path.write_text("", encoding="utf-8")
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "executable", str(exe_path))
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+
+    assert startup_trace_path() == tmp_path / "startup_trace.jsonl"
 
 
 def test_paddle_model_cache_state_reports_official_model_presence(tmp_path):

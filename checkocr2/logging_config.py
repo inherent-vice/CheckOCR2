@@ -29,6 +29,8 @@ from pathlib import Path
 from queue import Queue
 from typing import Any
 
+from .packaged_paths import packaged_file_path
+
 DEFAULT_LOG_FILENAME = "ocr_app.log"
 DEFAULT_SESSION_LOG_DIRNAME = "sessions"
 DEFAULT_SESSION_LOG_FILENAME_FMT = "session_{timestamp}.log"
@@ -66,6 +68,10 @@ _LAST_SESSION_LOG_PATH: Path | None = None
 
 def default_log_path() -> Path:
     """Return the per-user application log path (rotating)."""
+
+    packaged_log = packaged_file_path(DEFAULT_LOG_FILENAME)
+    if packaged_log is not None:
+        return packaged_log
 
     from .settings import user_settings_path
 

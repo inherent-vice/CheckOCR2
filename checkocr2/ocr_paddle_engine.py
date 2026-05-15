@@ -53,18 +53,32 @@ def create_paddleocr_pipeline_reader(
     gpu: bool = False,
 ) -> PaddleOcrReaderAdapter:
     try:
-        record_startup_event("paddle_import_start", mode="pipeline")
+        record_startup_event(
+            "paddle_import_start",
+            mode="pipeline",
+            diagnostics=paddle_runtime_diagnostics(),
+        )
         from paddleocr import PaddleOCR
         record_startup_event("paddle_import_done", mode="pipeline")
     except Exception as exc:
-        record_startup_event("paddle_import_failed", mode="pipeline", error=str(exc))
-        raise OCREngineError(f"PaddleOCR import failed: {exc}") from exc
+        diagnostics = paddle_runtime_diagnostics()
+        record_startup_event(
+            "paddle_import_failed",
+            mode="pipeline",
+            error=str(exc),
+            diagnostics=diagnostics,
+        )
+        raise OCREngineError(
+            f"PaddleOCR import failed: {exc}; diagnostics={diagnostics}"
+        ) from exc
 
     params = paddleocr_params(languages, gpu=gpu)
+    diagnostics = paddle_runtime_diagnostics(_model_names_from_params(params))
     record_startup_event(
         "paddle_model_cache_check",
         mode="pipeline",
         cache=paddle_model_cache_state(_model_names_from_params(params)),
+        diagnostics=diagnostics,
     )
     try:
         reader = PaddleOCR(**params)
@@ -73,8 +87,15 @@ def create_paddleocr_pipeline_reader(
         fallback_params.pop("device", None)
         reader = PaddleOCR(**fallback_params)
     except Exception as exc:
-        record_startup_event("paddle_reader_failed", mode="pipeline", error=str(exc))
-        raise OCREngineError(f"PaddleOCR reader initialization failed: {exc}") from exc
+        record_startup_event(
+            "paddle_reader_failed",
+            mode="pipeline",
+            error=str(exc),
+            diagnostics=diagnostics,
+        )
+        raise OCREngineError(
+            f"PaddleOCR reader initialization failed: {exc}; diagnostics={diagnostics}"
+        ) from exc
     record_startup_event("paddle_reader_ready", mode="pipeline")
     return PaddleOcrReaderAdapter(reader)
 
@@ -85,18 +106,32 @@ def create_paddle_text_recognition_reader(
     gpu: bool = False,
 ) -> PaddleOcrReaderAdapter:
     try:
-        record_startup_event("paddle_import_start", mode="recognition")
+        record_startup_event(
+            "paddle_import_start",
+            mode="recognition",
+            diagnostics=paddle_runtime_diagnostics(),
+        )
         from paddleocr import TextRecognition
         record_startup_event("paddle_import_done", mode="recognition")
     except Exception as exc:
-        record_startup_event("paddle_import_failed", mode="recognition", error=str(exc))
-        raise OCREngineError(f"PaddleOCR import failed: {exc}") from exc
+        diagnostics = paddle_runtime_diagnostics()
+        record_startup_event(
+            "paddle_import_failed",
+            mode="recognition",
+            error=str(exc),
+            diagnostics=diagnostics,
+        )
+        raise OCREngineError(
+            f"PaddleOCR import failed: {exc}; diagnostics={diagnostics}"
+        ) from exc
 
     params = paddle_recognition_params(languages, gpu=gpu)
+    diagnostics = paddle_runtime_diagnostics(_model_names_from_params(params))
     record_startup_event(
         "paddle_model_cache_check",
         mode="recognition",
         cache=paddle_model_cache_state(_model_names_from_params(params)),
+        diagnostics=diagnostics,
     )
     try:
         reader = TextRecognition(**params)
@@ -105,8 +140,15 @@ def create_paddle_text_recognition_reader(
         fallback_params.pop("device", None)
         reader = TextRecognition(**fallback_params)
     except Exception as exc:
-        record_startup_event("paddle_reader_failed", mode="recognition", error=str(exc))
-        raise OCREngineError(f"PaddleOCR reader initialization failed: {exc}") from exc
+        record_startup_event(
+            "paddle_reader_failed",
+            mode="recognition",
+            error=str(exc),
+            diagnostics=diagnostics,
+        )
+        raise OCREngineError(
+            f"PaddleOCR reader initialization failed: {exc}; diagnostics={diagnostics}"
+        ) from exc
     record_startup_event("paddle_reader_ready", mode="recognition")
     return PaddleOcrReaderAdapter(reader)
 
@@ -209,6 +251,24 @@ def _model_names_from_params(params: dict[str, Any]) -> list[str]:
         if value:
             names.append(str(value))
     return names
+
+
+def paddle_runtime_diagnostics(model_names: Sequence[str] = ()) -> dict[str, Any]:
+    return {
+        "frozen": bool(getattr(sys, "frozen", False)),
+        "executable": sys.executable,
+        "meipass": str(getattr(sys, "_MEIPASS", "")),
+        "model_root": os.environ.get("CHECKOCR2_PADDLE_MODEL_ROOT"),
+        "pdx_cache": os.environ.get("PADDLE_PDX_CACHE_HOME"),
+        "paddle_home": os.environ.get("PADDLE_HOME"),
+        "paddleocr_home": os.environ.get("PADDLEOCR_HOME"),
+        "protobuf_impl": os.environ.get("PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"),
+        "cpu_threads": paddle_cpu_threads(),
+        "packaged_models": {
+            str(model_name): str(model_dir) if (model_dir := packaged_model_dir(str(model_name))) else None
+            for model_name in model_names
+        },
+    }
 
 
 def paddle_cpu_threads() -> int:
