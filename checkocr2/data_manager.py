@@ -6,6 +6,7 @@ from typing import Any
 
 from .excel_io import export_grid_rows, load_grid_rows
 from .exceptions import ExcelIOError
+from .ocr_runtime_options import DEFAULT_RATE_DECIMAL_PLACES, normalize_rate_decimal_places
 from .paths import updated_workbook_path
 from .table_model import delete_rows, empty_row, rows_from_clipboard
 
@@ -68,10 +69,30 @@ class DataManager:
 
         try:
             self.logger.debug(f"[export_grid_to_excel_data] 내보내기 직전 데이터: {self.excel_data}")
-            export_success_path = export_grid_rows(self.excel_data, new_file_path)
+            export_success_path = export_grid_rows(
+                self.excel_data,
+                new_file_path,
+                rate_decimal_places=self._rate_decimal_places_for_export(),
+            )
             self.message_queue.put(("log", f"결과 Excel 파일 저장 완료: {new_file_path}", "SUCCESS"))
             return export_success_path
         except (OSError, ValueError, ImportError, ExcelIOError) as exc:
             self.message_queue.put(("log", f"Excel 파일 저장 실패: {exc}", "ERROR"))
             self.logger.exception("Excel 파일 저장 중 예외 발생")
             raise
+
+    def _rate_decimal_places_for_export(self) -> int:
+        rate_var = getattr(self.app, "rate_decimal_places", None)
+        if hasattr(rate_var, "get"):
+            return normalize_rate_decimal_places(rate_var.get())
+
+        settings_manager = getattr(self.app, "settings_manager", None)
+        if hasattr(settings_manager, "get_advanced"):
+            return normalize_rate_decimal_places(
+                settings_manager.get_advanced(
+                    "rate_decimal_places",
+                    DEFAULT_RATE_DECIMAL_PLACES,
+                )
+            )
+
+        return DEFAULT_RATE_DECIMAL_PLACES

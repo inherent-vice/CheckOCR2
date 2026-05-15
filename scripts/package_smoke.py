@@ -859,10 +859,10 @@ def validate_paddle_ocr_ready_status(smoke_status: dict[str, Any]) -> list[str]:
         errors.append(
             "OCR Ready status actual_ocr_engine must be paddle for --paddle-package"
         )
-    if smoke_status.get("ocr_fallback_enabled") is not True:
-        errors.append("OCR Ready status must report EasyOCR blank fallback enabled")
-    if smoke_status.get("ocr_fallback_engine") != "easyocr":
-        errors.append("OCR Ready status ocr_fallback_engine must be easyocr")
+    if smoke_status.get("ocr_fallback_enabled") is not False:
+        errors.append("OCR Ready status must report blank fallback disabled")
+    if smoke_status.get("ocr_fallback_engine") is not None:
+        errors.append("OCR Ready status ocr_fallback_engine must be null")
     return errors
 
 

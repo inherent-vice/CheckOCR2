@@ -4,7 +4,6 @@ import queue
 
 from checkocr2 import ocr_reader_lifecycle as lifecycle
 from checkocr2.exceptions import OCREngineError
-from checkocr2.ocr_engine import BlankFallbackOcrReader
 from checkocr2.ocr_reader_lifecycle import (
     initialize_easyocr_reader_with_fallback,
     initialize_ocr_reader_with_fallback,
@@ -170,7 +169,7 @@ def test_initialize_ocr_reader_uses_configured_paddle_engine():
     assert "['ko', 'en']" in logger.infos[1]
 
 
-def test_initialize_configured_paddle_reader_adds_easyocr_blank_fallback(monkeypatch):
+def test_initialize_configured_paddle_reader_preserves_blank_paddle_results(monkeypatch):
     class Reader:
         def __init__(self, result):
             self.result = result
@@ -181,12 +180,11 @@ def test_initialize_configured_paddle_reader_adds_easyocr_blank_fallback(monkeyp
             return self.result
 
     primary = Reader([""])
-    fallback = Reader(["3.500"])
     calls = []
 
     def fake_create_ocr_reader(engine, languages, *, gpu=False):
         calls.append((engine, list(languages), gpu))
-        return primary if engine == "paddle" else fallback
+        return primary
 
     monkeypatch.setattr(lifecycle, "create_ocr_reader", fake_create_ocr_reader)
     logger = FakeLogger()
@@ -199,12 +197,7 @@ def test_initialize_configured_paddle_reader_adds_easyocr_blank_fallback(monkeyp
         message_queue=messages,
     )
 
-    assert isinstance(result, BlankFallbackOcrReader)
-    assert result.primary is primary
-    assert result.fallback is None
-    assert result.fallback_loaded is False
-    assert result.readtext("image-array", detail=0) == ["3.500"]
-    assert result.fallback is fallback
-    assert calls == [("paddle", ["ko", "en"], False), ("easyocr", ["en"], False)]
-    assert any("blank fallback enabled" in message for message in logger.infos)
-    assert any("blank fallback loading" in message for message in logger.infos)
+    assert result is primary
+    assert result.readtext("image-array", detail=0) == [""]
+    assert calls == [("paddle", ["ko", "en"], False)]
+    assert not any("blank fallback" in message for message in logger.infos)

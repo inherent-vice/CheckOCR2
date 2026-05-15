@@ -1107,8 +1107,8 @@ def test_run_package_smoke_accepts_paddle_engine_status_for_paddle_package(tmp_p
                     "ocr_ready": True,
                     "requested_ocr_engine": "paddle",
                     "actual_ocr_engine": "paddle",
-                    "ocr_fallback_enabled": True,
-                    "ocr_fallback_engine": "easyocr",
+                    "ocr_fallback_enabled": False,
+                    "ocr_fallback_engine": None,
                 }
             ),
             encoding="utf-8",

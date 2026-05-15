@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
+from openpyxl import load_workbook
 
 from checkocr2.events import GridUpdate, parse_legacy_grid_update
 from checkocr2.excel_io import export_grid_rows, load_grid_rows, resolve_columns
@@ -145,14 +146,33 @@ def test_excel_io_loads_and_exports_grid_rows(tmp_path):
     assert rows == [{CODE_COL: "A001", NAME_COL: "Alpha", DATE_COL: "", RATE_COL: "", STATUS_COL: "대기 중"}]
 
     rows[0][DATE_COL] = "2026/05/08"
-    rows[0][RATE_COL] = "3.500"
-    output = export_grid_rows(rows, tmp_path / "out.xlsx")
+    rows[0][RATE_COL] = "3.5000"
+    output = export_grid_rows(rows, tmp_path / "out.xlsx", rate_decimal_places=4)
     with pd.ExcelFile(output) as workbook:
         assert workbook.sheet_names == ["OCR_Results"]
-    exported = pd.read_excel(output, dtype=str).fillna("")
 
-    assert exported.to_dict("records")[0][CODE_COL] == "A001"
-    assert exported.to_dict("records")[0][RATE_COL] == "3.500"
+    workbook = load_workbook(output, data_only=True)
+    worksheet = workbook["OCR_Results"]
+    assert [cell.value for cell in worksheet[1]] == [CODE_COL, NAME_COL, DATE_COL, RATE_COL, STATUS_COL]
+    assert worksheet.cell(row=2, column=1).value == "A001"
+    assert worksheet.cell(row=2, column=3).value.strftime("%Y/%m/%d") == "2026/05/08"
+    assert worksheet.cell(row=2, column=3).number_format == "yyyy/mm/dd"
+    assert worksheet.cell(row=2, column=4).value == 3.5
+    assert worksheet.cell(row=2, column=4).number_format == "0.0000"
+
+
+def test_excel_io_uses_configured_rate_decimal_places(tmp_path):
+    rows = [
+        {CODE_COL: "A001", NAME_COL: "Alpha", DATE_COL: "", RATE_COL: "3.5", STATUS_COL: STATUS_DONE},
+    ]
+
+    output = export_grid_rows(rows, tmp_path / "out.xlsx", rate_decimal_places=2)
+    worksheet = load_workbook(output, data_only=True)["OCR_Results"]
+
+    assert worksheet.cell(row=2, column=3).value in ("", None)
+    assert worksheet.cell(row=2, column=3).number_format == "yyyy/mm/dd"
+    assert worksheet.cell(row=2, column=4).value == 3.5
+    assert worksheet.cell(row=2, column=4).number_format == "0.00"
 
 
 def test_excel_io_loads_korean_grid_headers(tmp_path):

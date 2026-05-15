@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 import pytest
+from openpyxl import load_workbook
 
 from checkocr2 import data_manager as data_manager_module
 
@@ -27,6 +28,14 @@ def make_data_manager(ocr_module):
         message_queue=events,
     )
     return manager, events
+
+
+class FakeVar:
+    def __init__(self, value):
+        self.value = value
+
+    def get(self):
+        return self.value
 
 
 def test_load_excel_to_grid_accepts_english_code_and_name_columns(ocr_module, tmp_path):
@@ -86,14 +95,40 @@ def test_export_grid_to_excel_writes_updated_workbook(ocr_module, tmp_path):
 
     assert exported_path.exists()
     assert exported_path.name == "source_updated.xlsx"
-    exported = pd.read_excel(exported_path, dtype=str).fillna("")
+    worksheet = load_workbook(exported_path, data_only=True)["OCR_Results"]
 
-    assert list(exported.columns) == [CODE, NAME, DATE, RATE, STATUS]
-    assert exported.to_dict("records") == [
-        {CODE: "A001", NAME: "Alpha", DATE: "2024/05/01", RATE: "3.500", STATUS: DONE},
-        {CODE: "B002", NAME: "Beta", DATE: "", RATE: "", STATUS: ""},
-    ]
+    assert [cell.value for cell in worksheet[1]] == [CODE, NAME, DATE, RATE, STATUS]
+    assert worksheet.cell(row=2, column=1).value == "A001"
+    assert worksheet.cell(row=2, column=2).value == "Alpha"
+    assert worksheet.cell(row=2, column=3).value.strftime("%Y/%m/%d") == "2024/05/01"
+    assert worksheet.cell(row=2, column=3).number_format == "yyyy/mm/dd"
+    assert worksheet.cell(row=2, column=4).value == 3.5
+    assert worksheet.cell(row=2, column=4).number_format == "0.0000"
+    assert worksheet.cell(row=2, column=5).value == DONE
+    assert worksheet.cell(row=3, column=3).value in ("", None)
+    assert worksheet.cell(row=3, column=4).value in ("", None)
+    assert worksheet.cell(row=3, column=5).value in ("", None)
     assert any(event[0] == "log" and event[2] == "SUCCESS" for event in list(events.queue))
+
+
+def test_export_grid_to_excel_uses_app_rate_decimal_places(ocr_module, monkeypatch, tmp_path):
+    manager, _events = make_data_manager(ocr_module)
+    manager.app = type("App", (), {"rate_decimal_places": FakeVar(2)})()
+    manager.excel_data = [
+        {CODE: "A001", NAME: "Alpha", DATE: "2024/05/01", RATE: "3.5", STATUS: DONE},
+    ]
+    captured = {}
+
+    def capture_export_grid_rows(rows, output_path, *, rate_decimal_places=4):
+        captured["rate_decimal_places"] = rate_decimal_places
+        output_path.write_text("ok", encoding="utf-8")
+        return output_path
+
+    monkeypatch.setattr(data_manager_module, "export_grid_rows", capture_export_grid_rows)
+
+    manager.export_grid_to_excel_data(tmp_path, str(tmp_path / "source.xlsx"))
+
+    assert captured["rate_decimal_places"] == 2
 
 
 def test_data_manager_row_edit_delete_clear_and_empty_export_contracts(ocr_module, tmp_path):
@@ -132,7 +167,7 @@ def test_export_grid_to_excel_propagates_writer_failures(ocr_module, monkeypatch
         {CODE: "A001", NAME: "Alpha", DATE: "2024/05/01", RATE: "3.500", STATUS: DONE},
     ]
 
-    def fail_export_grid_rows(rows, output_path):
+    def fail_export_grid_rows(rows, output_path, *, rate_decimal_places=4):
         raise PermissionError("locked workbook")
 
     monkeypatch.setattr(data_manager_module, "export_grid_rows", fail_export_grid_rows)

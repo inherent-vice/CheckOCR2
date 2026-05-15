@@ -921,7 +921,7 @@ def test_finalize_export_report_records_failure_when_old_output_exists(ocr_modul
         refresh_grid_ui=lambda: None,
     )
 
-    def fail_export_grid_rows(rows, output_path):
+    def fail_export_grid_rows(rows, output_path, *, rate_decimal_places=4):
         raise PermissionError("locked workbook")
 
     monkeypatch.setattr(data_manager_module, "export_grid_rows", fail_export_grid_rows)

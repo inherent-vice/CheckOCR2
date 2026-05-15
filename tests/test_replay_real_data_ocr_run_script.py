@@ -66,12 +66,15 @@ def test_replay_real_data_ocr_run_writes_workbook_and_report(tmp_path):
     assert workbook_path.exists()
     assert report_path.exists()
 
-    workbook = load_workbook(workbook_path, read_only=True, data_only=True)
-    values = list(workbook.active.iter_rows(values_only=True))
+    workbook = load_workbook(workbook_path, data_only=True)
+    worksheet = workbook.active
+    values = list(worksheet.iter_rows(values_only=True))
     header = list(values[0])
     row = dict(zip(header, values[1], strict=True))
-    assert row[DATE_COL] == "2026/05/13"
-    assert row[RATE_COL] == "3.5000"
+    assert row[DATE_COL].strftime("%Y/%m/%d") == "2026/05/13"
+    assert worksheet.cell(row=2, column=3).number_format == "yyyy/mm/dd"
+    assert row[RATE_COL] == 3.5
+    assert worksheet.cell(row=2, column=4).number_format == "0.0000"
     assert row[STATUS_COL] == STATUS_DONE
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -136,12 +139,15 @@ def test_replay_real_data_ocr_run_uses_pipeline_reader_for_rate_fields(
     assert crop_reader.calls[0]["kwargs"]["allowlist"] == "0123456789./-"
     assert pipeline_reader.calls[0]["kwargs"]["allowlist"] == "0123456789.,%"
 
-    workbook = load_workbook(Path(summary["output_workbook"]), read_only=True, data_only=True)
-    values = list(workbook.active.iter_rows(values_only=True))
+    workbook = load_workbook(Path(summary["output_workbook"]), data_only=True)
+    worksheet = workbook.active
+    values = list(worksheet.iter_rows(values_only=True))
     header = list(values[0])
     row = dict(zip(header, values[1], strict=True))
-    assert row[DATE_COL] == "2026/05/13"
-    assert row[RATE_COL] == "3.5000"
+    assert row[DATE_COL].strftime("%Y/%m/%d") == "2026/05/13"
+    assert worksheet.cell(row=2, column=3).number_format == "yyyy/mm/dd"
+    assert row[RATE_COL] == 3.5
+    assert worksheet.cell(row=2, column=4).number_format == "0.0000"
     assert row[STATUS_COL] == STATUS_DONE
 
 
