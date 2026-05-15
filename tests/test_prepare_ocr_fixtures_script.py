@@ -83,7 +83,7 @@ def test_prepare_fixtures_can_prefill_expected_values_from_run_report(tmp_path):
 
     rows = read_fixture_csv(output_dir / "ground_truth_draft.csv")
     assert rows[0]["expected_text"] == "2026/05/11"
-    assert rows[1]["expected_text"] == "3.500"
+    assert rows[1]["expected_text"] == "3.5000"
     assert rows[0]["source_run"] == "sample_run_report"
     assert "expected_from_run_report" in rows[0]["notes"]
 

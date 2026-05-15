@@ -13,10 +13,14 @@ from checkocr2.package_smoke_status import (
     write_package_smoke_status,
 )
 from checkocr2.runtime_state import RuntimeState, runtime_state_ui
+from checkocr2.startup_trace import record_startup_event, startup_trace_path
+from checkocr2.ui.loading_overlay import update_loading_overlay_for_state
 
 
 def set_runtime_state(app: Any, state: RuntimeState) -> None:
     app.runtime_state = state
+    record_startup_event("runtime_state", state=state.value)
+    update_loading_overlay_for_state(app, state)
     ui_state = runtime_state_ui(state)
     if not hasattr(app, "run_btn") or not app.run_btn:
         write_package_smoke_status_for_app(app)
@@ -65,6 +69,7 @@ def write_package_smoke_status_for_app(
                 else None
             ),
             **engine_metadata,
+            startup_trace_file=startup_trace_path(),
         )
     except OSError as exc:
         if hasattr(app, "logger"):

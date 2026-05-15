@@ -111,6 +111,22 @@ def test_theme_manager_applies_widget_ttk_and_log_styles(monkeypatch):
     assert "TCombobox" in configured_styles
 
 
+def test_theme_manager_passes_through_style_and_unknown_color_keys(monkeypatch):
+    FakeStyle.instances.clear()
+    monkeypatch.setattr(theme_module.ttk, "Style", FakeStyle)
+    app = FakeRoot("modern_blue")
+    manager = ThemeManager(app)
+    combo_widget = FakeWidget()
+
+    manager.register_widget(combo_widget, {"style": "TCombobox"})
+    manager.apply_theme_to_all_widgets()
+
+    assert combo_widget.configure_calls == [{"style": "TCombobox"}]
+    assert not any(
+        "위젯 스타일 적용 오류" in msg for msg in app.logger.warning_messages
+    )
+
+
 def test_theme_manager_changes_theme_and_preserves_legacy_export(ocr_module, monkeypatch):
     FakeStyle.instances.clear()
     monkeypatch.setattr(theme_module.ttk, "Style", FakeStyle)

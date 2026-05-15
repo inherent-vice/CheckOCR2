@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
+import sys
 from collections.abc import Iterable, Sequence
+from pathlib import Path
 from typing import Any
 
 from .exceptions import OCREngineError
+from .startup_trace import paddle_model_cache_state, record_startup_event
 
 
 class PaddleOcrReaderAdapter:
@@ -50,11 +53,19 @@ def create_paddleocr_pipeline_reader(
     gpu: bool = False,
 ) -> PaddleOcrReaderAdapter:
     try:
+        record_startup_event("paddle_import_start", mode="pipeline")
         from paddleocr import PaddleOCR
+        record_startup_event("paddle_import_done", mode="pipeline")
     except Exception as exc:
+        record_startup_event("paddle_import_failed", mode="pipeline", error=str(exc))
         raise OCREngineError(f"PaddleOCR import failed: {exc}") from exc
 
     params = paddleocr_params(languages, gpu=gpu)
+    record_startup_event(
+        "paddle_model_cache_check",
+        mode="pipeline",
+        cache=paddle_model_cache_state(_model_names_from_params(params)),
+    )
     try:
         reader = PaddleOCR(**params)
     except TypeError:
@@ -62,7 +73,9 @@ def create_paddleocr_pipeline_reader(
         fallback_params.pop("device", None)
         reader = PaddleOCR(**fallback_params)
     except Exception as exc:
+        record_startup_event("paddle_reader_failed", mode="pipeline", error=str(exc))
         raise OCREngineError(f"PaddleOCR reader initialization failed: {exc}") from exc
+    record_startup_event("paddle_reader_ready", mode="pipeline")
     return PaddleOcrReaderAdapter(reader)
 
 
@@ -72,11 +85,19 @@ def create_paddle_text_recognition_reader(
     gpu: bool = False,
 ) -> PaddleOcrReaderAdapter:
     try:
+        record_startup_event("paddle_import_start", mode="recognition")
         from paddleocr import TextRecognition
+        record_startup_event("paddle_import_done", mode="recognition")
     except Exception as exc:
+        record_startup_event("paddle_import_failed", mode="recognition", error=str(exc))
         raise OCREngineError(f"PaddleOCR import failed: {exc}") from exc
 
     params = paddle_recognition_params(languages, gpu=gpu)
+    record_startup_event(
+        "paddle_model_cache_check",
+        mode="recognition",
+        cache=paddle_model_cache_state(_model_names_from_params(params)),
+    )
     try:
         reader = TextRecognition(**params)
     except TypeError:
@@ -84,7 +105,9 @@ def create_paddle_text_recognition_reader(
         fallback_params.pop("device", None)
         reader = TextRecognition(**fallback_params)
     except Exception as exc:
+        record_startup_event("paddle_reader_failed", mode="recognition", error=str(exc))
         raise OCREngineError(f"PaddleOCR reader initialization failed: {exc}") from exc
+    record_startup_event("paddle_reader_ready", mode="recognition")
     return PaddleOcrReaderAdapter(reader)
 
 
@@ -99,32 +122,35 @@ def paddle_mode() -> str:
 
 def paddleocr_params(languages: Sequence[str], *, gpu: bool = False) -> dict[str, Any]:
     params = paddle_common_params(gpu=gpu)
+    det_model = os.environ.get("CHECKOCR2_PADDLE_DET_MODEL", "PP-OCRv5_mobile_det")
+    rec_model = os.environ.get("CHECKOCR2_PADDLE_REC_MODEL", paddle_recognition_model(languages))
     params.update(
         {
             "lang": paddle_lang(languages),
             "ocr_version": "PP-OCRv5",
-            "text_detection_model_name": os.environ.get(
-                "CHECKOCR2_PADDLE_DET_MODEL",
-                "PP-OCRv5_mobile_det",
-            ),
-            "text_recognition_model_name": os.environ.get(
-                "CHECKOCR2_PADDLE_REC_MODEL",
-                paddle_recognition_model(languages),
-            ),
+            "text_detection_model_name": det_model,
+            "text_recognition_model_name": rec_model,
             "use_doc_orientation_classify": False,
             "use_doc_unwarping": False,
             "use_textline_orientation": False,
         }
     )
+    det_dir = packaged_model_dir(det_model)
+    rec_dir = packaged_model_dir(rec_model)
+    if det_dir is not None:
+        params["text_detection_model_dir"] = str(det_dir)
+    if rec_dir is not None:
+        params["text_recognition_model_dir"] = str(rec_dir)
     return params
 
 
 def paddle_recognition_params(languages: Sequence[str], *, gpu: bool = False) -> dict[str, Any]:
     params = paddle_common_params(gpu=gpu)
-    params["model_name"] = os.environ.get(
-        "CHECKOCR2_PADDLE_REC_MODEL",
-        paddle_recognition_model(languages),
-    )
+    model_name = os.environ.get("CHECKOCR2_PADDLE_REC_MODEL", paddle_recognition_model(languages))
+    params["model_name"] = model_name
+    model_dir = packaged_model_dir(model_name)
+    if model_dir is not None:
+        params["model_dir"] = str(model_dir)
     return params
 
 
@@ -156,6 +182,33 @@ def paddle_recognition_model(languages: Sequence[str]) -> str:
     if paddle_lang(languages) == "korean":
         return "korean_PP-OCRv5_mobile_rec"
     return "en_PP-OCRv5_mobile_rec"
+
+
+def packaged_model_dir(model_name: str) -> Path | None:
+    model_root = os.environ.get("CHECKOCR2_PADDLE_MODEL_ROOT")
+    candidates: list[Path] = []
+    if model_root:
+        candidates.append(Path(model_root))
+
+    runtime_root = getattr(sys, "_MEIPASS", None)
+    if runtime_root:
+        candidates.append(Path(runtime_root) / "checkocr2" / "paddle_models")
+        candidates.append(Path(runtime_root) / "_internal" / "checkocr2" / "paddle_models")
+
+    for root in candidates:
+        candidate = root / model_name
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _model_names_from_params(params: dict[str, Any]) -> list[str]:
+    names = []
+    for key in ("model_name", "text_detection_model_name", "text_recognition_model_name"):
+        value = params.get(key)
+        if value:
+            names.append(str(value))
+    return names
 
 
 def paddle_cpu_threads() -> int:

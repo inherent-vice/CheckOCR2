@@ -171,8 +171,17 @@ def test_initialize_ocr_reader_uses_configured_paddle_engine():
 
 
 def test_initialize_configured_paddle_reader_adds_easyocr_blank_fallback(monkeypatch):
-    primary = object()
-    fallback = object()
+    class Reader:
+        def __init__(self, result):
+            self.result = result
+            self.calls = []
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append((image, detail, kwargs))
+            return self.result
+
+    primary = Reader([""])
+    fallback = Reader(["3.500"])
     calls = []
 
     def fake_create_ocr_reader(engine, languages, *, gpu=False):
@@ -192,9 +201,10 @@ def test_initialize_configured_paddle_reader_adds_easyocr_blank_fallback(monkeyp
 
     assert isinstance(result, BlankFallbackOcrReader)
     assert result.primary is primary
+    assert result.fallback is None
+    assert result.fallback_loaded is False
+    assert result.readtext("image-array", detail=0) == ["3.500"]
     assert result.fallback is fallback
-    assert calls == [
-        ("paddle", ["ko", "en"], False),
-        ("easyocr", ["en"], False),
-    ]
+    assert calls == [("paddle", ["ko", "en"], False), ("easyocr", ["en"], False)]
     assert any("blank fallback enabled" in message for message in logger.infos)
+    assert any("blank fallback loading" in message for message in logger.infos)

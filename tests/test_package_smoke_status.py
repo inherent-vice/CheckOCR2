@@ -76,3 +76,23 @@ def test_write_package_smoke_status_ignores_missing_status_path():
         )
         is None
     )
+
+
+def test_build_package_smoke_status_can_report_startup_and_lazy_fallback(tmp_path):
+    trace_file = tmp_path / "startup_trace.jsonl"
+
+    payload = build_package_smoke_status(
+        runtime_state=RuntimeState.READY,
+        ocr_ready=True,
+        settings_file=None,
+        ocr_fallback_loaded=False,
+        ocr_fallback_load_count=0,
+        ocr_fallback_init_ms=123.4,
+        startup_trace_file=trace_file,
+        now=lambda: datetime(2026, 5, 11, 16, 32, 0),
+    )
+
+    assert payload["ocr_fallback_loaded"] is False
+    assert payload["ocr_fallback_load_count"] == 0
+    assert payload["ocr_fallback_init_ms"] == 123.4
+    assert payload["startup_trace_file"] == str(trace_file)

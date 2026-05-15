@@ -27,6 +27,10 @@ def _runtime_root() -> Path:
 
 
 root = _runtime_root()
+bundled_model_root = root / "checkocr2" / "paddle_models"
+if bundled_model_root.is_dir():
+    os.environ.setdefault("CHECKOCR2_PADDLE_MODEL_ROOT", str(bundled_model_root))
+os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
 for candidate in (
     root / "paddle" / "base",
     root / "paddle" / "libs",

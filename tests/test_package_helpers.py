@@ -199,7 +199,7 @@ def test_select_field_text_from_ocr_results_prefers_first_valid_full_image_field
     ]
 
     assert select_field_text_from_ocr_results(results, "date") == "2026/06/13"
-    assert select_field_text_from_ocr_results(results, "rate") == "2.770"
+    assert select_field_text_from_ocr_results(results, "rate") == "2.7700"
 
 
 def test_ocr_date_validation_rejects_non_calendar_dates():

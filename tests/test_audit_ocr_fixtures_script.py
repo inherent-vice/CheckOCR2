@@ -22,7 +22,7 @@ def test_audit_fixtures_accepts_minimum_date_and_rate_cases(tmp_path):
     fixture_csv.write_text(
         "crop_path,field,expected_text,source_run,notes\n"
         "date.png,date,2026/05/08,manual,\n"
-        "rate.png,rate,3.500,manual,\n",
+        "rate.png,rate,3.5000,manual,\n",
         encoding="utf-8",
     )
 

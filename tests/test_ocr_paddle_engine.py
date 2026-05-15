@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import sys
 import types
 
@@ -116,5 +117,13 @@ def test_paddle_recognition_model_uses_korean_model_when_requested():
 
 def test_create_paddleocr_reader_reports_import_failure(monkeypatch):
     monkeypatch.delitem(sys.modules, "paddleocr", raising=False)
+    original_import = builtins.__import__
+
+    def failing_import(name, *args, **kwargs):
+        if name == "paddleocr":
+            raise ImportError("blocked paddleocr")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", failing_import)
     with pytest.raises(OCREngineError, match="PaddleOCR import failed"):
         create_paddleocr_reader(["en"])

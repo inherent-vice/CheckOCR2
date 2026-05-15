@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import statistics
 from collections.abc import Sequence
+from time import perf_counter
 from typing import Any, Protocol
 
 from .exceptions import OCREngineError
@@ -23,23 +24,43 @@ class BlankFallbackOcrReader:
     def __init__(
         self,
         primary: EasyOcrReaderLike,
-        fallback: EasyOcrReaderLike,
+        fallback: EasyOcrReaderLike | None = None,
         *,
+        fallback_factory: Any = None,
         primary_engine: str = OCR_ENGINE_PADDLE,
         fallback_engine: str = OCR_ENGINE_EASYOCR,
     ):
+        if fallback is None and fallback_factory is None:
+            raise ValueError("fallback or fallback_factory is required")
         self.primary = primary
         self.fallback = fallback
+        self._fallback_factory = fallback_factory
         self.primary_engine = primary_engine
         self.fallback_engine = fallback_engine
         self.fallback_count = 0
+        self.fallback_load_count = 1 if fallback is not None else 0
+        self.fallback_init_ms: float | None = None
+
+    @property
+    def fallback_loaded(self) -> bool:
+        return self.fallback is not None
 
     def readtext(self, image, detail: int = 0, **kwargs: Any):
         primary_results = self.primary.readtext(image, detail=detail, **kwargs)
         if ocr_results_have_text(primary_results, detail):
             return primary_results
         self.fallback_count += 1
-        return self.fallback.readtext(image, detail=detail, **kwargs)
+        fallback = self._fallback_reader()
+        return fallback.readtext(image, detail=detail, **kwargs)
+
+    def _fallback_reader(self) -> EasyOcrReaderLike:
+        if self.fallback is not None:
+            return self.fallback
+        started_at = perf_counter()
+        self.fallback = self._fallback_factory()
+        self.fallback_load_count += 1
+        self.fallback_init_ms = round((perf_counter() - started_at) * 1000, 3)
+        return self.fallback
 
 
 def normalize_ocr_engine(value: Any) -> str:
@@ -138,6 +159,9 @@ def reader_engine_metadata(reader: Any) -> dict[str, Any]:
             "ocr_fallback_enabled": False,
             "ocr_fallback_engine": None,
             "ocr_fallback_count": 0,
+            "ocr_fallback_loaded": False,
+            "ocr_fallback_load_count": 0,
+            "ocr_fallback_init_ms": None,
         }
     if isinstance(reader, BlankFallbackOcrReader):
         return {
@@ -145,6 +169,9 @@ def reader_engine_metadata(reader: Any) -> dict[str, Any]:
             "ocr_fallback_enabled": True,
             "ocr_fallback_engine": reader.fallback_engine,
             "ocr_fallback_count": reader_fallback_count(reader),
+            "ocr_fallback_loaded": reader.fallback_loaded,
+            "ocr_fallback_load_count": reader.fallback_load_count,
+            "ocr_fallback_init_ms": reader.fallback_init_ms,
         }
 
     module_name = type(reader).__module__.casefold()
@@ -159,6 +186,9 @@ def reader_engine_metadata(reader: Any) -> dict[str, Any]:
         "ocr_fallback_enabled": False,
         "ocr_fallback_engine": None,
         "ocr_fallback_count": reader_fallback_count(reader),
+        "ocr_fallback_loaded": False,
+        "ocr_fallback_load_count": 0,
+        "ocr_fallback_init_ms": None,
     }
 
 

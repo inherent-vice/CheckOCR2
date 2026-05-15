@@ -182,7 +182,7 @@ def display_path(fixture_dir: Path, path: Path) -> str:
 def is_integer_rate_alias(expected_text: str, normalized_expected: str) -> bool:
     if not re.fullmatch(r"\d+", expected_text):
         return False
-    return normalized_expected == f"{expected_text}.000"
+    return re.fullmatch(rf"{re.escape(expected_text)}\.0+", normalized_expected) is not None
 
 
 def write_or_print_report(report: dict[str, Any], output_json: Path | None) -> None:

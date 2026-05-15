@@ -30,9 +30,13 @@ def build_package_smoke_status(
     ocr_fallback_enabled: bool = False,
     ocr_fallback_engine: str | None = None,
     ocr_fallback_count: int = 0,
+    ocr_fallback_loaded: bool | None = None,
+    ocr_fallback_load_count: int | None = None,
+    ocr_fallback_init_ms: float | None = None,
+    startup_trace_file: str | os.PathLike[str] | None = None,
     now: Callable[[], datetime] = datetime.now,
 ) -> dict[str, Any]:
-    return {
+    payload = {
         "runtime_state": getattr(runtime_state, "value", runtime_state),
         "ocr_ready": bool(ocr_ready),
         "settings_file": str(settings_file) if settings_file is not None else None,
@@ -43,6 +47,15 @@ def build_package_smoke_status(
         "ocr_fallback_count": int(ocr_fallback_count or 0),
         "written_at": now().isoformat(),
     }
+    if ocr_fallback_loaded is not None:
+        payload["ocr_fallback_loaded"] = bool(ocr_fallback_loaded)
+    if ocr_fallback_load_count is not None:
+        payload["ocr_fallback_load_count"] = int(ocr_fallback_load_count or 0)
+    if ocr_fallback_init_ms is not None:
+        payload["ocr_fallback_init_ms"] = float(ocr_fallback_init_ms)
+    if startup_trace_file is not None:
+        payload["startup_trace_file"] = str(startup_trace_file)
+    return payload
 
 
 def write_package_smoke_status(
@@ -56,6 +69,10 @@ def write_package_smoke_status(
     ocr_fallback_enabled: bool = False,
     ocr_fallback_engine: str | None = None,
     ocr_fallback_count: int = 0,
+    ocr_fallback_loaded: bool | None = None,
+    ocr_fallback_load_count: int | None = None,
+    ocr_fallback_init_ms: float | None = None,
+    startup_trace_file: str | os.PathLike[str] | None = None,
     now: Callable[[], datetime] = datetime.now,
 ) -> Path | None:
     if not status_file:
@@ -72,6 +89,10 @@ def write_package_smoke_status(
         ocr_fallback_enabled=ocr_fallback_enabled,
         ocr_fallback_engine=ocr_fallback_engine,
         ocr_fallback_count=ocr_fallback_count,
+        ocr_fallback_loaded=ocr_fallback_loaded,
+        ocr_fallback_load_count=ocr_fallback_load_count,
+        ocr_fallback_init_ms=ocr_fallback_init_ms,
+        startup_trace_file=startup_trace_file,
         now=now,
     )
     path.write_text(

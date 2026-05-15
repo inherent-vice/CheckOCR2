@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class RuntimeState(str, Enum):
+class RuntimeState(StrEnum):
     STARTING = "Starting"
     OCR_LOADING = "OCR Loading"
     READY = "Ready"

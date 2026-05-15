@@ -9,11 +9,12 @@ from tkinter import messagebox
 
 from checkocr2 import __display_version__
 from checkocr2.data_manager import DataManager
-from checkocr2.logging_config import setup_logging
+from checkocr2.logging_config import log_session_banner, setup_logging
 from checkocr2.ocr_workflow_manager import OCRWorkflowManager
 from checkocr2.paths import clean_folder_path
 from checkocr2.runtime_state import RuntimeState
 from checkocr2.settings_compat import UnifiedSettingsManager
+from checkocr2.startup_trace import record_startup_event
 from checkocr2.ui.completion_actions import (
     build_ocr_summary as build_ocr_summary_action,
 )
@@ -165,6 +166,7 @@ __all__ = ["CheckCaptureOCRApp", "main"]
 
 class CheckCaptureOCRApp(tk.Tk):
     def __init__(self):
+        record_startup_event("tk_app_init_start")
         super().__init__()
         self.title(f"📊 Check Capture OCR {__display_version__}")
         self.geometry("1200x850")
@@ -177,7 +179,10 @@ class CheckCaptureOCRApp(tk.Tk):
         self.center_window()
 
         self.message_queue = queue.Queue()
-        self.logger = setup_logging(self.message_queue)
+        self.logger = setup_logging(
+            self.message_queue, install_exception_hooks=True
+        )
+        log_session_banner(self.logger)
 
         self.settings_manager = UnifiedSettingsManager()
         self.theme_manager = ThemeManager(self)
@@ -224,13 +229,16 @@ class CheckCaptureOCRApp(tk.Tk):
 
         self.grid_tree = None
         self.log_text_widget = None
+        self.ocr_loading_overlay = None
 
         self._build_ui()
+        record_startup_event("ui_built")
         self._setup_keyboard_shortcuts()
         self.check_queue()
         self.load_last_settings()
         self.theme_manager.apply_theme_to_all_widgets()
         self._set_runtime_state(RuntimeState.STARTING)
+        record_startup_event("ocr_init_scheduled", delay_ms=100)
         self.after(100, self.start_ocr_initialization_async)
 
     def start_ocr_initialization_async(self):

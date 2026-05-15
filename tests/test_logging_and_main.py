@@ -3,8 +3,40 @@ from __future__ import annotations
 import importlib
 import logging
 import queue
+import sys
+import threading
+from logging.handlers import RotatingFileHandler
+from types import SimpleNamespace
 
-from checkocr2.logging_config import TkinterLogHandler, setup_logging
+import pytest
+
+from checkocr2.logging_config import (
+    TkinterLogHandler,
+    install_global_exception_handlers,
+    log_session_banner,
+    reset_logging,
+    setup_logging,
+)
+
+
+@pytest.fixture(autouse=True)
+def _restore_logging_state():
+    original_excepthook = sys.excepthook
+    original_thread_excepthook = threading.excepthook
+    try:
+        yield
+    finally:
+        reset_logging()
+        sys.excepthook = original_excepthook
+        threading.excepthook = original_thread_excepthook
+
+
+def _owned_root_handlers() -> list[logging.Handler]:
+    return [
+        handler
+        for handler in logging.getLogger().handlers
+        if getattr(handler, "_checkocr2_owned", False)
+    ]
 
 
 class FakeTextWidget:
@@ -38,16 +70,25 @@ def test_tkinter_log_handler_does_not_touch_widget_from_emit_thread():
     assert events.get_nowait()[0:2] == ("log_display", "INFO")
 
 
-def test_setup_logging_replaces_handlers(tmp_path):
+def test_setup_logging_installs_owned_handlers_on_root(tmp_path):
     events = queue.Queue()
     log_path = tmp_path / "ocr_app.log"
+    session_path = tmp_path / "sessions" / "session.log"
 
-    logger = setup_logging(events, log_path=log_path)
+    logger = setup_logging(
+        events, log_path=log_path, session_log_path=session_path
+    )
     logger.info("hello")
-    logger = setup_logging(events, log_path=log_path)
+    logger = setup_logging(
+        events, log_path=log_path, session_log_path=session_path
+    )
 
-    assert len(logger.handlers) == 2
+    owned = _owned_root_handlers()
+    assert len(owned) == 3
+    assert any(isinstance(handler, RotatingFileHandler) for handler in owned)
     assert log_path.exists()
+    assert session_path.exists()
+    assert logger.propagate is True
 
 
 def test_setup_logging_defaults_to_rotating_appdata_log(tmp_path, monkeypatch):
@@ -58,13 +99,136 @@ def test_setup_logging_defaults_to_rotating_appdata_log(tmp_path, monkeypatch):
     monkeypatch.chdir(cwd)
     monkeypatch.setenv("APPDATA", str(appdata))
 
-    logger = setup_logging(events, max_bytes=128, backup_count=2)
+    logger = setup_logging(
+        events, max_bytes=128, backup_count=2, enable_session_log=False
+    )
     logger.info("hello")
 
-    assert (appdata / "CheckOCR2" / "logs" / "ocr_app.log").exists()
+    log_root = appdata / "CheckOCR2" / "logs"
+    assert (log_root / "ocr_app.log").exists()
     assert not (cwd / "ocr_app.log").exists()
-    assert logger.handlers[0].maxBytes == 128
-    assert logger.handlers[0].backupCount == 2
+    rotating = [
+        handler
+        for handler in _owned_root_handlers()
+        if isinstance(handler, RotatingFileHandler)
+    ]
+    assert rotating, "rotating file handler must be attached to the root logger"
+    assert rotating[0].maxBytes == 128
+    assert rotating[0].backupCount == 2
+
+
+def test_setup_logging_captures_third_party_logger(tmp_path):
+    events = queue.Queue()
+    log_path = tmp_path / "ocr_app.log"
+
+    setup_logging(events, log_path=log_path, enable_session_log=False)
+    foreign = logging.getLogger("checkocr2.tests.third_party_capture")
+    foreign.setLevel(logging.DEBUG)
+    foreign.debug("third-party visibility")
+
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    content = log_path.read_text(encoding="utf-8")
+    assert "third-party visibility" in content
+    assert "checkocr2.tests.third_party_capture" in content
+
+
+def test_setup_logging_writes_session_file_with_rich_format(tmp_path):
+    events = queue.Queue()
+    log_path = tmp_path / "ocr_app.log"
+    session_path = tmp_path / "sessions" / "specific.log"
+
+    logger = setup_logging(
+        events, log_path=log_path, session_log_path=session_path
+    )
+    logger.info("session hello")
+
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    content = session_path.read_text(encoding="utf-8")
+    assert "session hello" in content
+    assert "INFO" in content
+    assert "test_setup_logging_writes_session_file_with_rich_format" in content
+
+
+def test_setup_logging_quiets_noisy_loggers(tmp_path):
+    events = queue.Queue()
+    log_path = tmp_path / "ocr_app.log"
+
+    noisy = logging.getLogger("PIL")
+    noisy.setLevel(logging.DEBUG)
+    setup_logging(
+        events,
+        log_path=log_path,
+        enable_session_log=False,
+        quiet_loggers=("PIL",),
+    )
+
+    assert logging.getLogger("PIL").level == logging.WARNING
+
+
+def test_setup_logging_install_exception_hooks_logs_uncaught_exception(tmp_path):
+    events = queue.Queue()
+    log_path = tmp_path / "ocr_app.log"
+
+    setup_logging(
+        events,
+        log_path=log_path,
+        enable_session_log=False,
+        install_exception_hooks=True,
+    )
+
+    try:
+        raise RuntimeError("boom")
+    except RuntimeError:
+        sys.excepthook(*sys.exc_info())
+
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    content = log_path.read_text(encoding="utf-8")
+    assert "처리되지 않은 예외" in content
+    assert "RuntimeError: boom" in content
+
+
+def test_install_global_exception_handlers_records_thread_exception(tmp_path):
+    events = queue.Queue()
+    log_path = tmp_path / "ocr_app.log"
+
+    setup_logging(events, log_path=log_path, enable_session_log=False)
+    install_global_exception_handlers()
+
+    args = SimpleNamespace(
+        exc_type=RuntimeError,
+        exc_value=RuntimeError("thread boom"),
+        exc_traceback=None,
+        thread=SimpleNamespace(name="worker-1"),
+    )
+    threading.excepthook(args)
+
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    content = log_path.read_text(encoding="utf-8")
+    assert "thread boom" in content
+    assert "worker-1" in content
+
+
+def test_log_session_banner_emits_version_and_paths(tmp_path, caplog):
+    events = queue.Queue()
+    log_path = tmp_path / "ocr_app.log"
+    session_path = tmp_path / "sessions" / "banner.log"
+
+    logger = setup_logging(
+        events, log_path=log_path, session_log_path=session_path
+    )
+
+    with caplog.at_level(logging.INFO, logger="OCRApp"):
+        log_session_banner(logger, extra={"테마": "modern_blue"})
+
+    messages = "\n".join(record.message for record in caplog.records)
+    assert "CheckOCR2 세션 시작" in messages
+    assert "버전:" in messages
+    assert "테마" in messages
+    assert str(session_path) in messages
 
 
 def test_package_main_constructs_app(monkeypatch):

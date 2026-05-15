@@ -29,7 +29,7 @@ def write_reviewed_draft(fixture_dir):
     draft_csv.write_text(
         "crop_path,field,expected_text,source_run,notes\n"
         "0001_A001_date.png,date,2026/05/11,run-1,manual_checked\n"
-        "0002_A001_rate.png,rate,3.500,run-1,manual_checked\n",
+        "0002_A001_rate.png,rate,3.5000,run-1,manual_checked\n",
         encoding="utf-8",
     )
     return draft_csv

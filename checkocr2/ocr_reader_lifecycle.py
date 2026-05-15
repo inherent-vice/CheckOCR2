@@ -149,10 +149,15 @@ def add_easyocr_blank_fallback(
     *,
     logger: LoggerLike,
 ) -> EasyOcrReaderLike:
-    try:
-        fallback_reader = create_ocr_reader(OCR_ENGINE_EASYOCR, ["en"], gpu=False)
-    except OCR_INIT_EXCEPTIONS as exc:
-        logger.error(f"PaddleOCR blank fallback unavailable: {exc}")
-        return reader
-    logger.info("PaddleOCR blank fallback enabled: EasyOCR English CPU")
-    return BlankFallbackOcrReader(reader, fallback_reader)
+    def fallback_factory() -> EasyOcrReaderLike:
+        logger.info("PaddleOCR blank fallback loading EasyOCR English CPU...")
+        try:
+            fallback_reader = create_ocr_reader(OCR_ENGINE_EASYOCR, ["en"], gpu=False)
+        except OCR_INIT_EXCEPTIONS as exc:
+            logger.error(f"PaddleOCR blank fallback unavailable: {exc}")
+            raise
+        logger.info("PaddleOCR blank fallback loaded: EasyOCR English CPU")
+        return fallback_reader
+
+    logger.info("PaddleOCR blank fallback enabled: EasyOCR English CPU (lazy)")
+    return BlankFallbackOcrReader(reader, fallback_factory=fallback_factory)

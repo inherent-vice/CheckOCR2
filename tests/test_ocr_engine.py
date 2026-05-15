@@ -93,6 +93,34 @@ def test_blank_fallback_reader_retries_when_primary_is_blank():
     assert reader.fallback_count == 1
 
 
+def test_blank_fallback_reader_loads_fallback_lazily_only_when_needed():
+    class Reader:
+        def __init__(self, result):
+            self.result = result
+            self.calls = []
+
+        def readtext(self, image, detail=0, **kwargs):
+            self.calls.append((image, detail, kwargs))
+            return self.result
+
+    loaded = []
+    primary = Reader([""])
+
+    def fallback_factory():
+        loaded.append("called")
+        return Reader(["3.500"])
+
+    reader = BlankFallbackOcrReader(primary, fallback_factory=fallback_factory)
+
+    assert reader.fallback_loaded is False
+    assert reader.fallback_load_count == 0
+    assert reader.readtext("image-array", detail=0) == ["3.500"]
+    assert loaded == ["called"]
+    assert reader.fallback_loaded is True
+    assert reader.fallback_load_count == 1
+    assert reader.fallback_init_ms is not None
+
+
 def test_reader_engine_metadata_reports_paddle_fallback_state():
     reader = BlankFallbackOcrReader(object(), object())
     reader.fallback_count = 2
@@ -102,6 +130,9 @@ def test_reader_engine_metadata_reports_paddle_fallback_state():
         "ocr_fallback_enabled": True,
         "ocr_fallback_engine": "easyocr",
         "ocr_fallback_count": 2,
+        "ocr_fallback_loaded": True,
+        "ocr_fallback_load_count": 1,
+        "ocr_fallback_init_ms": None,
     }
 
 

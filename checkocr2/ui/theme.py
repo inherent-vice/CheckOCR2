@@ -134,6 +134,7 @@ class ThemeManager:
             "justify",
             "anchor",
             "wrap",
+            "style",
         }
 
         for widget, style_map in list(self.themed_widgets.items()):
@@ -145,8 +146,10 @@ class ThemeManager:
             for tk_prop, value in style_map.items():
                 if tk_prop in non_color_props:
                     config_options[tk_prop] = value
+                elif isinstance(value, str) and value in self.colors:
+                    config_options[tk_prop] = self.colors[value]
                 else:
-                    config_options[tk_prop] = self.get_color(value)
+                    config_options[tk_prop] = value
 
             if config_options:
                 try:

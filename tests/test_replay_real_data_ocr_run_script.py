@@ -71,7 +71,7 @@ def test_replay_real_data_ocr_run_writes_workbook_and_report(tmp_path):
     header = list(values[0])
     row = dict(zip(header, values[1], strict=True))
     assert row[DATE_COL] == "2026/05/13"
-    assert row[RATE_COL] == "3.500"
+    assert row[RATE_COL] == "3.5000"
     assert row[STATUS_COL] == STATUS_DONE
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -79,7 +79,7 @@ def test_replay_real_data_ocr_run_writes_workbook_and_report(tmp_path):
     assert report["settings"]["engine"] == "easyocr"
     assert report["summary"]["processed_count"] == 1
     assert report["rows"][0]["date"] == "2026/05/13"
-    assert report["rows"][0]["rate"] == "3.500"
+    assert report["rows"][0]["rate"] == "3.5000"
     assert reader.calls[0]["kwargs"]["allowlist"] is not None
 
 
@@ -141,7 +141,7 @@ def test_replay_real_data_ocr_run_uses_pipeline_reader_for_rate_fields(
     header = list(values[0])
     row = dict(zip(header, values[1], strict=True))
     assert row[DATE_COL] == "2026/05/13"
-    assert row[RATE_COL] == "3.500"
+    assert row[RATE_COL] == "3.5000"
     assert row[STATUS_COL] == STATUS_DONE
 
 

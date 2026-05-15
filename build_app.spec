@@ -55,6 +55,19 @@ if paddle_package:
             paddle_datas.extend(copy_metadata(distribution_name))
         except Exception:
             pass
+    model_cache_root = os.environ.get(
+        'PADDLE_PDX_CACHE_HOME',
+        os.path.join(os.path.expanduser('~'), '.paddlex'),
+    )
+    model_names = [
+        name.strip()
+        for name in os.environ.get('CHECKOCR2_PACKAGE_PADDLE_MODELS', '').split(',')
+        if name.strip()
+    ]
+    for model_name in model_names:
+        model_dir = os.path.join(model_cache_root, 'official_models', model_name)
+        if os.path.isdir(model_dir):
+            paddle_datas.append((model_dir, os.path.join('checkocr2', 'paddle_models', model_name)))
 
 # 추가 데이터 파일들
 added_files = [

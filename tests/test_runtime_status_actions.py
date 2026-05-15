@@ -60,6 +60,7 @@ def test_set_runtime_state_updates_buttons_and_writes_package_status(monkeypatch
     app = FakeApp(reader=object())
     written = []
     monkeypatch.setenv(PACKAGE_SMOKE_STATUS_FILE_ENV, "status.json")
+    monkeypatch.setattr(runtime_status_actions, "record_startup_event", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         runtime_status_actions,
         "write_package_smoke_status",
@@ -75,21 +76,21 @@ def test_set_runtime_state_updates_buttons_and_writes_package_status(monkeypatch
         "text": ui_state.run_button_text,
     }
     assert app.stop_btn.last_config == {"state": ui_state.stop_button_state}
-    assert written == [
-        (
-            "status.json",
-            {
-                "runtime_state": RuntimeState.RUNNING,
-                "ocr_ready": True,
-                "settings_file": Path("settings.json"),
-                "requested_ocr_engine": "easyocr",
-                "actual_ocr_engine": None,
-                "ocr_fallback_enabled": False,
-                "ocr_fallback_engine": None,
-                "ocr_fallback_count": 0,
-            },
-        )
-    ]
+    assert written[0][0] == "status.json"
+    assert written[0][1] == {
+        "runtime_state": RuntimeState.RUNNING,
+        "ocr_ready": True,
+        "settings_file": Path("settings.json"),
+        "requested_ocr_engine": "easyocr",
+        "actual_ocr_engine": None,
+        "ocr_fallback_enabled": False,
+        "ocr_fallback_engine": None,
+        "ocr_fallback_count": 0,
+        "ocr_fallback_loaded": False,
+        "ocr_fallback_load_count": 0,
+        "ocr_fallback_init_ms": None,
+        "startup_trace_file": runtime_status_actions.startup_trace_path(),
+    }
 
 
 def test_set_runtime_state_without_run_button_still_writes_package_status(monkeypatch):
@@ -97,6 +98,7 @@ def test_set_runtime_state_without_run_button_still_writes_package_status(monkey
     app.run_btn = None
     written = []
     monkeypatch.setenv(PACKAGE_SMOKE_STATUS_FILE_ENV, "status.json")
+    monkeypatch.setattr(runtime_status_actions, "record_startup_event", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         runtime_status_actions,
         "write_package_smoke_status",
@@ -115,6 +117,7 @@ def test_set_runtime_state_without_smoke_env_does_not_require_workflow_manager(m
     app = FakeApp(reader=None)
     del app.ocr_workflow_manager
     monkeypatch.delenv(PACKAGE_SMOKE_STATUS_FILE_ENV, raising=False)
+    monkeypatch.setattr(runtime_status_actions, "record_startup_event", lambda *args, **kwargs: None)
 
     runtime_status_actions.set_runtime_state(app, RuntimeState.READY)
 
