@@ -37,6 +37,9 @@ class FakeEntry(FakeWidget):
 class FakeButton(FakeWidget):
     created = []
 
+    def bind(self, sequence, func, add=None):
+        pass
+
 
 class FakeThemeManager:
     def __init__(self):
