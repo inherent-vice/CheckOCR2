@@ -13,6 +13,7 @@ class FakeWidget:
         self.kwargs = kwargs
         self.pack_calls = []
         self.configure_calls = []
+        self.bind_calls = []
         self.__class__.created.append(self)
 
     def pack(self, **kwargs):
@@ -20,6 +21,9 @@ class FakeWidget:
 
     def configure(self, **kwargs):
         self.configure_calls.append(kwargs)
+
+    def bind(self, event, handler):
+        self.bind_calls.append((event, handler))
 
 
 class FakeFrame(FakeWidget):
