@@ -5,6 +5,8 @@ from __future__ import annotations
 import tkinter as tk
 from typing import Protocol
 
+from checkocr2.ui.tooltip import ToolTip
+
 
 class ThemeManagerLike(Protocol):
     def register_widget(self, widget: object, style_config: dict[str, object]) -> None:
@@ -141,3 +143,4 @@ def create_file_panel(app: FilePanelHost, parent: object) -> None:
         {"bg": "primary", "fg": "white", "activebackground": "dark"},
     )
     app.open_folder_btn.pack(side="left", padx=(5, 0))
+    ToolTip(app.open_folder_btn, "출력 폴더 열기")
