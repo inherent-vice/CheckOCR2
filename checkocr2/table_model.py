@@ -156,11 +156,26 @@ def grid_row_tags(
 
 
 def summarize_grid_rows(rows: list[dict[str, str]]) -> GridStatusSummary:
+    """Summarize the status of all rows in a single pass."""
+    total = len(rows)
+    completed = 0
+    waiting = 0
+    errors = 0
+
+    for row in rows:
+        status = row.get(STATUS_COL, "")
+        if status == STATUS_DONE:
+            completed += 1
+        elif status == STATUS_WAITING:
+            waiting += 1
+        elif status_is_error(status):
+            errors += 1
+
     return GridStatusSummary(
-        total=len(rows),
-        completed=sum(1 for row in rows if row.get(STATUS_COL, "") == STATUS_DONE),
-        waiting=sum(1 for row in rows if row.get(STATUS_COL, "") == STATUS_WAITING),
-        errors=sum(1 for row in rows if status_is_error(row.get(STATUS_COL, ""))),
+        total=total,
+        completed=completed,
+        waiting=waiting,
+        errors=errors,
     )
 
 
