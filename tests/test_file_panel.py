@@ -21,6 +21,9 @@ class FakeWidget:
     def configure(self, **kwargs):
         self.configure_calls.append(kwargs)
 
+    def bind(self, event, handler):
+        pass
+
 
 class FakeFrame(FakeWidget):
     created = []
